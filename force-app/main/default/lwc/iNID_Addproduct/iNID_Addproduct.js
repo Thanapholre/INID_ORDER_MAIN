@@ -26,7 +26,7 @@ export default class ProductTable extends LightningElement {
         Promise.all([
             loadScript(this, jquery + '/jquery.min.js'),
             loadScript(this, datatables + '/jquery.dataTables.min.js'),
-            loadStyle(this, datatables + '/jquery.dataTables.min.css')
+            loadStyle(this, datatables + '/jquery.dataTables.min.css'),
         ])
         .then(() => {
             this.initializeDataTable();
@@ -71,7 +71,9 @@ export default class ProductTable extends LightningElement {
                         newProduct.quantity,
                         newProduct.unit,
                         newProduct.total.toFixed(2),
-                        `<button class="addon-btn" data-id="${newProduct.materialCode}">Add</button>` // Add button with onclick
+                        `<button class="addon-btn" data-id="${newProduct.materialCode}">
+                            <span class="plus-icon">+</span>
+                        </button>` // Add button with onclick
                     ]).draw();
                 }
             }
@@ -96,6 +98,8 @@ export default class ProductTable extends LightningElement {
             const materialCode = event.currentTarget.dataset.id;
             this.showPopupFreeGood(materialCode);
             // log data
+
+            alert("Hello WOrld");
               
         });
     }
@@ -239,7 +243,6 @@ export default class ProductTable extends LightningElement {
     }
     
     updateDataTable() {
-        const table = this.template.querySelector('.product-table');
     
         if (!this.dataTableInstance) return;
     
@@ -297,5 +300,52 @@ export default class ProductTable extends LightningElement {
     
         this.dataTableInstance.draw(); // ✅ วาดตารางใหม่
     } 
+
+
+
+    // Delete Product Functio Here !
+
+    handleDeleteSelected() {
+        // 1. หา checkbox ที่เลือกไว้ใน DataTable
+        const table = this.template.querySelector('.product-table');
+        const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
+    
+        // 2. ดึง materialCode ที่ checkbox ถูกเลือก (ตาม row index ของ DataTables)
+        const selectedIds = [];
+    
+        checkboxes.forEach((checkbox, index) => {
+            // ค้นหา materialCode จริงจาก selectedProducts โดยใช้ index เดิม
+            const row = this.dataTableInstance.row(checkbox.closest('tr')).index();
+            const rowData = this.selectedProducts[row];
+    
+            if (rowData && rowData.materialCode) {
+                selectedIds.push(rowData.materialCode);
+            }
+        });
+    
+        // ถ้าไม่มีเลือกเลย
+        if (selectedIds.length === 0) {
+            alert('กรุณาเลือกแถวที่ต้องการลบ');
+            return;
+        }
+    
+        // แสดง Confirm
+        const confirmMsg = `คุณแน่ใจว่าต้องการลบรายการต่อไปนี้?\n${selectedIds.join(', ')}`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+    
+        // ลบจาก selectedProducts
+        this.selectedProducts = this.selectedProducts.filter(
+            p => !selectedIds.includes(p.materialCode) //  
+        );
+    
+        //  อัปเดตตาราง
+        this.updateDataTable();
+    
+        // แจ้งเตือนสำเร็จ
+        alert(`ลบ ${selectedIds.length} รายการเรียบร้อยแล้ว`);
+    }
+    
 }
 

@@ -90,7 +90,7 @@ th , td {
     font-size: 14px;
 }
 
-.addon-btn-circle {
+.addon-btn {
     width: 36px;
     height: 36px;
     border: 2px solid #888; 
@@ -108,7 +108,7 @@ th , td {
     padding: 0;
 }
 
-.addon-btn-circle:disabled {
+.addon-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
@@ -167,6 +167,38 @@ th , td {
     list-style: none;
     padding: 0;
 }
+
+
+.addon-btn {
+    background-color: #007bff;        /* สีพื้นหลังน้ำเงิน */
+    color: white;                     /* สีตัวอักษร */
+    border: none;                     /* ไม่มีเส้นขอบ */
+    border-radius: 6px;               /* มุมโค้ง */
+    padding: 6px 12px;                /* ขนาดภายใน */
+    cursor: pointer;                  /* เปลี่ยนเมาส์เป็น pointer */
+    font-size: 16px;                  /* ขนาดตัวอักษร */
+    display: inline-flex;             /* จัดแนวไอคอนกับข้อความ */
+    align-items: center;              /* จัดแนวดิ่ง */
+    justify-content: center;          /* จัดแนวนอน */
+    transition: background-color 0.2s ease;
+}
+
+.addon-btn:hover {
+    background-color: #0056b3;        /* สีเมื่อ hover */
+}
+
+.addon-btn:disabled {
+    background-color: #cccccc;        /* สีเมื่อ disabled */
+    cursor: not-allowed;
+}
+
+.plus-icon {
+    font-weight: bold;
+    font-size: 18px;
+    line-height: 1;
+}
+
+
 
 /* Responsive for tablets (iPad) */
 @media only screen and (max-width: 1024px) {
