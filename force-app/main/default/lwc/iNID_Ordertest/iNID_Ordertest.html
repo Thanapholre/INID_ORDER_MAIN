@@ -1,0 +1,72 @@
+<template>
+    <lightning-quick-action-panel header="Create Order" class="title_order" >
+        <lightning-card class="slds-m-around_medium main_order ">
+            <div class="slds-m-around_medium main ">
+                <lightning-input
+                    name="search"
+                    label="Customer"
+                    type="search"
+                    value={searchTerm}
+                    onchange={handleInput}
+                    onfocus={handleInput}
+                    onblur={handleBlur}
+                    onkeydown={keyDownDisplayCustomer}
+                    required
+                    >
+                </lightning-input>
+            </div>
+                
+            <!-- Display the customer options in a dropdown -->
+            <div class="main" >
+                <template if:true={showDropdown}>
+                    <div class="dropdown container_dropdown">
+                        <template for:each={filteredCustomerOptions} for:item="cust">
+                            <div key={cust.Id} class="dropdown-item edit_dropdown" data-id={cust.Id} data-name={cust.Name} onclick={handleSelectCustomer}>
+                                {cust.Id} {cust.Name}
+                            </div>
+                        </template>
+                    </div>
+                </template> 
+            </div>
+                
+
+            <lightning-input class="main" label="Bill To" value={billto} type="text" required></lightning-input>
+            <lightning-input class="main" label="Ship To" value={shipto} type="text" required></lightning-input>
+            <lightning-combobox class="configure_placeholder main" name={progress} label="Organization" value={organizationValue} placeholder="" options={organizationOption}  onchange={organizationHandleChange} required></lightning-combobox>
+            <lightning-combobox class="configure_placeholder main" name={progress} label="Payment Type" value={paymentTypeValue} placeholder="" options={paymentTypeOption}  onchange={paymentTypeHandleChange} required></lightning-combobox>
+            <lightning-combobox class="configure_placeholder main" name={progress} label="Payment Term" value={paymentTermValue} placeholder="" options={paymentTermOption}  onchange={paymentTermHandleChange} required></lightning-combobox>
+            <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" required></lightning-input>
+            <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
+            <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
+
+            <!-- Check_box -->
+            <div class="Checkbox">
+                <lightning-input 
+                    checked="true"
+                    type="checkbox" 
+                    label={checkboxLabel1} 
+                    value="1" 
+                    onchange={handleChange} 
+                    class="checkbox-spacing">
+                </lightning-input>
+            </div>
+            
+            <div>
+                <lightning-input 
+                    type="checkbox" 
+                    label={checkboxLabel1} 
+                    value="1" 
+                    onchange={handleChange} 
+                    class="checkbox-spacing">
+                </lightning-input>
+            </div>
+            
+            
+        </lightning-card>
+
+        <div slot="footer">
+            <lightning-button class="btnSubmit" variant="Neutral" label="Cancel"></lightning-button>
+            <lightning-button class="btnSubmit" variant="brand" label="Save"></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>     

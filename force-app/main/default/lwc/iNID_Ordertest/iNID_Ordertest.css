@@ -1,0 +1,107 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.title_order{
+    font-size: 20px;
+    /* background-color: #f0f0f0; */
+}
+
+.main{
+    margin: 10px 0 ;
+}
+
+.main:first-of-type {
+    margin: 5px 0 !important;
+}
+
+.main_order {
+    font-size: 14px !important;
+}
+
+.configure_button {
+    font-size: 16px;
+    /* margin-right: ; */
+}
+
+/* ::deep(.slds-checkbox) {
+    margin-right: 18px;
+} */
+
+.save {
+    --slds-c-button-brand-color-background: #066AFE;
+    --slds-c-button-brand-color-border: #066AFE;
+    --slds-c-button-brand-text-color: white;
+}
+
+.cancel {
+    margin-right: 8px;
+    --slds-c-button-brand-color-background: #f4f6f9;
+    --slds-c-button-brand-color-border: #5C5C5C;
+    --slds-c-button-brand-text-color: #066AFE;
+}
+
+.cancel:hover {
+    /* background-color: none; */
+    --slds-c-button-brand-color-background: none;
+}
+
+
+/* dropdown container */
+.dropdown.container_dropdown {
+    color: #083378;
+    position: absolute;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dcdcdc;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 0.5rem;
+    z-index: 1000;
+}
+
+/* individual dropdown item */
+.dropdown-item.edit_dropdown {
+    padding: 0.5rem 3rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+/* last item no border */
+.edit_dropdown:last-child {
+    border-bottom: none;
+}
+
+
+.edit_dropdown:hover {
+    background-color: #d6e4f5;
+    /* color: #0070d2; */
+}
+
+
+.btnSubmit{
+    margin-left: 8px;
+    font-size: 14px;
+}
+
+.slds-form-element__control .slds-radio, .slds-form-element__control .slds-checkbox {
+    margin-bottom: 20px !important;
+}
+
+.slds-checkbox {
+    margin-bottom: 0.5rem;
+    border: 1px dashed red; /* debug เท่านั้น */
+}
+
+.Checkbox{
+    margin: 10px 0;
+}
+
+
+
+
+  
+
