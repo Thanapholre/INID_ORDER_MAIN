@@ -19,6 +19,7 @@ export default class ProductTable extends LightningElement {
         { materialCode: '1000000004', description: 'ALLORA 5 MG.TAB.1X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' }
     ];
 
+    // โหลด DataTable
     renderedCallback() {
         if (this.datatablesInitialized) return;
         this.datatablesInitialized = true;
@@ -36,6 +37,7 @@ export default class ProductTable extends LightningElement {
         });
     }
 
+    // ค้นหาสินค้าแบบ live Search
     handleInputProduct(event) {
         this.searchProductTerm = event.target.value;
         if (this.searchProductTerm.length > 2) {
@@ -49,9 +51,10 @@ export default class ProductTable extends LightningElement {
         }
     }
 
+    // handleSelectProduct เก็บข้อมูลที่เลือก และแสดงใน DataTable
     handleSelectProduct(event) {
-        const materialCode = event.currentTarget.dataset.id;
-        const existing = this.selectedProducts.find(p => p.materialCode === materialCode);
+        const materialCode = event.currentTarget.dataset.id; // get materialCode from data-id
+        const existing = this.selectedProducts.find(p => p.materialCode === materialCode); // เช็คว่ามีอยู่แล้วหรือไม่ป้องกันซ้ำ
         if (!existing) {
             const selected = this.productOption.find(p => p.materialCode === materialCode);
             if (selected) {
@@ -73,7 +76,7 @@ export default class ProductTable extends LightningElement {
                         newProduct.total.toFixed(2),
                         `<button class="addon-btn" data-id="${newProduct.materialCode}">
                             <span class="plus-icon">+</span>
-                        </button>` // Add button with onclick
+                        </button>` // Button column Add On
                     ]).draw();
                 }
             }
@@ -83,9 +86,10 @@ export default class ProductTable extends LightningElement {
         this.showProductDropdown = false;
     }
 
+    //ใช้งาน DataTable ใน LWC  Disable ส่วนต่างๆของ DataTable ในฟังก์ชันนี้
     initializeDataTable() {
         const table = this.template.querySelector('.product-table');
-        // eslint-disable-next-line no-undef
+        //ใช้ JQuery เพื่อให้ DataTable ทำงานได้
         this.dataTableInstance = $(table).DataTable({
             searching: false, // Disable search
             paging: false,    // Disable pagination
@@ -104,10 +108,11 @@ export default class ProductTable extends LightningElement {
         });
     }
 
+    // Checkbox Select All
     handleSelectAll(event) {
-        const isChecked = event.target.checked;
+        const isChecked = event.target.checked; //get the checked status of the checkbox
         const checkboxes = this.template.querySelectorAll('tbody input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
+        checkboxes.forEach(checkbox => { // loop ผ่าน checkbox ทั้งหมดเพื่อเช็คว่าเป็น checked หรือไม่
             checkbox.checked = isChecked;
         });
         event.preventDefault()
@@ -134,23 +139,24 @@ export default class ProductTable extends LightningElement {
 
       @track currentMaterialCodeForAddOn = ''; // เก็บรหัสสินค้าที่กด Add On
   
-  
+        // ฟังก์ชั่นในการยกเลิกการเลือกสินค้า
       handleRemoveProduct(event) {
-          const code = event.currentTarget.dataset.id;
-          this.selectedProducts = this.selectedProducts.filter(p => p.materialCode !== code);
+          const code = event.currentTarget.dataset.id; //ดึงรหัสสินค้าจาก data-id
+          this.selectedProducts = this.selectedProducts.filter(p => p.materialCode !== code);//สร้างอาเรย์ใหม่ที่ไม่มีรหัสสินค้าที่เลือก
       }
      
+      // ฟังก์ชั่นในการแสดง Popup FreeGood
       showPopupFreeGood(materialCode) {
             this.currentMaterialCodeForAddOn = materialCode;
             this.isPopupOpenFreeGood = true;
       }
-  
+        // ฟังก์ชั่นในการปิด Popup FreeGood
       closePopupFreeGood() {
           this.isPopupOpenFreeGood = false;
       }
-  
+      // ฟังก์ชั่นในการแก้ไขค่าใน Select
       handleChangeFreeGoods(event) {
-          this.selectedValue = event.detail.value;
+          this.selectedValue = event.detail.value; // 
           this.selectedLabel = event.detail.label ;
       }
   
@@ -164,22 +170,25 @@ export default class ProductTable extends LightningElement {
     // บันทึกค่า
     @track addonSelections = []; // เก็บรายการ Add-on ที่ถูกกด Save
    
-    //   show pop up product
+    // save function Add On
     handleSave() {
-        const matchedProduct = this.productOption.find(
+        const matchedProduct = this.productOption.find( //เช็คว่า materialCode ไหนตรงกับ currentMaterialCodeForAddOn
             p => p.materialCode === this.currentMaterialCodeForAddOn
         );
-    
+
+     //ถ้าไม่พบสินค้า ที่ตรงกันให้ return ออกจากฟังก์ชัน
         if (!matchedProduct) {
             return;
         }
-    
+        
         const selectedOption = this.options.find(opt => opt.value === this.selectedValue);
         const addonLabel = selectedOption ? selectedOption.label : 'ของแถม';
     
         let addonProduct;
-    
+
+        // ถ้าเป็นส่วนลด ให้คำนวณส่วนลด 10% ของราคาสินค้า
         if (addonLabel === 'ส่วนลด') {
+            // คำนวณส่วนลด 10% ของราคาสินค้า
             const discountPercent = 10;
             const mainTotal = matchedProduct.salePrice * matchedProduct.quantity;
             const discountValue = (mainTotal * discountPercent / 100).toFixed(2);
@@ -206,11 +215,13 @@ export default class ProductTable extends LightningElement {
                 isDiscount: false
             };
         }
-    
+        
+        // เช็คว่า mainIndex มีอยู่ใน selectedProducts หรือไม่
+        // ถ้ามีให้หาตำแหน่งที่ต้องการแทรก Add-on
         const mainIndex = this.selectedProducts.findIndex(
             p => p.materialCode === this.currentMaterialCodeForAddOn
         );
-    
+        
         if (mainIndex !== -1) {
             let insertIndex = mainIndex + 1;
             while (
