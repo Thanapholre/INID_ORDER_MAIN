@@ -3,7 +3,7 @@
 
         <!-- Start Section การ Search Product -->
         <lightning-card>
-            <div class="slds-m-around_medium product">
+            <div class="slds-m-around_medium product main_product">
                 <lightning-input
                     placeholder="Search..."
                     type="search"
@@ -34,13 +34,13 @@
 
         <!-- Start Data Table Of Product -->
 
-        <div class="datatable-container slds-m-top_medium">
+        <div class="datatable-container slds-m-top_medium main_product">
             <table class="display product-table product cell-border">
                 <thead>
                     <tr>
                         <th style="text-align: center;" ><lightning-input type="checkbox" label="Select All" onchange={handleSelectAll}></lightning-input></th>
                         <th style="text-align: center;">Material Code</th>
-                        <th style="text-align: center;">Description</th>
+                        <th style="text-align: center;">SKU Description</th>
                         <th style="text-align: center;">Unit Price</th>
                         <th style="text-align: center;">Sale Price</th>
                         <th style="text-align: center;">Quantity</th>
@@ -59,7 +59,7 @@
 
         <!-- Start Section Add On Popup Modal Free Goods -->
         <template if:true={isPopupOpenFreeGood}>
-            <section role="dialog" class="slds-modal slds-fade-in-open">
+            <section role="dialog" class="slds-modal slds-fade-in-open main_product">
                 <div class="slds-modal__container">
                     <header class="slds-modal__header">
                         <h2 class="slds-text-heading_medium">Add on ..</h2>
@@ -111,7 +111,7 @@
         <!-- End Section Add On Popup Modal Free Goods -->
 
         <!-- Start Footer Quick Action Panel -->
-        <div slot="footer" class="btnProduct">
+        <div slot="footer" class="btnProduct main_product">
             <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
             <lightning-button variant="neutral" label="Cancel" onclick={handleAddProductClick}></lightning-button>
             <lightning-button variant="brand" label="Next" onclick={handleAddProductClick}></lightning-button>

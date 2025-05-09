@@ -4,6 +4,14 @@
     box-sizing: border-box;
 }
 
+.main_product {
+    font-size: 14px !important;
+}
+
+.title_product{
+    font-size: 20px;
+}
+
 
 /* Start Section Search Product */
 
@@ -38,6 +46,7 @@
 .dropdown-list li:hover {
     background-color: #d6e4f5;
 }
+
 
 
 /* End Section Search Product */

@@ -1,0 +1,45 @@
+*{
+    margin: 0;
+    padding: 0; 
+    box-sizing: border-box;
+}
+
+.title_product{
+    font-size: 20px;
+}
+
+.main_product {
+    font-size: 14px !important;
+}
+
+table {
+    border-radius: 5px ;
+    border: 2px solid #c9c9c9;
+    overflow-x: scroll;
+    margin-top:30px;
+}
+
+th{ 
+    font-size: 14px;
+    border: 2px solid #c9c9c9;
+    text-align: center;
+    padding: 5px 0;
+}
+
+td {
+    border: 2px solid #c9c9c9;
+    padding: 5px 8px;
+}
+
+th , td {
+    font-size: 14px;
+}
+
+.btnProduct {
+    margin-top: 30px;
+    font-size: 16px;
+    display: flex;
+    justify-content: end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
