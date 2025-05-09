@@ -1,47 +1,52 @@
 <template>
-    <lightning-quick-action-panel header="Add Product Test" class="title_product">
-        <!-- Search Product -->
-        <div>
-            <lightning-card title="Search Product">
-                <div class="slds-m-around_medium product">
-                    <lightning-input
-                        placeholder="Search..."
-                        type="search"
-                        value={searchProductTerm}
-                        onchange={handleInputProduct}
-                        onfocus={handleInputProduct}>
-                    </lightning-input>
-                </div>
-    
-                <template if:true={showProductDropdown}>
-                    <ul class="dropdown-list">
-                        <template for:each={filteredProductOptions} for:item="prod">
-                            <li key={prod.materialCode}
-                                data-id={prod.materialCode}
-                                onclick={handleSelectProduct}>
-                                {prod.materialCode} {prod.description}
-                            </li>
-                        </template>
-                    </ul>
-                </template>
-            </lightning-card>
-        </div>
-    <!-- Search Product End -->
+    <lightning-quick-action-panel header="Add Product (INID_Addproduct_Test)" class="title_product">
 
-     <!--Table Product -->
+        <!-- Start Section การ Search Product -->
+        <lightning-card>
+            <div class="slds-m-around_medium product">
+                <lightning-input
+                    placeholder="Search..."
+                    type="search"
+                    value={searchProductTerm}
+                    onchange={handleInputProduct}
+                    onfocus={handleInputProduct}>
+                </lightning-input>
+            </div>
+
+            <!-- Dropdown Product -->
+            <template if:true={showProductDropdown}>
+                <ul class="dropdown-list">
+                    <template for:each={filteredProductOptions} for:item="prod">
+                        <li key={prod.materialCode}
+                            data-id={prod.materialCode}
+                            onclick={handleSelectProduct}>
+                            {prod.materialCode} {prod.description}
+                        </li>
+                    </template>
+                </ul>
+            </template>
+        </lightning-card>
+
+        <!-- End Section การ Search Product -->
+
+        <!-- #################################################################################################################### -->
+
+
+        <!-- Start Data Table Of Product -->
+
         <div class="datatable-container slds-m-top_medium">
-            <table class="display product-table product">
+            <table class="display product-table product cell-border">
                 <thead>
                     <tr>
-                        <th><lightning-input type="checkbox" label="Select All" onchange={handleSelectAll}></lightning-input></th>
-                        <th>Material Code</th>
-                        <th>Description</th>
-                        <th>Unit Price</th>
-                        <th>Sale Price</th>
-                        <th>Quantity</th>
-                        <th>Unit</th>
-                        <th>Total</th>
-                        <th>Add On</th>
+                        <th style="text-align: center;" ><lightning-input type="checkbox" label="Select All" onchange={handleSelectAll}></lightning-input></th>
+                        <th style="text-align: center;">Material Code</th>
+                        <th style="text-align: center;">Description</th>
+                        <th style="text-align: center;">Unit Price</th>
+                        <th style="text-align: center;">Sale Price</th>
+                        <th style="text-align: center;">Quantity</th>
+                        <th style="text-align: center;">Unit</th>
+                        <th style="text-align: center;">Total</th>
+                        <th style="text-align: center;" class="btn">Add On</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,42 +54,71 @@
                 </tbody>
             </table>
         </div>
-        <!-- Table Product End -->
+        <!-- End Data Table Of Product -->
+        <!-- #################################################################################################################### -->
 
-        <!-- btn Footer -->
+        <!-- Start Section Add On Popup Modal Free Goods -->
+        <template if:true={isPopupOpenFreeGood}>
+            <section role="dialog" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-text-heading_medium">Add on ..</h2>
+                    </header>
+
+                    <!-- Add On Free Good Menu -->
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-combobox
+                            name="freeGoods"
+                            label="Free goods"
+                            placeholder=""
+                            options={options}
+                            value={selectedValue}
+                            onchange={handleChangeFreeGoods}
+                            >
+                        </lightning-combobox>
+                    
+                    <!-- Add On Product Menu -->
+                        <lightning-input
+                            placeholder="Search..."
+                            type="search"
+                            value={searchProductTermAddOn}
+                            onchange={handleInputProductAddOn}
+                            onfocus={handleInputProductAddOn}>
+                        </lightning-input>
+                    </div>
+
+                    <template if:true={showProductDropdownAddOn}>
+                        <ul class="dropdown-list">
+                            <template for:each={filteredProductOptions} for:item="prod">
+                                <li key={prod.materialCode}
+                                    data-id={prod.materialCode}
+                                    data-name={prod.description}
+                                    onclick={handleSelectProductAddOn}>
+                                    {prod.materialCode} {prod.description}
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <!-- Start Section Footer -->
+                    <footer class="slds-modal__footer">
+                        <lightning-button label="Cancel" onclick={closePopupFreeGood}></lightning-button>
+                        <lightning-button label="Save" onclick={handleSave} variant="brand"></lightning-button>
+                    </footer>
+                </div>
+            </section>
+        </template>
+        <!-- End Section Add On Popup Modal Free Goods -->
+
+        <!-- Start Footer Quick Action Panel -->
         <div slot="footer" class="btnProduct">
-            <lightning-button variant="brand" label="Delete" onclick={handleAddProductClick}></lightning-button>
+            <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
             <lightning-button variant="neutral" label="Cancel" onclick={handleAddProductClick}></lightning-button>
             <lightning-button variant="brand" label="Next" onclick={handleAddProductClick}></lightning-button>
         </div>
-        <!-- btn Footer End-->
-    </lightning-quick-action-panel>
+        <!-- End Footer Quick Action Panel -->
 
-    <!-- Add On Popup Modal Free Goods -->
-    <template if:true={isPopupOpenFreeGood}>
-        <section role="dialog" class="slds-modal slds-fade-in-open">
-            <div class="slds-modal__container">
-                <header class="slds-modal__header">
-                    <h2 class="slds-text-heading_medium">Add on</h2>
-                </header>
-                <div class="slds-modal__content slds-p-around_medium">
-                    <lightning-combobox
-                        name="freeGoods"
-                        label="Free goods"
-                        placeholder=""
-                        options={options}
-                        value={selectedValue}
-                        onchange={handleChangeFreeGoods}
-                        >
-                    </lightning-combobox>
-                </div>
-                
-                <footer class="slds-modal__footer">
-                    <lightning-button label="Cancel" onclick={closePopupFreeGood}></lightning-button>
-                    <lightning-button label="Save" onclick={handleSave} variant="brand"></lightning-button>
-                </footer>
-            </div>
-        </section>
-    </template>
-     <!-- Add On Popup Modal Free Goods End-->
+
+
+    </lightning-quick-action-panel>
 </template>
