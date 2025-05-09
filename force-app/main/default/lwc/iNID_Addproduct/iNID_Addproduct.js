@@ -74,9 +74,21 @@ export default class ProductTable extends LightningElement {
                         newProduct.quantity,
                         newProduct.unit,
                         newProduct.total.toFixed(2),
-                        `<button class="addon-btn" data-id="${newProduct.materialCode}">
-                            <span class="plus-icon">+</span>
-                        </button>` // Button column Add On
+                        `<button 
+                                style="
+                                width:40px;
+                                height:40px;
+                                border-radius:50%;
+                                border:1px solid #ccc;
+                                background-color:white;
+                                color:#007bff;
+                                font-size:24px;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                margin: auto;
+                                cursor:pointer;"
+                class="addon-btn" data-id="${newProduct.materialCode}">+</button>` // Button column Add On
                     ]).draw();
                 }
             }
@@ -94,7 +106,19 @@ export default class ProductTable extends LightningElement {
             searching: false, // Disable search
             paging: false,    // Disable pagination
             ordering: false,  // Disable column ordering
-            info: false       // Disable table info
+            info: false ,      // Disable table info
+            responsive: true ,
+            scrollX: false , 
+            columnDefs: [
+                {
+                    targets: 0, // First column
+                    width: '10px' // Set width for the first column
+                },
+                {
+                    targets: 1, // Second column
+                    width: '100px' // Set width for the second column
+                }
+            ]
         });
 
         // Add delegated click handler for .addon-btn
@@ -116,7 +140,7 @@ export default class ProductTable extends LightningElement {
             checkbox.checked = isChecked;
         });
         event.preventDefault()
-        
+
     }
 
 
@@ -254,10 +278,9 @@ export default class ProductTable extends LightningElement {
     }
     
     updateDataTable() {
-    
         if (!this.dataTableInstance) return;
     
-        this.dataTableInstance.clear(); // ✅ ล้างแถวแบบปลอดภัยผ่าน DataTables
+        this.dataTableInstance.clear(); // ✅ ล้างแถว
     
         this.selectedProducts.forEach(product => {
             const addonLabel = product.addonLabel || '';
@@ -277,23 +300,52 @@ export default class ProductTable extends LightningElement {
             const disableAdd = hasNormalAddon || hasDiscountAddon || product.salePrice === 0;
     
             const addButton = addonLabel === '' && !disableAdd
-                ? `<button class="addon-btn" data-id="${product.materialCode}">Add</button>`
-                : `<button class="addon-btn" data-id="${product.materialCode}" disabled>Add</button>`;
+                ? `<button 
+                    style="
+                        width:40px;
+                        height:40px;
+                        border-radius:50%;
+                        border:1px solid #ccc;
+                        background-color:white;
+                        color:#007bff;
+                        font-size:24px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        margin: auto;
+                        cursor:pointer;"
+                    class="addon-btn" data-id="${product.materialCode}">+</button>`
+                : `<button 
+                    style="
+                        width:40px;
+                        height:40px;
+                        border-radius:50%;
+                        border:1px solid #ccc;
+                        background-color:white;
+                        color:#007bff;
+                        font-size:24px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        cursor:pointer"
+                    class="addon-btn" data-id="${product.materialCode}" >+</button>`;
     
-            let rowData;
-    
-            if (isDiscount) {
-                rowData = [
-                    `<input type="checkbox" />`,
-                    '', '', '', // skip materialCode/desc/unitPrice
-                    'ส่วนลด (%)',
-                    product.discountPercent,
-                    '-',
-                    product.discountValue,
-                    'ส่วนลด'
-                ];
-            } else {
-                rowData = [
+                    if (isDiscount) {
+                        const $row = $(`
+                            <tr class="discount-row">
+                                <td><input type="checkbox" /></td>       
+                                <td colspan="3"></td>                     
+                                <td style="text-align: right;">ส่วนลด (%)</td>
+                                <td style="text-align: center;">10%</td>         
+                                <td style="text-align: right;">150.00</td>     
+                                <td style="text-align: center;">ส่วนลด</td>      
+                                <td colspan="4"></td>                      
+                            </tr>
+                        `);
+                        this.dataTableInstance.row.add($row[0]);
+                    }
+                     else {
+                const rowData = [
                     `<input type="checkbox" />`,
                     product.materialCode,
                     product.description,
@@ -302,15 +354,16 @@ export default class ProductTable extends LightningElement {
                     product.quantity,
                     product.unit,
                     product.total ? product.total.toFixed(2) : '0.00',
-                    addonLabel || addButton
+                    `<div style="display: flex; justify-content: center;">${addonLabel || addButton}</div>`
                 ];
-            }
     
-            this.dataTableInstance.row.add(rowData);
+                this.dataTableInstance.row.add(rowData);
+            }
         });
     
         this.dataTableInstance.draw(); // ✅ วาดตารางใหม่
-    } 
+    }
+    
 
 
 

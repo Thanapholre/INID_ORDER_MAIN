@@ -94,7 +94,7 @@ th , td {
     width: 36px;
     height: 36px;
     border: 2px solid #888; 
-    border-radius: 50%;
+    border-radius: 100%;
     background: white;
     color: #007bff; 
     font-size: 20px;
@@ -111,6 +111,11 @@ th , td {
 .addon-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.plus-icon {
+    display: inline-block;
+    line-height: 32px;
 }
 
 
@@ -169,26 +174,26 @@ th , td {
 }
 
 
-.addon-btn {
-    background-color: #007bff;        /* สีพื้นหลังน้ำเงิน */
-    color: white;                     /* สีตัวอักษร */
-    border: none;                     /* ไม่มีเส้นขอบ */
-    border-radius: 6px;               /* มุมโค้ง */
-    padding: 6px 12px;                /* ขนาดภายใน */
-    cursor: pointer;                  /* เปลี่ยนเมาส์เป็น pointer */
-    font-size: 16px;                  /* ขนาดตัวอักษร */
-    display: inline-flex;             /* จัดแนวไอคอนกับข้อความ */
-    align-items: center;              /* จัดแนวดิ่ง */
-    justify-content: center;          /* จัดแนวนอน */
+/* .addon-btn {
+    background-color: #007bff;       
+    color: white;                  
+    border: none;                   
+    border-radius: 6px;               
+    padding: 6px 12px;                
+    cursor: pointer;                
+    font-size: 16px;                  
+    display: inline-flex;          
+    align-items: center;              
+    justify-content: center;         
     transition: background-color 0.2s ease;
 }
 
 .addon-btn:hover {
-    background-color: #0056b3;        /* สีเมื่อ hover */
+    background-color: #0056b3;        
 }
 
 .addon-btn:disabled {
-    background-color: #cccccc;        /* สีเมื่อ disabled */
+    background-color: #cccccc;     
     cursor: not-allowed;
 }
 
@@ -196,7 +201,12 @@ th , td {
     font-weight: bold;
     font-size: 18px;
     line-height: 1;
+} */
+
+.btn{
+    justify-items: center;
 }
+
 
 
 
