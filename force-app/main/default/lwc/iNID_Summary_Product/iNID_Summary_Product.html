@@ -1,3 +1,42 @@
 <template>
-    
+    <lightning-quick-action-panel header="Summary Product (INID Summary Prouct)" class="title">
+
+        <!-- Start Table Summary Product -->
+        <div class="datatable-container slds-m-top_medium main_product">
+            <table class="display product-table product cell-border">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;" ><lightning-input type="checkbox" label="Select All" onchange={handleSelectAll}></lightning-input></th>
+                        <th style="text-align: center;">Material Code</th>
+                        <th style="text-align: center;">SKU Description</th>
+                        <th style="text-align: center;">Unit Price</th>
+                        <th style="text-align: center;">Sale Price</th>
+                        <th style="text-align: center;">Quantity</th>
+                        <th style="text-align: center;">Unit</th>
+                        <th style="text-align: center;">Total</th>
+                        <th style="text-align: center;">Remark</th>
+                        <th style="text-align: center;">Net Price</th>
+                        <th style="text-align: center;" class="btn">Add On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table rows will be added using DataTables -->
+                </tbody>
+            </table>
+        </div>
+        <!-- End Table SUmmary Product -->
+
+
+
+        <!-- Start Footer Quick Action Panel -->
+        <div slot="footer" class="btnProduct main_product">
+            <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
+            <lightning-button variant="neutral" label="Cancel" onclick={handleAddProductClick}></lightning-button>
+            <lightning-button variant="brand" label="Next" onclick={handleAddProductClick}></lightning-button>
+        </div>
+        <!-- End Footer Quick Action Panel -->
+
+
+
+    </lightning-quick-action-panel>
 </template>

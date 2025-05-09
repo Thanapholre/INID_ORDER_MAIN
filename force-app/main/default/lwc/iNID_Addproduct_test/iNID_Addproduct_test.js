@@ -324,4 +324,29 @@ export default class INID_Addproduct_test extends LightningElement {
         this.dataTableInstance.draw();
     }
     // End Add On Section
+
+
+    //handleDeleteSelected
+    handleDeleteSelected(){
+        const table = this.template.querySelector('.product-table');
+        const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
+
+        const selectedIds = [];
+
+        checkboxes.forEach((checkbox, index ) => {
+            const row = this.dataTableInstance.row(checkbox.closest('tr'));
+            const rowData = this.selectedProducts[row];
+        
+        if (rowData && rowData.materialCode) {
+            selectedIds.push(rowData.materialCode);
+        }
+    });
+
+    if (selectedIds.length === 0) {
+        alert('กรุณาเลือกรายการที่ต้องการลบ');
+        return;
+    }
+    const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
 }
+}
+ 
