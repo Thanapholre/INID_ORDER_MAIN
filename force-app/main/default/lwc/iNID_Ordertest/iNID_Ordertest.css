@@ -1,5 +1,10 @@
 /* Start Order CSS */
-
+.custom-quick-action-panel::part(header) {
+    text-align: left !important ;
+    color: #00256e !important;
+    font-weight: bold !important;
+    font-size: 1.2rem !important;
+}
 
 *{
     margin: 0;
@@ -23,6 +28,13 @@
 .main_order {
     font-size: 14px !important;
 }
+
+.btn_next{
+        display: flex;
+        gap: 12px; /* หรือใช้ margin ก็ได้ */
+        justify-content: flex-end; /* ถ้าต้องการให้ปุ่มไปชิดขวา */
+        margin-top: 1rem;
+    }
 
 .configure_button {
     font-size: 16px;
@@ -128,7 +140,7 @@
 /* Start Section Search Product */
 
 .product {
-    padding:0 180px;
+    /* padding:0 180px; */
     margin-bottom: 30px;
 }
 

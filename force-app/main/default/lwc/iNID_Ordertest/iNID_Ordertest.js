@@ -119,7 +119,7 @@ export default class INID_Ordertest extends LightningElement {
     
         setTimeout(() => {
             const table = this.template.querySelector('.product-table');
-            if (!this.datatableInitialized && table) {
+            if (!this.dataTableInstanceAddProduct && table) {
                 Promise.all([
                     loadScript(this, jquery + '/jquery.min.js'),
                     loadScript(this, datatables + '/jquery.dataTables.min.js'),
@@ -127,12 +127,12 @@ export default class INID_Ordertest extends LightningElement {
                 ])
                 .then(() => {
                     this.initializeDataTable();
-                    this.datatableInitialized = true;
+                    this.dataTableInstanceAddProduct = true;
                     this.updateDataTable();
                 })
                 .catch(error => console.error('DataTables Load Error:', error));
             } else if (this.dataTableInstance) {
-                this.dataTableInstance.clear().draw();
+                this.dataTableInstanceAddProduct.clear().draw();
                 this.updateDataTable();
             }
         }, 50); // wait for DOM to be visible
@@ -143,31 +143,12 @@ export default class INID_Ordertest extends LightningElement {
         this.isShowOrder = true;
     }
 
+
     // ---------------------------------------------------------------------------
     // Start JS Add Product ------------------------------------------------------
     // ---------------------------------------------------------------------------
 
     //loadScript, loadStyle, jquery, datatables
-    datatableInitialized = false; // Flag ใหม่เพื่อไม่ให้ initialize ซ้ำ
-
-    //initializeDataTable method
-    initializeDataTable() {
-        const table = this.template.querySelector('.product-table');
-        if (table) {
-            this.dataTableInstance = $(table).DataTable({
-                searching: false,
-                paging: false,
-                ordering: false,
-                info: false,
-                responsive: true,
-                scrollX: false,
-                columnDefs: [
-                    { targets: 0, width: '120px' },
-                    { targets: 1, width: '200px' }
-                ]
-            });
-        }
-    }
 
     @track selectedProducts = [];
     @track filteredProductOptions = [];
@@ -180,9 +161,21 @@ export default class INID_Ordertest extends LightningElement {
     productOption = [
         { materialCode: '1000000002', description: 'AFZOLINE XL 10 MG.TAB.3X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
         { materialCode: '1000000003', description: 'ALBER-T OINT.10 GM.', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
-        { materialCode: '1000000004', description: 'ALLORA 5 MG.TAB.1X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' }
+        { materialCode: '1000000004', description: 'ALLORA 5 MG.TAB.1X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
+        { materialCode: '1000000005', description: 'AMOXICILLIN 500 MG.CAP.', unitPrice: 120.00, salePrice: 120.00, quantity: 5, unit: 'Box' },
+        { materialCode: '1000000006', description: 'PARACETAMOL 650 MG.TAB.', unitPrice: 90.00, salePrice: 90.00, quantity: 20, unit: 'Box' },
+        { materialCode: '1000000007', description: 'CETIRIZINE 10 MG.TAB.', unitPrice: 110.00, salePrice: 110.00, quantity: 15, unit: 'Box' },
+        { materialCode: '1000000008', description: 'IBUPROFEN 400 MG.TAB.', unitPrice: 100.00, salePrice: 100.00, quantity: 10, unit: 'Box' },
+        { materialCode: '1000000009', description: 'VITAMIN C 1000 MG.TAB.', unitPrice: 80.00, salePrice: 80.00, quantity: 30, unit: 'Bottle' },
+        { materialCode: '1000000010', description: 'FOLIC ACID 5 MG.TAB.', unitPrice: 60.00, salePrice: 60.00, quantity: 25, unit: 'Box' },
+        { materialCode: '1000000011', description: 'LORATADINE 10 MG.TAB.', unitPrice: 95.00, salePrice: 95.00, quantity: 12, unit: 'Box' },
+        { materialCode: '1000000012', description: 'RANITIDINE 150 MG.TAB.', unitPrice: 105.00, salePrice: 105.00, quantity: 8, unit: 'Box' },
+        { materialCode: '1000000013', description: 'METFORMIN 500 MG.TAB.', unitPrice: 140.00, salePrice: 140.00, quantity: 10, unit: 'Box' },
+        { materialCode: '1000000014', description: 'ATORVASTATIN 20 MG.TAB.', unitPrice: 160.00, salePrice: 160.00, quantity: 10, unit: 'Box' }
     ];
+    
 
+  //initializeDataTable method
     initializeDataTable() {
         const table = this.template.querySelector('.product-table');
         if (table) {
@@ -190,7 +183,14 @@ export default class INID_Ordertest extends LightningElement {
                 searching: false,
                 paging: false,
                 ordering: false,
-                info: false
+                info: false,
+                responsive: false,
+                // scrollX: true,
+                // scrollY: true,
+                columnDefs: [
+                    { targets: 0, width: '120px' },
+                    { targets: 1, width: '200px' }
+                ]
             });
         }
     }
@@ -233,15 +233,15 @@ export default class INID_Ordertest extends LightningElement {
 
                 this.selectedProducts.forEach(product => {
                     this.dataTableInstance.row.add([
-                        `<input style="text-align: center;" type="checkbox" />`,
-                        product.materialCode,
-                        product.description,
-                        product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
-                        product.salePrice.toFixed(2),
-                        product.quantity,
-                        product.unit,
-                        product.total.toFixed(2),
-                        product.salePrice === 0 ? product.addonLabel : `
+                            `<input style="text-align: center;" type="checkbox" />`,
+                            `<div style="text-align: left;">${product.materialCode}</div>`,
+                            `<div style="text-align: left;">${product.description}</div>`,
+                            product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
+                            product.salePrice.toFixed(2),
+                            product.quantity,
+                            `<div style="text-align: center;">${product.unit}</div>`,
+                            product.total.toFixed(2),
+                            product.salePrice === 0 ? product.addonLabel : `
                             <button 
                                 style="width:40px;
                                 height:40px;
@@ -270,6 +270,8 @@ export default class INID_Ordertest extends LightningElement {
     // ---------------------------------------------------------------------------
     // End JS Add Product --------------------------------------------------------
     // ---------------------------------------------------------------------------
+
+
 
     // ---------------------------------------------------------------------------
     // Start: Order Form - Product & Addon
@@ -431,55 +433,97 @@ export default class INID_Ordertest extends LightningElement {
 
     //Update Data Table
     updateDataTable() {
-        if (!this.dataTableInstance) return;
-        this.dataTableInstance.clear();
+    if (!this.dataTableInstance) return;
 
+    this.dataTableInstance.clear();
+
+    if (this.isShowSummary) {
         this.selectedProducts.forEach(product => {
+            const netPrice = product.total / (product.quantity + 2); // สูตรการคำนวณ Net Price
             this.dataTableInstance.row.add([
-                `<input style="text-align: center;" type="checkbox" />`,
                 `<div style="text-align: left;">${product.materialCode}</div>`,
-                `<div style="text-align: left;">${ product.description}</div>`,
-                `<div style="text-align: right;">${product.salePrice === 0 ? 0 : product.unitPrice.toFixed(2)}</div>`,
+                `<div style="text-align: left;">${product.description}</div>`,
+                `<div style="text-align: right;">${product.unitPrice.toFixed(2)}</div>`,
                 `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
                 `<div style="text-align: right;">${product.quantity}</div>`,
                 `<div style="text-align: center;">${product.unit}</div>`,
                 `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
-                product.salePrice === 0 ? `<div style="text-align: center;">${product.addonLabel}</div>` : `
-                    <button 
-                        style="width:40px;height:40px;border-radius:50%;border:1px solid #ccc;
-                        background-color:white;color:#007bff;font-size:24px;display:flex;
-                        align-items:center;justify-content:center;margin:auto;cursor:pointer;"
-                        class="addon-btn" data-id="${product.materialCode}" >+</button>
-                `
+                `<div style="text-align: center;">${product.addonLabel || ''}</div>`,
+                `<div style="text-align: right;">${netPrice != 0 ? netPrice.toFixed(2) : ''}</div>`
             ]);
         });
-        this.dataTableInstance.draw();
+    } else {
+        this.selectedProducts.forEach(product => {
+            this.dataTableInstance.row.add([
+                `<input style="text-align: center;" type="checkbox" />`,
+                `<div style="text-align: left;">${product.materialCode}</div>`,
+                `<div style="text-align: left;">${product.description}</div>`,
+                `<div style="text-align: right;">${product.unitPrice.toFixed(2)}</div>`,
+                `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
+                `<div style="text-align: right;">${product.quantity}</div>`,
+                `<div style="text-align: center;">${product.unit}</div>`,
+                `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
+                product.salePrice === 0 
+                    ? `<div style="text-align: center;">${product.addonLabel}</div>`
+                    : `<button 
+                            style="width:40px;height:40px;border-radius:50%;border:1px solid #ccc;
+                            background-color:white;color:#007bff;font-size:24px;display:flex;
+                            align-items:center;justify-content:center;margin:auto;cursor:pointer;"
+                            class="addon-btn" data-id="${product.materialCode}" >+</button>`
+            ]);
+        });
     }
+
+    this.dataTableInstance.draw();
+}
+
     // End Add On Section
 
 
     //handleDeleteSelected
-    handleDeleteSelected(){
+    handleDeleteSelected() {
         const table = this.template.querySelector('.product-table');
         const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
-
+    
         const selectedIds = [];
-
-        checkboxes.forEach((checkbox, index ) => {
+    
+        checkboxes.forEach(checkbox => {
             const row = this.dataTableInstance.row(checkbox.closest('tr'));
-            const rowData = this.selectedProducts[row];
-        
-        if (rowData && rowData.materialCode) {
-            selectedIds.push(rowData.materialCode);
+            const rowData = row.data();
+            const materialCodeCell = rowData[1];
+            const codeMatch = materialCodeCell.match(/>(.*?)</);
+            const materialCode = codeMatch ? codeMatch[1].trim() : null;
+    
+            if (materialCode) {
+                selectedIds.push(materialCode);
+            }
+        });
+    
+        if (selectedIds.length === 0) {
+            alert('กรุณาเลือกรายการที่ต้องการลบ');
+            return;
         }
-    });
-
-    if (selectedIds.length === 0) {
-        alert('กรุณาเลือกรายการที่ต้องการลบ');
-        return;
+    
+        const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
+        if (!confirmDelete) return;
+    
+        // ลบตัวแม่ + Add-on ที่ผูกกับแม่
+        this.selectedProducts = this.selectedProducts.filter(p => {
+            if (selectedIds.includes(p.materialCode)) return false;
+            if (p.salePrice === 0 && this.addonSelections.some(addon =>
+                selectedIds.includes(addon.productCode) &&
+                addon.addonMaterialCode === p.materialCode
+            )) return false;
+            return true;
+        });
+    
+        // ลบรายการ Add-on ที่เกี่ยวข้องจากฐาน addonSelections ด้วย
+        this.addonSelections = this.addonSelections.filter(a => !selectedIds.includes(a.productCode));
+    
+        this.updateDataTable();
     }
-    const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
-}
+    
+    
     //Ckeckbox Select All
     handleSelectAll(event) {
         const isChecked = event.target.checked;
@@ -503,7 +547,168 @@ export default class INID_Ordertest extends LightningElement {
         });
     }
 
+    isShowApplyPromotion = false ;
+
+    showApplyPromotion() {
+        this.isShowApplyPromotion = true ;
+        this.isShowAddProduct = false ;
+        this.datatableInitialized = false;
+
+        setTimeout(() => {
+            const table = this.template.querySelector('.product-table');
+            if (!this.datatableInitialized && table) {
+                Promise.all([
+                    loadScript(this, jquery + '/jquery.min.js'),
+                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
+                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
+                ])
+                .then(() => {
+                    this.initializeDataTable();
+                    this.datatableInitialized = true;
+                    // this.updateDataTable();
+                })
+                .catch(error => console.error('DataTables Load Error:', error));
+            } else if (this.dataTableInstance) {
+                this.dataTableInstance.clear().draw();
+                this.updateDataTable();
+            }
+        }, 50);
+    }
+    // ---------------------------------------------------------------------------
+    // End Order Form - Product & Addon
+    // ---------------------------------------------------------------------------
+
+
+
+    // ---------------------------------------------------------------------------
+    // Start: Apply Promotion
+    // ---------------------------------------------------------------------------
+
+    isShowSummary = false ;
+
+    showSummary() {
+        this.isShowOrder = false ;
+        this.isShowSummary = true ;
+        this.isShowApplyPromotion = false ;
+        this.datatableInitialized = false;
+
+        setTimeout(() => {
+            const table = this.template.querySelector('.product-table');
+            if (!this.datatableInitialized && table) {
+                Promise.all([
+                    loadScript(this, jquery + '/jquery.min.js'),
+                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
+                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
+                ])
+                .then(() => {
+                    this.initializeDataTable();
+                    this.datatableInitialized = true;
+                    this.updateDataTable();
+                })
+                .catch(error => console.error('DataTables Load Error:', error));
+            } else if (this.dataTableInstance) {
+                this.dataTableInstance.clear().draw();
+                this.updateDataTable();
+            }
+        }, 50);
+    }
+
+    backtoProduct(){
+        this.isShowAddProduct = true;
+        this.isShowApplyPromotion = false ;
+        this.datatableInitialized = false;
+
+        setTimeout(() => {
+            const table = this.template.querySelector('.product-table');
+            if (!this.datatableInitialized && table) {
+                Promise.all([
+                    loadScript(this, jquery + '/jquery.min.js'),
+                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
+                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
+                ])
+                .then(() => {
+                    this.initializeDataTable();
+                    this.datatableInitialized = true;
+                    this.updateDataTable();
+                })
+                .catch(error => console.error('DataTables Load Error:', error));
+            } else if (this.dataTableInstance) {
+                this.dataTableInstance.clear().draw();
+                this.updateDataTable();
+            }
+        }, 50);
+    }
+
+
+    // ---------------------------------------------------------------------------
+    // End Apply Promotion
+    // ---------------------------------------------------------------------------
+
+
+
+
+    // ---------------------------------------------------------------------------
+    // Start: Summary 
+    // ---------------------------------------------------------------------------
+
+    dataTableInstanceAddProduct;
+    dataTableInstanceSummary;
+
+    backToApply() {
+        this.isShowOrder = false ;
+        this.isShowSummary = false;
+        this.isShowApplyPromotion = true ;
+    }
+
+    // updateSummaryTable() {
+    //     if (!this.dataTableInstanceSummary) return;
+    //     this.dataTableInstanceSummary.clear();
+    
+    //     this.selectedProducts.forEach(product => {
+    //         // Net Price
+    //         let netPrice = '-';
+    //         if (product.salePrice !== 0) {
+    //             netPrice = (product.unitPrice / 1.07).toFixed(2); // คิดเป็นไม่รวม VAT 7%
+    //         } else if (product.total > 0) {
+    //             netPrice = product.total.toFixed(2);
+    //         }
+    
+    //         // Remark
+    //         let remark = product.addonLabel || '';
+    
+    //         this.dataTableInstanceSummary.row.add([
+    //             `<input style="text-align: center;" type="checkbox" />`,
+    //             `<div style="text-align: left;">${product.materialCode}</div>`,
+    //             `<div style="text-align: left;">${product.description}</div>`,
+    //             `<div style="text-align: right;">${product.salePrice === 0 ? 0 : product.unitPrice.toFixed(2)}</div>`,
+    //             `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
+    //             `<div style="text-align: right;">${product.quantity}</div>`,
+    //             `<div style="text-align: center;">${product.unit}</div>`,
+    //             `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
+    //             `<div style="text-align: center;">${remark}</div>`,
+    //             `<div style="text-align: right;">${netPrice}</div>`,
+    //             product.salePrice === 0 ? '-' : `
+    //                 <button 
+    //                     style="width:40px;height:40px;border-radius:50%;border:1px solid #ccc;
+    //                     background-color:white;color:#007bff;font-size:24px;display:flex;
+    //                     align-items:center;justify-content:center;margin:auto;cursor:pointer;"
+    //                     class="addon-btn" data-id="${product.materialCode}" >+</button>
+    //             `
+    //         ]);
+    //     });
+    
+    //     this.dataTableInstanceSummary.draw();
+    // }
+    
+
+    
+
+    // ---------------------------------------------------------------------------
+    // End Summary
+    // ---------------------------------------------------------------------------
+
 } 
-// ---------------------------------------------------------------------------
-// End Order Form - Product & Addon
-// ---------------------------------------------------------------------------
+
+
+
+
