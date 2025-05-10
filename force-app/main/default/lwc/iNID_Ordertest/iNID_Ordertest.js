@@ -4,6 +4,7 @@ import datatables from '@salesforce/resourceUrl/datatables';
 import jquery from '@salesforce/resourceUrl/jquery';
 
 export default class INID_Ordertest extends LightningElement {
+
     // ---------------------------------------------------------------------------
     // Start: Order Form - Customer & Payment Info
     // ---------------------------------------------------------------------------
@@ -194,7 +195,7 @@ export default class INID_Ordertest extends LightningElement {
         }
     }
 
-    // 🔁 กรองจากการ search input
+    // กรองจากการ search input
     handleInputProduct(event) {
         this.searchProductTerm = event.target.value;
         const term = this.searchProductTerm.toLowerCase();
@@ -206,38 +207,66 @@ export default class INID_Ordertest extends LightningElement {
 
     handleSelectProduct(event) {
         const materialCode = event.currentTarget.dataset.id;
-        const selected = this.productOption.find(p => p.materialCode === materialCode);
-        if (selected && !this.selectedProducts.find(p => p.materialCode === selected.materialCode)) {
-            const total = selected.salePrice * selected.quantity;
-            const newProduct = { ...selected, total };
-            this.selectedProducts = [...this.selectedProducts, newProduct];
+        const existing = this.selectedProducts.find(p => p.materialCode === materialCode && p.salePrice !== 0);
+        if (!existing) {
+            const selected = this.productOption.find(p => p.materialCode === materialCode);
+            if (selected) {
+                const total = selected.salePrice * selected.quantity;
+                const newProduct = { ...selected, total };
+                this.selectedProducts = [...this.selectedProducts, newProduct];
+
+                const relatedAddons = this.addonSelections.filter(
+                    a => a.productCode === materialCode
+                ).map(a => ({
+                    materialCode: a.addonMaterialCode,
+                    description: a.addonDescription,
+                    salePrice: 0,
+                    quantity: 0,
+                    unit: '-',
+                    total: Number(a.discountValue || 0),
+                    addonLabel: a.addonLabel
+                }));
+
+                this.selectedProducts = [...this.selectedProducts, ...relatedAddons];
+
+                this.dataTableInstance.clear();
+
+                this.selectedProducts.forEach(product => {
+                    this.dataTableInstance.row.add([
+                        `<input style="text-align: center;" type="checkbox" />`,
+                        product.materialCode,
+                        product.description,
+                        product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
+                        product.salePrice.toFixed(2),
+                        product.quantity,
+                        product.unit,
+                        product.total.toFixed(2),
+                        product.salePrice === 0 ? product.addonLabel : `
+                            <button 
+                                style="width:40px;
+                                height:40px;
+                                border-radius:50%;
+                                border:1px solid #ccc;
+                                background-color:white;
+                                color:#007bff;
+                                font-size:24px;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                margin:auto;
+                                cursor:pointer;"
+                                class="addon-btn" data-id="${product.materialCode}">+</button>
+                        `
+                    ]);
+                });
+
+                this.dataTableInstance.draw();
+            }
         }
+
         this.searchProductTerm = '';
         this.showProductDropdown = false;
-        this.updateDataTable();
-    }
-
-    updateDataTable() {
-        if (!this.dataTableInstance) return;
-        this.dataTableInstance.clear();
-
-        this.selectedProducts.forEach(product => {
-            this.dataTableInstance.row.add([
-                `<input type="checkbox" data-id="${product.materialCode}" />`,
-                product.materialCode,
-                product.description,
-                product.unitPrice.toFixed(2),
-                product.salePrice.toFixed(2),
-                product.quantity,
-                product.unit,
-                product.total.toFixed(2),
-                `<button class='addon-btn' data-id='${product.materialCode}'>+</button>`
-            ]);
-        });
-
-        this.dataTableInstance.draw();
-    }
-
+    }    
     // ---------------------------------------------------------------------------
     // End JS Add Product --------------------------------------------------------
     // ---------------------------------------------------------------------------
@@ -458,6 +487,22 @@ export default class INID_Ordertest extends LightningElement {
         checkboxes.forEach(checkbox => checkbox.checked = isChecked);
         event.preventDefault();
     }
+
+
+    addonButtonBound = false; // เพิ่มไว้ข้างบนใน class เพื่อป้องกัน bind ซ้ำ
+
+    renderedCallback() {
+        if (this.addonButtonBound) return;
+        this.addonButtonBound = true;
+
+        this.template.addEventListener('click', event => {
+            if (event.target.classList.contains('addon-btn')) {
+                const materialCode = event.target.dataset.id;
+                this.showPopupFreeGood(materialCode);
+            }
+        });
+    }
+
 } 
 // ---------------------------------------------------------------------------
 // End Order Form - Product & Addon

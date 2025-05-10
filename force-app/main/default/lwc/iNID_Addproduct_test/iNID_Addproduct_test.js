@@ -4,6 +4,50 @@ import datatables from '@salesforce/resourceUrl/datatables';
 import jquery from '@salesforce/resourceUrl/jquery';
 
 export default class INID_Addproduct_test extends LightningElement {
+// Start Section Create Table Here By DataTables.Net
+    renderedCallback() {
+        if (this.datatablesInitialized) return;
+        this.datatablesInitialized = true;
+
+        Promise.all([
+            loadScript(this, jquery + '/jquery.min.js'),
+            loadScript(this, datatables + '/jquery.dataTables.min.js'),
+            loadStyle(this, datatables + '/jquery.dataTables.min.css'),
+        ])
+        .then(() => {
+            this.initializeDataTable();
+        })
+        .catch(error => {
+            console.error('DataTables Load Error:', error);
+        });
+    }
+
+    initializeDataTable() {
+        const table = this.template.querySelector('.product-table');
+        this.dataTableInstance = $(table).DataTable({
+            searching: false,
+            paging: false,
+            ordering: false,
+            info: false,
+            responsive: true,
+            scrollX: false,
+            columnDefs: [
+                { targets: 0, width: '120px' },
+                { targets: 1, width: '200px' }
+            ]
+        });
+
+        $(table).on('click', '.addon-btn', (event) => {
+            const materialCode = event.currentTarget.dataset.id;
+            this.showPopupFreeGood(materialCode);
+        });
+    }
+
+
+
+
+
+
 
     // Start Section Search Product
     @track filteredProductOptions = [];
@@ -58,7 +102,7 @@ export default class INID_Addproduct_test extends LightningElement {
 
                 this.selectedProducts.forEach(product => {
                     this.dataTableInstance.row.add([
-                        `<input type="checkbox" />`,
+                        `<input style="text-align: center;" type="checkbox" />`,
                         product.materialCode,
                         product.description,
                         product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
@@ -94,45 +138,7 @@ export default class INID_Addproduct_test extends LightningElement {
     }    
     // End Section Search Product
 
-    // Start Section Create Table Here By DataTables.Net
-    renderedCallback() {
-        if (this.datatablesInitialized) return;
-        this.datatablesInitialized = true;
-
-        Promise.all([
-            loadScript(this, jquery + '/jquery.min.js'),
-            loadScript(this, datatables + '/jquery.dataTables.min.js'),
-            loadStyle(this, datatables + '/jquery.dataTables.min.css'),
-        ])
-        .then(() => {
-            this.initializeDataTable();
-        })
-        .catch(error => {
-            console.error('DataTables Load Error:', error);
-        });
-    }
-
-    initializeDataTable() {
-        const table = this.template.querySelector('.product-table');
-        this.dataTableInstance = $(table).DataTable({
-            searching: false,
-            paging: false,
-            ordering: false,
-            info: false,
-            responsive: true,
-            scrollX: false,
-            columnDefs: [
-                { targets: 0, width: '120px' },
-                { targets: 1, width: '200px' }
-            ]
-        });
-
-        $(table).on('click', '.addon-btn', (event) => {
-            const materialCode = event.currentTarget.dataset.id;
-            this.showPopupFreeGood(materialCode);
-        });
-    }
-
+    
     handleSelectAll(event) {
         const isChecked = event.target.checked;
         const checkboxes = this.template.querySelectorAll('tbody input[type="checkbox"]');
