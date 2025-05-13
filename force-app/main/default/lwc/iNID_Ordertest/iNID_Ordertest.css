@@ -195,6 +195,13 @@
 
 /* Start CSS Of Add On Free Goods */
 
+.error-message {
+    font-size: 0.85rem;
+    color: red;
+    margin-top: 4px;
+    display: block;
+}
+
 .slds-modal__container{
     margin: auto;
 }

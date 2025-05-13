@@ -32,12 +32,12 @@
                 </div>
                     
     
-                <lightning-input class="main" label="Bill To" value={billto} type="text" required></lightning-input>
-                <lightning-input class="main" label="Ship To" value={shipto} type="text" required></lightning-input>
+                <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} required></lightning-input>
+                <lightning-input class="main" label="Ship To" value={shipto} type="text" onchange={shiptoHandleChange} required></lightning-input>
                 <lightning-combobox class="configure_placeholder main" name={progress} label="Organization" value={organizationValue} placeholder="" options={organizationOption}  onchange={organizationHandleChange} required></lightning-combobox>
                 <lightning-combobox class="configure_placeholder main" name={progress} label="Payment Type" value={paymentTypeValue} placeholder="" options={paymentTypeOption}  onchange={paymentTypeHandleChange} required></lightning-combobox>
                 <lightning-combobox class="configure_placeholder main" name={progress} label="Payment Term" value={paymentTermValue} placeholder="" options={paymentTermOption}  onchange={paymentTermHandleChange} required></lightning-combobox>
-                <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" required></lightning-input>
+                <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} required></lightning-input>
                 <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
                 <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
     
@@ -155,24 +155,31 @@
                             <lightning-combobox
                                 name="freeGoods"
                                 label="Free goods"
-                                placeholder=""
+                                placeholder="Please select..."
                                 options={options}
                                 value={selectedValue}
-                                onchange={handleChangeFreeGoods}
-                                >
+                                onchange={handleChangeFreeGoods}>
                             </lightning-combobox>
+                            <span data-id="error-combobox" class="error-message slds-text-color_error"></span>
                         
-                        <!-- Add On Product Menu -->
-                            <lightning-input
-                                placeholder="Search..."
-                                type="search"
-                                value={searchProductTermAddOn}
-                                onchange={handleInputProductAddOn}
-                                onfocus={handleInputProductAddOn}>
-                            </lightning-input>
+                            <!-- Add On Product Menu -->
+                            <template if:true={selectedValue}>
+                                <lightning-input
+                                    placeholder="Search..."
+                                    type="search" 
+                                    value={searchProductTermAddOn}
+                                    onchange={handleInputProductAddOn}
+                                    onfocus={handleInputProductAddOn}>
+                                </lightning-input>
+                                <span data-id="error-product" class="error-message slds-text-color_error"></span>
+                            </template>
                         </div>
-    
+                        
+                        
                         <template if:true={showProductDropdownAddOn}>
+                            <div>
+                                <span data-id="showValidateProductAddOn" class="error-message"></span>
+                            </div>
                             <ul class="dropdown-list">
                                 <template for:each={filteredProductOptionsAddOn} for:item="prod">
                                     <li key={prod.materialCode}
@@ -371,9 +378,8 @@
                     <lightning-button variant="brand" label="Back" onclick={backToApply}></lightning-button>
                 </div>
                 <div class="btn_next">
-                    <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
-                    <lightning-button variant="neutral" label="Cancel" onclick={handleAddProductClick}></lightning-button>
-                    <lightning-button variant="brand" label="Next" onclick={handleAddProductClick}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="brand" label="Save" onclick={handleSaveSuccess}></lightning-button>
                 </div>
             </div>
             <!-- End Footer Quick Action Panel -->

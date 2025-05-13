@@ -2,6 +2,8 @@ import { LightningElement, track } from 'lwc';
 import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
 import datatables from '@salesforce/resourceUrl/datatables';
 import jquery from '@salesforce/resourceUrl/jquery';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
 
 export default class INID_Ordertest extends LightningElement {
 
@@ -113,7 +115,52 @@ export default class INID_Ordertest extends LightningElement {
         this.paymentTermValue = event.detail.value;
     }
 
+    billtoHandleChange(event) {
+        this.billto = event.detail.value ;
+    }
+
+    purchaseOrderNumberHandleChange(event) {
+        this.purchaseOrderNumber = event.detail.value;
+    }
+
+    shiptoHandleChange(event) {
+        this.shipto = event.detail.value;
+    }
+
+    //validate
+    validateOrder(){
+        const missingFields = [];
+
+        if (!this.selectedCustomerId) missingFields.push('Please select Customer');
+        if (!this.billto) missingFields.push('Please select Bill To');
+        if (!this.shipto) missingFields.push('Please select Ship To');
+        if (!this.organizationValue) missingFields.push('Please select Organization');
+        if (!this.paymentTypeValue) missingFields.push('Please select Payment Type');
+        if (!this.paymentTermValue) missingFields.push('Please select Payment Term');
+        if (!this.purchaseOrderNumber) missingFields.push('Please enter Purchase Order Number');
+
+        if (missingFields.length > 0) {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'กรอกข้อมูลไม่ครบ',
+                message: `กรุณากรอกข้อมูลต่อไปนี้ให้ครบ: ${missingFields.join(', ')}`,
+                variant: 'warning',
+                mode: 'sticky' 
+            })
+        );
+        return false;
+    }
+
+    return true;
+        
+    }
+
     openAddProduct() {
+
+        if(!this.validateOrder()){
+            return;
+        }
+
         this.isShowAddProduct = true;
         this.isShowOrder = false;
     
@@ -241,22 +288,27 @@ export default class INID_Ordertest extends LightningElement {
                             product.quantity,
                             `<div style="text-align: center;">${product.unit}</div>`,
                             product.total.toFixed(2),
-                            product.salePrice === 0 ? product.addonLabel : `
-                            <button 
-                                style="width:40px;
-                                height:40px;
-                                border-radius:50%;
-                                border:1px solid #ccc;
-                                background-color:white;
-                                color:#007bff;
-                                font-size:24px;
-                                display:flex;
-                                align-items:center;
-                                justify-content:center;
-                                margin:auto;
-                                cursor:pointer;"
-                                class="addon-btn" data-id="${product.materialCode}">+</button>
-                        `
+                            product.salePrice === 0 ? product.addonLabel : 
+                            `
+                                <div style="display: flex; justify-content: center; align-items: center;">
+                                    <button 
+                                        style="
+                                            padding-bottom:4px ;
+                                            width:35px;
+                                            height:35px;
+                                            border-radius:50%;
+                                            border:1px solid #ccc;
+                                            background-color:white;
+                                            color:#007bff;
+                                            font-size:24px;
+                                            display:flex;
+                                            align-items:center;
+                                            justify-content:center;
+                                            cursor:pointer;"
+                                        class="addon-btn" data-id="${product.materialCode}">+
+                                    </button>
+                                </div>
+                            `
                     ]);
                 });
 
@@ -304,6 +356,9 @@ export default class INID_Ordertest extends LightningElement {
 
     closePopupFreeGood() {
         this.isPopupOpenFreeGood = false;
+        this.selectedValue = '';
+        this.selectedLabel = ''; 
+        this.searchProductTermAddOn = '';   
     }
 
     handleChangeFreeGoods(event) {
@@ -339,9 +394,32 @@ export default class INID_Ordertest extends LightningElement {
         this.searchProductTermAddOn = `${materialCode} ${description}`;
         this.showProductDropdownAddOn = false;
     }
+    
 
     handleSave() {
-        if (!this.selectedAddOnProduct) return;
+
+        const errorCombobox = this.template.querySelector('[data-id="error-combobox"]');
+        const errorProduct = this.template.querySelector('[data-id="error-product"]');
+
+        // เคลียร์ข้อความเก่าก่อน
+        if (errorCombobox) errorCombobox.textContent = '';
+        if (errorProduct) errorProduct.textContent = '';
+
+        let hasError = false;
+
+        if (!this.selectedValue) {
+            if (errorCombobox) errorCombobox.textContent = 'กรุณาเลือกประเภท Add-on ก่อนค่ะ';
+            hasError = true;
+        }
+
+        if (!this.selectedAddOnProduct) {
+            if (errorProduct) errorProduct.textContent = 'กรุณาเลือกสินค้าที่จะ Add-on ด้วยค่ะ';
+            hasError = true;
+        }
+
+        if (hasError) {
+            return;
+        }
 
         const matchedMainProduct = this.productOption.find(
             p => p.materialCode === this.currentMaterialCodeForAddOn
@@ -352,12 +430,12 @@ export default class INID_Ordertest extends LightningElement {
 
         const isAlreadyUsed = this.addonSelections.some(
             a => a.productCode === this.currentMaterialCodeForAddOn &&
-                 a.addonType === this.selectedValue &&
-                 a.addonMaterialCode === this.selectedAddOnProduct.materialCode
+                a.addonType === this.selectedValue &&
+                a.addonMaterialCode === this.selectedAddOnProduct.materialCode
         );
 
         if (isAlreadyUsed) {
-            console.warn('Add-on นี้ถูกเลือกไปแล้ว');
+            alert('Add-on นี้ถูกเลือกไปแล้ว');
             return;
         }
 
@@ -394,7 +472,6 @@ export default class INID_Ordertest extends LightningElement {
             p => p.materialCode === this.currentMaterialCodeForAddOn && p.salePrice !== 0
         );
 
-        // Check if the main product is already in the selected products
         if (mainIndex !== -1) {
             let insertIndex = mainIndex + 1;
             while (
@@ -424,12 +501,12 @@ export default class INID_Ordertest extends LightningElement {
         this.searchProductTermAddOn = `${this.selectedAddOnProduct.materialCode} ${this.selectedAddOnProduct.description}`;
         this.updateDataTable();
         this.closePopupFreeGood();
-
         this.currentMaterialCodeForAddOn = null;
         this.selectedValue = '';
         this.selectedAddOnProduct = null;
         this.searchProductTermAddOn = '';
     }
+
 
     //Update Data Table
     updateDataTable() {
@@ -465,11 +542,25 @@ export default class INID_Ordertest extends LightningElement {
                 `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
                 product.salePrice === 0 
                     ? `<div style="text-align: center;">${product.addonLabel}</div>`
-                    : `<button 
-                            style="width:40px;height:40px;border-radius:50%;border:1px solid #ccc;
-                            background-color:white;color:#007bff;font-size:24px;display:flex;
-                            align-items:center;justify-content:center;margin:auto;cursor:pointer;"
-                            class="addon-btn" data-id="${product.materialCode}" >+</button>`
+                    : `<div style="display: flex; justify-content: center; align-items: center;">
+                            <button 
+                                style="
+                                    padding-bottom:4px ;
+                                    width:35px;
+                                    height:35px;
+                                    border-radius:50%;
+                                    border:1px solid #ccc;
+                                    background-color:white;
+                                    color:#007bff;
+                                    font-size:24px;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    cursor:pointer;"
+                                class="addon-btn" data-id="${product.materialCode}">+
+                            </button>
+                        </div>
+                        `
             ]);
         });
     }
@@ -660,53 +751,32 @@ export default class INID_Ordertest extends LightningElement {
         this.isShowApplyPromotion = true ;
     }
 
-    // updateSummaryTable() {
-    //     if (!this.dataTableInstanceSummary) return;
-    //     this.dataTableInstanceSummary.clear();
-    
-    //     this.selectedProducts.forEach(product => {
-    //         // Net Price
-    //         let netPrice = '-';
-    //         if (product.salePrice !== 0) {
-    //             netPrice = (product.unitPrice / 1.07).toFixed(2); // คิดเป็นไม่รวม VAT 7%
-    //         } else if (product.total > 0) {
-    //             netPrice = product.total.toFixed(2);
-    //         }
-    
-    //         // Remark
-    //         let remark = product.addonLabel || '';
-    
-    //         this.dataTableInstanceSummary.row.add([
-    //             `<input style="text-align: center;" type="checkbox" />`,
-    //             `<div style="text-align: left;">${product.materialCode}</div>`,
-    //             `<div style="text-align: left;">${product.description}</div>`,
-    //             `<div style="text-align: right;">${product.salePrice === 0 ? 0 : product.unitPrice.toFixed(2)}</div>`,
-    //             `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
-    //             `<div style="text-align: right;">${product.quantity}</div>`,
-    //             `<div style="text-align: center;">${product.unit}</div>`,
-    //             `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
-    //             `<div style="text-align: center;">${remark}</div>`,
-    //             `<div style="text-align: right;">${netPrice}</div>`,
-    //             product.salePrice === 0 ? '-' : `
-    //                 <button 
-    //                     style="width:40px;height:40px;border-radius:50%;border:1px solid #ccc;
-    //                     background-color:white;color:#007bff;font-size:24px;display:flex;
-    //                     align-items:center;justify-content:center;margin:auto;cursor:pointer;"
-    //                     class="addon-btn" data-id="${product.materialCode}" >+</button>
-    //             `
-    //         ]);
-    //     });
-    
-    //     this.dataTableInstanceSummary.draw();
-    // }
-    
+    handleCancel() {
+        this.isShowOrder = true;
+        this.isShowAddProduct = false;
+        this.isShowSummary = false;
+        this.isShowApplyPromotion = false ; 
 
-    
+    }
+
+    handleSaveSuccess() {
+        const evt = new ShowToastEvent({
+            title: 'Save Successfully',
+            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+            variant: 'success',
+            mode: 'sticky'
+        });
+        this.dispatchEvent(evt);
+    }
+
 
     // ---------------------------------------------------------------------------
     // End Summary
     // ---------------------------------------------------------------------------
 
+    // ---------------------------------------------------------------------------
+     // validate
+    // ---------------------------------------------------------------------------
 } 
 
 
