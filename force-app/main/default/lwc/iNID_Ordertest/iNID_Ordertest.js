@@ -127,39 +127,47 @@ export default class INID_Ordertest extends LightningElement {
         this.shipto = event.detail.value;
     }
 
-    //validate
-    validateOrder(){
-        const missingFields = [];
+    validateOrder() {
+    const allInputs = this.template.querySelectorAll(
+        'lightning-input, lightning-combobox, lightning-textarea'
+    );
 
-        if (!this.selectedCustomerId) missingFields.push('Please select Customer');
-        if (!this.billto) missingFields.push('Please select Bill To');
-        if (!this.shipto) missingFields.push('Please select Ship To');
-        if (!this.organizationValue) missingFields.push('Please select Organization');
-        if (!this.paymentTypeValue) missingFields.push('Please select Payment Type');
-        if (!this.paymentTermValue) missingFields.push('Please select Payment Term');
-        if (!this.purchaseOrderNumber) missingFields.push('Please enter Purchase Order Number');
+    let isValid = true;
+    let firstInvalid = null;
 
-        if (missingFields.length > 0) {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'กรอกข้อมูลไม่ครบ',
-                message: `กรุณากรอกข้อมูลต่อไปนี้ให้ครบ: ${missingFields.join(', ')}`,
-                variant: 'warning',
-                mode: 'sticky' 
-            })
-        );
-        return false;
+    allInputs.forEach(input => {
+            if (!input.checkValidity()) {
+                input.reportValidity();
+
+            if (!firstInvalid) {
+                firstInvalid = input;
+            }
+
+            isValid = false;
+        }
+    });
+
+        if (!isValid && firstInvalid) {
+            // เลื่อนไปและ focus เข้าไปที่ช่องแรกที่ error
+            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // ใส่ delay focus เพื่อให้ scroll เสร็จก่อน
+            setTimeout(() => {
+                firstInvalid.focus();
+            }, 300);
+        }
+
+        return isValid;
     }
 
-    return true;
-        
-    }
 
     openAddProduct() {
 
         if(!this.validateOrder()){
             return;
         }
+
+        
 
         this.isShowAddProduct = true;
         this.isShowOrder = false;
@@ -408,12 +416,12 @@ export default class INID_Ordertest extends LightningElement {
         let hasError = false;
 
         if (!this.selectedValue) {
-            if (errorCombobox) errorCombobox.textContent = 'กรุณาเลือกประเภท Add-on ก่อนค่ะ';
+            if (errorCombobox) errorCombobox.textContent = 'โปรดระบุประเภทการ Add-on';
             hasError = true;
         }
 
         if (!this.selectedAddOnProduct) {
-            if (errorProduct) errorProduct.textContent = 'กรุณาเลือกสินค้าที่จะ Add-on ด้วยค่ะ';
+            if (errorProduct) errorProduct.textContent = 'โปรดระบุสินค้าที่จะ Add-on ';
             hasError = true;
         }
 
