@@ -1,6 +1,6 @@
 public with sharing class TestAccount {
     @AuraEnabled(cacheable=true)
     public static List<Account> testFetchData() {
-        return [SELECT AccountNumber, Name FROM Account LIMIT 10];
+        return [SELECT INID_Customer_Code__c , Name FROM Account];
     }
 }

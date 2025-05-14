@@ -5,31 +5,77 @@ import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 
-import testFetchData from '@salesforce/apex/TestAccount.testFetchData';
+import searchAccounts from '@salesforce/apex/TestAccount.testFetchData';
+import { refreshApex } from '@salesforce/apex';
 
 export default class INID_Ordertest extends LightningElement {
   
     //Start get Apex Class
-    @track accounts = [];
+    // @track accounts = [];
+    // wiredAccountsResult;
 
-    connectedCallback() {
-        this.loadAccounts(); // เรียกตอน component โหลด
+    // @wire(testFetchData)
+    // wiredAccounts(result) {
+    //     this.wiredAccountsResult = result; // ใช้เก็บไว้สำหรับ refresh
+    //     if (result.data) {
+    //         this.accounts = result.data;
+    //     } else if (result.error) {
+    //         console.error('Error loading accounts:', result.error);
+    //     }
+    // }
+
+    //  handleRefresh() {
+    //     refreshApex(this.wiredAccountsResult)
+    //     .then(() => {
+    //         // Optionally แสดงข้อความหรือ debug log
+    //         alert('Data refreshed');
+    //     })
+    //     .catch(error => {
+    //         alert('Error refreshing data:', error);
+    //     });
+    // }
+
+    
+    // @wire(testFetchData) accounts ;
+    // wiredAccounts({ error, data }) {
+    //     if (data) {
+    //         this.accounts = data;
+    //         alert('Fetched accounts:', data);
+    //     } else if (error) {
+    //         console.error('Error fetching accounts:', error);
+    //     }
+    // }
+
+
+    @track filteredCustomerOptions = [];
+
+    handleInput(event) {
+        this.searchTerm = event.target.value;
+        if (this.searchTerm.length > 2) {
+            searchAccounts({ keyword: this.searchTerm })
+                .then(result => {
+                    this.filteredCustomerOptions = result;
+                    this.showDropdown = true;
+                })
+                .catch(error => {
+                    console.error('Error searching accounts:', error);
+                });
+        } else {
+            this.showDropdown = false;
+            this.filteredCustomerOptions = [];
+        }
     }
 
-    loadAccounts() {
-        testFetchData()
-            .then(result => {
-                this.accounts = result;
-                alert('✅ Loaded accounts:', this.accounts);
-            })
-            .catch(error => {
-                alert('❌ Error loading accounts:', error);
-            });
-    }
+    handleSelectCustomer(event) {
+    const id = event.currentTarget.dataset.id;
+    const name = event.currentTarget.dataset.name;
+    const code = event.currentTarget.dataset.code;
 
-    handleRefresh() {
-        this.loadAccounts(); // กด refresh แล้วโหลดใหม่
-    }
+    this.searchTerm = `${code} - ${name}`;
+    this.selectedCustomerId = id;
+    this.showDropdown = false;
+}
+
 
 
 
@@ -66,11 +112,11 @@ export default class INID_Ordertest extends LightningElement {
     checkboxLabel2 = 'Exclude VAT';
     @track value = [];
 
-    customers = [
-        { Id: '1000002', Name: 'โรงพยาบาลกลาง' },
-        { Id: '1000036', Name: 'บริษัท เดอะซีนเนียร์ เฮลท์แคร์ จำกัด' },
-        { Id: '1000100', Name: 'บริษัท โรงพยาบาลมิชชั่น จำกัด' }
-    ];
+    // customers = [
+    //     { Id: '1000002', Name: 'โรงพยาบาลกลาง' },
+    //     { Id: '1000036', Name: 'บริษัท เดอะซีนเนียร์ เฮลท์แคร์ จำกัด' },
+    //     { Id: '1000100', Name: 'บริษัท โรงพยาบาลมิชชั่น จำกัด' }
+    // ];
 
     get organizationOption() {
         return [
@@ -112,23 +158,17 @@ export default class INID_Ordertest extends LightningElement {
     
     
     // handleInput ของ test ธรรมดา
-    handleInput(event) {
-        this.searchTerm = event.target.value;
-        this.showDropdown = this.searchTerm.length > 2;
-        this.filteredCustomerOptions = this.customers.filter(cust =>
-            cust.Name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-            cust.Id.includes(this.searchTerm)
-        );
-    }
+    // handleInput(event) {
+    //     this.searchTerm = event.target.value;
+    //     this.showDropdown = this.searchTerm.length > 2;
+    //     this.filteredCustomerOptions = this.customers.filter(cust =>
+    //         cust.Name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+    //         cust.Id.includes(this.searchTerm)
+    //     );
+    // }
 
    
-    handleSelectCustomer(event) {
-        const id = event.currentTarget.dataset.id;
-        const name = event.currentTarget.dataset.name;
-        this.searchTerm = `${id} ${name}`;
-        this.selectedCustomerId = id;
-        this.showDropdown = false;
-    }
+
 
     handleBlur() {
         setTimeout(() => this.showDropdown = false, 200);

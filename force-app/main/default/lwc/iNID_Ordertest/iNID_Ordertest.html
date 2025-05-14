@@ -1,21 +1,6 @@
 <template>
     <!-- Start Order -->
         <template if:true={isShowOrder}>
-
-
-            <!-- <lightning-button label="Refresh Data" onclick={handleRefresh}></lightning-button>
-
-            <template if:true={accounts}>
-                <ul>
-                    <template for:each={accounts} for:item="acc">
-                        <li key={acc}>{acc.Name}</li>
-                    </template>
-                </ul>
-            </template> -->
-
-
-
-
             <lightning-quick-action-panel header="Create Order" class="title_order" >
                 <form onsubmit={handleSubmit}>
                     <lightning-card class="slds-m-around_medium main_order ">
@@ -36,15 +21,20 @@
                             
                         <!-- Display the customer options in a dropdown -->
                         <div class="main" >
-                            <template if:true={showDropdown}>
+                           <template if:true={showDropdown}>
                                 <div class="dropdown container_dropdown">
                                     <template for:each={filteredCustomerOptions} for:item="cust">
-                                        <div key={cust.Id} class="dropdown-item edit_dropdown" data-id={cust.Id} data-name={cust.Name} onclick={handleSelectCustomer}>
-                                            {cust.Id} {cust.Name}
+                                        <div key={cust.id}
+                                            class="dropdown-item edit_dropdown"
+                                            data-id={cust.id}
+                                            data-name={cust.name}
+                                            data-code={cust.customerCode}
+                                            onclick={handleSelectCustomer}>
+                                            {cust.customerCode} - {cust.name}
                                         </div>
                                     </template>
                                 </div>
-                            </template> 
+                            </template>
                         </div>
             
                         <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} required></lightning-input>
@@ -86,6 +76,15 @@
                         <lightning-button class="btnSubmit" variant="brand" label="Next" onclick={openAddProduct} ></lightning-button>
                     </div>
                 </form>
+                <!-- <lightning-button label="Refresh Data" onclick={handleRefresh}></lightning-button> -->
+                <div>
+                    <ul style="padding-bottom:200px">
+                        <template for:each={accounts.data} for:item="acc">
+                        <li key={acc.INID_Customer_Code__c}>{acc.Name}</li>
+                        </template>
+                    </ul>
+                </div>
+                   
             </lightning-quick-action-panel>
         </template>
     
