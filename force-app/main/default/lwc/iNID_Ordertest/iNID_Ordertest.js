@@ -1,11 +1,46 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, track, wire , api } from 'lwc';
 import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
 import datatables from '@salesforce/resourceUrl/datatables';
 import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 
+import testFetchData from '@salesforce/apex/TestAccount.testFetchData';
 
 export default class INID_Ordertest extends LightningElement {
+  
+    //Start get Apex Class
+    @track accounts = [];
+
+    connectedCallback() {
+        this.loadAccounts(); // เรียกตอน component โหลด
+    }
+
+    loadAccounts() {
+        testFetchData()
+            .then(result => {
+                this.accounts = result;
+                alert('✅ Loaded accounts:', this.accounts);
+            })
+            .catch(error => {
+                alert('❌ Error loading accounts:', error);
+            });
+    }
+
+    handleRefresh() {
+        this.loadAccounts(); // กด refresh แล้วโหลดใหม่
+    }
+
+
+
+    
+    //End get Apex Class
+
+
+    // Call Font Awesome
+    connectedCallback() {
+        loadStyle(this, FONT_AWESOME + '/css/all.min.css');
+    }
 
     // ---------------------------------------------------------------------------
     // Start: Order Form - Customer & Payment Info
@@ -70,6 +105,13 @@ export default class INID_Ordertest extends LightningElement {
     isShowAddProduct = false;
     isShowOrder = true;
 
+    //test 
+    // เรียก Apex ทันทีตอนโหลด component
+   
+    //end test
+    
+    
+    // handleInput ของ test ธรรมดา
     handleInput(event) {
         this.searchTerm = event.target.value;
         this.showDropdown = this.searchTerm.length > 2;
@@ -79,6 +121,7 @@ export default class INID_Ordertest extends LightningElement {
         );
     }
 
+   
     handleSelectCustomer(event) {
         const id = event.currentTarget.dataset.id;
         const name = event.currentTarget.dataset.name;
@@ -299,22 +342,22 @@ export default class INID_Ordertest extends LightningElement {
                             product.salePrice === 0 ? product.addonLabel : 
                             `
                                 <div style="display: flex; justify-content: center; align-items: center;">
-                                    <button 
-                                        style="
-                                            padding-bottom:4px ;
+                                    
+                                    <i class="fa-solid fa-plus addon-btn"
+                                        style=" 
                                             width:35px;
                                             height:35px;
                                             border-radius:50%;
                                             border:1px solid #ccc;
                                             background-color:white;
                                             color:#007bff;
-                                            font-size:24px;
+                                            font-size:20px;
                                             display:flex;
                                             align-items:center;
                                             justify-content:center;
                                             cursor:pointer;"
-                                        class="addon-btn" data-id="${product.materialCode}">+
-                                    </button>
+                                            data-id="${product.materialCode}">
+                                    </i>
                                 </div>
                             `
                     ]);
@@ -551,23 +594,21 @@ export default class INID_Ordertest extends LightningElement {
                 product.salePrice === 0 
                     ? `<div style="text-align: center;">${product.addonLabel}</div>`
                     : `<div style="display: flex; justify-content: center; align-items: center;">
-                            <button 
-                                style="
-                                    padding-bottom:4px ;
-                                    width:35px;
-                                    height:35px;
-                                    border-radius:50%;
-                                    border:1px solid #ccc;
-                                    background-color:white;
-                                    color:#007bff;
-                                    font-size:24px;
-                                    display:flex;
-                                    align-items:center;
-                                    justify-content:center;
-                                    cursor:pointer;"
-                                class="addon-btn" data-id="${product.materialCode}">+
-                            </button>
-                        </div>
+                            <i class="fa-solid fa-plus addon-btn"
+                                    style="
+                                        width:35px;
+                                        height:35px;
+                                        border-radius:50%;
+                                        border:1px solid #ccc;
+                                        background-color:white;
+                                        color:#007bff;
+                                        font-size:20px;
+                                        display:flex;
+                                        align-items:center;
+                                        justify-content:center;
+                                        cursor:pointer;"
+                                        data-id="${product.materialCode}">
+                            </i>
                         `
             ]);
         });
@@ -785,6 +826,11 @@ export default class INID_Ordertest extends LightningElement {
     // ---------------------------------------------------------------------------
      // validate
     // ---------------------------------------------------------------------------
+
+
+
+   
+
 } 
 
 

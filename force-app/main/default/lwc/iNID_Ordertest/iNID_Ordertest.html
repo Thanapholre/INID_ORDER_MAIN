@@ -1,6 +1,21 @@
 <template>
     <!-- Start Order -->
         <template if:true={isShowOrder}>
+
+
+            <!-- <lightning-button label="Refresh Data" onclick={handleRefresh}></lightning-button>
+
+            <template if:true={accounts}>
+                <ul>
+                    <template for:each={accounts} for:item="acc">
+                        <li key={acc}>{acc.Name}</li>
+                    </template>
+                </ul>
+            </template> -->
+
+
+
+
             <lightning-quick-action-panel header="Create Order" class="title_order" >
                 <form onsubmit={handleSubmit}>
                     <lightning-card class="slds-m-around_medium main_order ">
@@ -31,7 +46,6 @@
                                 </div>
                             </template> 
                         </div>
-                            
             
                         <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} required></lightning-input>
                         <lightning-input class="main" label="Ship To" value={shipto} type="text" onchange={shiptoHandleChange} required></lightning-input>
