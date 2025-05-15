@@ -5,8 +5,13 @@ import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 
+<<<<<<< HEAD
 // import class
 import testFetchData from '@salesforce/apex/TestAccount.testFetchData';
+=======
+import searchAccounts from '@salesforce/apex/TestAccount.testFetchData';
+import { refreshApex } from '@salesforce/apex';
+>>>>>>> 129a21240fd2753e3a579c8b66e463b1ed5168d2
 
 
 
@@ -18,6 +23,7 @@ import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 
 
 export default class INID_Ordertest extends LightningElement {
+<<<<<<< HEAD
     @track accounts = [];
     @track filteredCustomerOptions = [];
     @track searchTerm = '';
@@ -71,6 +77,75 @@ export default class INID_Ordertest extends LightningElement {
         this.fetchCustomerDetails(selectedId);
         
     }
+=======
+  
+    //Start get Apex Class
+    // @track accounts = [];
+    // wiredAccountsResult;
+
+    // @wire(testFetchData)
+    // wiredAccounts(result) {
+    //     this.wiredAccountsResult = result; // ใช้เก็บไว้สำหรับ refresh
+    //     if (result.data) {
+    //         this.accounts = result.data;
+    //     } else if (result.error) {
+    //         console.error('Error loading accounts:', result.error);
+    //     }
+    // }
+
+    //  handleRefresh() {
+    //     refreshApex(this.wiredAccountsResult)
+    //     .then(() => {
+    //         // Optionally แสดงข้อความหรือ debug log
+    //         alert('Data refreshed');
+    //     })
+    //     .catch(error => {
+    //         alert('Error refreshing data:', error);
+    //     });
+    // }
+
+    
+    // @wire(testFetchData) accounts ;
+    // wiredAccounts({ error, data }) {
+    //     if (data) {
+    //         this.accounts = data;
+    //         alert('Fetched accounts:', data);
+    //     } else if (error) {
+    //         console.error('Error fetching accounts:', error);
+    //     }
+    // }
+
+
+    @track filteredCustomerOptions = [];
+
+    handleInput(event) {
+        this.searchTerm = event.target.value;
+        if (this.searchTerm.length > 2) {
+            searchAccounts({ keyword: this.searchTerm })
+                .then(result => {
+                    this.filteredCustomerOptions = result;
+                    this.showDropdown = true;
+                })
+                .catch(error => {
+                    console.error('Error searching accounts:', error);
+                });
+        } else {
+            this.showDropdown = false;
+            this.filteredCustomerOptions = [];
+        }
+    }
+
+    handleSelectCustomer(event) {
+    const id = event.currentTarget.dataset.id;
+    const name = event.currentTarget.dataset.name;
+    const code = event.currentTarget.dataset.code;
+
+    this.searchTerm = `${code} - ${name}`;
+    this.selectedCustomerId = id;
+    this.showDropdown = false;
+}
+
+>>>>>>> 129a21240fd2753e3a579c8b66e463b1ed5168d2
 
     handleBlur() {
         setTimeout(() => {
@@ -137,10 +212,18 @@ fetchOrder({ error, data }) {
     checkboxLabel1 = 'Include VAT';
     checkboxLabel2 = 'Exclude VAT';
 
+<<<<<<< HEAD
     @track paymentTypeOptions = [];
     @track paymentTermOptions = [];
     
     @track value = [];
+=======
+    // customers = [
+    //     { Id: '1000002', Name: 'โรงพยาบาลกลาง' },
+    //     { Id: '1000036', Name: 'บริษัท เดอะซีนเนียร์ เฮลท์แคร์ จำกัด' },
+    //     { Id: '1000100', Name: 'บริษัท โรงพยาบาลมิชชั่น จำกัด' }
+    // ];
+>>>>>>> 129a21240fd2753e3a579c8b66e463b1ed5168d2
 
     get organizationOption() {
         return [
@@ -204,7 +287,32 @@ fetchOrder({ error, data }) {
     isShowAddProduct = false;
     isShowOrder = true;
 
+<<<<<<< HEAD
 
+=======
+    //test 
+    // เรียก Apex ทันทีตอนโหลด component
+   
+    //end test
+    
+    
+    // handleInput ของ test ธรรมดา
+    // handleInput(event) {
+    //     this.searchTerm = event.target.value;
+    //     this.showDropdown = this.searchTerm.length > 2;
+    //     this.filteredCustomerOptions = this.customers.filter(cust =>
+    //         cust.Name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+    //         cust.Id.includes(this.searchTerm)
+    //     );
+    // }
+
+   
+
+
+    handleBlur() {
+        setTimeout(() => this.showDropdown = false, 200);
+    }
+>>>>>>> 129a21240fd2753e3a579c8b66e463b1ed5168d2
 
     handleChange(event) {
         const selected = event.target.value;
