@@ -5,38 +5,120 @@ import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 
+// import class
 import testFetchData from '@salesforce/apex/TestAccount.testFetchData';
 
+
+
+// import getRecord API
+import { getRecord, getFieldValue } from "lightning/uiRecordApi";
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
+import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
+import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
+
+
 export default class INID_Ordertest extends LightningElement {
-  
-    //Start get Apex Class
     @track accounts = [];
+    @track filteredCustomerOptions = [];
+    @track searchTerm = '';
+    @track showDropdown = false;
+    @track customerId = ''
 
-    connectedCallback() {
-        this.loadAccounts(); // เรียกตอน component โหลด
+    @track paymentTypeValue = '';
+    @track paymentTermValue = '';
+
+    @api recordId;
+
+    @wire(testFetchData)
+    wiredAccounts({ error, data }) {
+        if (data) {
+            this.accounts = data;
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
     }
 
-    loadAccounts() {
-        testFetchData()
-            .then(result => {
-                this.accounts = result;
-                alert('✅ Loaded accounts:', this.accounts);
-            })
-            .catch(error => {
-                alert('❌ Error loading accounts:', error);
-            });
+    handleInput(event) {
+        const input = event.target.value;
+        this.searchTerm = input;
+        
+        console.log('Search term:', input);
+        
+        if (input && input.length > 2) {
+            const term = input.toLowerCase();
+            this.filteredCustomerOptions = this.accounts.filter(cust =>
+                (cust.Name && cust.Name.toLowerCase().includes(term)) ||
+                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
+            );
+            this.showDropdown = this.filteredCustomerOptions.length > 0;
+        } else {
+            this.filteredCustomerOptions = [];
+            this.showDropdown = false;
+        }
+
     }
 
-    handleRefresh() {
-        this.loadAccounts(); // กด refresh แล้วโหลดใหม่
+    handleSelectCustomer(event) {
+        const selectedId = event.currentTarget.dataset.id;
+        const selectedName = event.currentTarget.dataset.name;
+
+        this.customerId = selectedId;
+        this.searchTerm = `${selectedId} ${selectedName}`;
+        this.showDropdown = false;
+        
+        this.recordId = selectedId; // <- ต้องเปลี่ยนใหม่ทุกครั้ง
+
+        this.fetchCustomerDetails(selectedId);
+        
     }
 
+    handleBlur() {
+        setTimeout(() => {
+            this.showDropdown = false;
+        }, 200); // รอให้ onmousedown ทำงานเสร็จก่อน
+    }
+    
+
+    fetchCustomerDetails(customerId) {
+        
+    }
+
+
+
+    //End get Apex Class
+
+    // --------------------------------------------------------------------------------
+    
+    //getRecord 
+    
+  @wire(getRecord, {
+    recordId: "$recordId",
+    fields: [PAYMENT_TYPE_FIELD, PAYMENT_TERM_FIELD]
+})
+fetchOrder({ error, data }) {
+    if (data) {
+        const fetchedPaymentType = getFieldValue(data, PAYMENT_TYPE_FIELD);
+        const fetchedPaymentTerm = getFieldValue(data, PAYMENT_TERM_FIELD);
+
+        // ตรวจสอบว่า paymentType ที่ได้มาอยู่ในตัวเลือกหรือไม่
+        const isValidPaymentType = this.paymentTypeOption.some(opt => opt.value === fetchedPaymentType);
+        this.paymentTypeValue = isValidPaymentType ? fetchedPaymentType : '';
+
+        // ตรวจสอบว่า paymentTerm ที่ได้มาอยู่ในตัวเลือกหรือไม่
+        const isValidPaymentTerm = this.paymentTermOption.some(opt => opt.value === fetchedPaymentTerm);
+        this.paymentTermValue = isValidPaymentTerm ? fetchedPaymentTerm : '';
+    }
+
+    if (error) {
+        
+    }
+}
+
+
+    // End Get Record
 
 
     
-    //End get Apex Class
-
-
     // Call Font Awesome
     connectedCallback() {
         loadStyle(this, FONT_AWESOME + '/css/all.min.css');
@@ -51,26 +133,14 @@ export default class INID_Ordertest extends LightningElement {
     @track purchaseOrderNumber = '';
     @track noteAgent = '';
     @track noteInternal = '';
-
     @track organizationValue = '';
-    @track paymentTypeValue = '';
-    @track paymentTermValue = '';
-
-    @track searchTerm = '';
-    @track selectedCustomerId = '';
-    @track customerSelected = '';
-    @track showDropdown = false;
-    @track filteredCustomerOptions = [];
-
     checkboxLabel1 = 'Include VAT';
     checkboxLabel2 = 'Exclude VAT';
-    @track value = [];
 
-    customers = [
-        { Id: '1000002', Name: 'โรงพยาบาลกลาง' },
-        { Id: '1000036', Name: 'บริษัท เดอะซีนเนียร์ เฮลท์แคร์ จำกัด' },
-        { Id: '1000100', Name: 'บริษัท โรงพยาบาลมิชชั่น จำกัด' }
-    ];
+    @track paymentTypeOptions = [];
+    @track paymentTermOptions = [];
+    
+    @track value = [];
 
     get organizationOption() {
         return [
@@ -82,18 +152,47 @@ export default class INID_Ordertest extends LightningElement {
 
     get paymentTypeOption() {
         return [
-            { value: '1', label: 'Cash' },
-            { value: '2', label: 'Credit' }
+            { value: 'Cash', label: 'Cash' },
+            { value: 'Credit', label: 'Credit' }
         ];
     }
 
     get paymentTermOption() {
         return [
-            { value: 'N000', label: 'N000-Immediately' },
-            { value: 'N030', label: 'N030-Within 30 Days Due Net' },
-            { value: 'N045', label: 'N045-Within 45 Days Due Net' }
+            { value: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)', label: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)' },
+            { value: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)', label: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)' },
+            { value: 'N000 - Immediately', label: 'N000 - Immediately' },
+            { value: 'N001 - Within 1 Day Due Net', label: 'N001 - Within 1 Day Due Net' },
+            { value: 'N004 - Within 4 Days Due Net', label: 'N004 - Within 4 Days Due Net' },
+            { value: 'N005 - Within 5 Days Due Net', label: 'N005 - Within 5 Days Due Net' },
+            { value: 'N007 - Within 7 Days Due Net', label: 'N007 - Within 7 Days Due Net' },
+            { value: 'N010 - Within 10 Days Due Net', label: 'N010 - Within 10 Days Due Net' },
+            { value: 'N012 - Within 12 Days Due Net', label: 'N012 - Within 12 Days Due Net' },
+            { value: 'N015 - Within 15 Days Due Net', label: 'N015 - Within 15 Days Due Net' },
+            { value: 'N017 - Within 17 Days Due Net', label: 'N017 - Within 17 Days Due Net' },
+            { value: 'N020 - Within 20 Days Due Net', label: 'N020 - Within 20 Days Due Net' },
+            { value: 'N021 - Within 21 Days Due Net', label: 'N021 - Within 21 Days Due Net' },
+            { value: 'N025 - Within 25 Days Due Net', label: 'N025 - Within 25 Days Due Net' },
+            { value: 'N030 - Within 30 Days Due Net', label: 'N030 - Within 30 Days Due Net' },
+            { value: 'Within 35 Days Due Net', label: 'N035 - Within 35 Days Due Net' },
+            { value: 'N040 - Within 40 Days Due Net', label: 'N040 - Within 40 Days Due Net' },
+            { value: 'N045 - Within 45 Days Due Net', label: 'N045 - Within 45 Days Due Net' },
+            { value: 'N050 - Within 50 Days Due Net', label: 'N050 - Within 50 Days Due Net' },
+            { value: 'N060 - Within 60 Days Due Net', label: 'N060 - Within 60 Days Due Net' },
+            { value: 'N063 - Within 63 Days Due Net', label: 'N063 - Within 63 Days Due Net' },
+            { value: 'N090 - Within 90 Days Due Net', label: 'N090 - Within 90 Days Due Net' },
+            { value: 'N120 - Within 120 Days Due Net', label: 'N120 - Within 120 Days Due Net' },
+            { value: 'N180 - Within 180 Days Due Net', label: 'N180 - Within 180 Days Due Net' },
+            { value: 'N210 - Within 210 Days Due Net', label: 'N210 - Within 210 Days Due Net' },
+            { value: 'V014 - Within 14 days Disc 2%', label: 'V014 - Within 14 days Disc 2%' },
+            { value: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day', label: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day' },
+            { value: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day', label: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day' },
+            { value: 'ZB03 - Within 20 days Disc 2% due 30 day', label: 'ZB03 - Within 20 days Disc 2% due 30 day' },
+            { value: 'Within 10 days Disc 4%, 20/2% due 30 day', label: 'ZB04 - Within 10 days Disc 4%, 20/2% due 30 day' },
+            { value: 'ZB05 - Within 5 days Disc 2% due 10 day', label: 'ZB05 - Within 5 days Disc 2% due 10 day' }
         ];
     }
+
 
     get options() {
         return [
@@ -105,34 +204,7 @@ export default class INID_Ordertest extends LightningElement {
     isShowAddProduct = false;
     isShowOrder = true;
 
-    //test 
-    // เรียก Apex ทันทีตอนโหลด component
-   
-    //end test
-    
-    
-    // handleInput ของ test ธรรมดา
-    handleInput(event) {
-        this.searchTerm = event.target.value;
-        this.showDropdown = this.searchTerm.length > 2;
-        this.filteredCustomerOptions = this.customers.filter(cust =>
-            cust.Name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-            cust.Id.includes(this.searchTerm)
-        );
-    }
 
-   
-    handleSelectCustomer(event) {
-        const id = event.currentTarget.dataset.id;
-        const name = event.currentTarget.dataset.name;
-        this.searchTerm = `${id} ${name}`;
-        this.selectedCustomerId = id;
-        this.showDropdown = false;
-    }
-
-    handleBlur() {
-        setTimeout(() => this.showDropdown = false, 200);
-    }
 
     handleChange(event) {
         const selected = event.target.value;

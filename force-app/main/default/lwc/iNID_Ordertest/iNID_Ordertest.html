@@ -1,21 +1,6 @@
 <template>
     <!-- Start Order -->
         <template if:true={isShowOrder}>
-
-
-            <!-- <lightning-button label="Refresh Data" onclick={handleRefresh}></lightning-button>
-
-            <template if:true={accounts}>
-                <ul>
-                    <template for:each={accounts} for:item="acc">
-                        <li key={acc}>{acc.Name}</li>
-                    </template>
-                </ul>
-            </template> -->
-
-
-
-
             <lightning-quick-action-panel header="Create Order" class="title_order" >
                 <form onsubmit={handleSubmit}>
                     <lightning-card class="slds-m-around_medium main_order ">
@@ -26,7 +11,6 @@
                                 type="search"
                                 value={searchTerm}
                                 onchange={handleInput}
-                                onfocus={handleInput}
                                 onblur={handleBlur}
                                 onkeydown={keyDownDisplayCustomer}
                                 required
@@ -35,23 +19,45 @@
                         </div>
                             
                         <!-- Display the customer options in a dropdown -->
-                        <div class="main" >
-                            <template if:true={showDropdown}>
-                                <div class="dropdown container_dropdown">
+                        <template if:true={showDropdown}>
+                            <div class="main">
+                                <ul class="dropdown-list">
                                     <template for:each={filteredCustomerOptions} for:item="cust">
-                                        <div key={cust.Id} class="dropdown-item edit_dropdown" data-id={cust.Id} data-name={cust.Name} onclick={handleSelectCustomer}>
-                                            {cust.Id} {cust.Name}
+                                        <div key={cust.Id}
+                                            class="dropdown-item edit_dropdown"
+                                            data-id={cust.Id}
+                                            data-name={cust.Name}
+                                            onmousedown={handleSelectCustomer}>
+                                            {cust.INID_Customer_Code__c} {cust.Name}
                                         </div>
                                     </template>
-                                </div>
-                            </template> 
-                        </div>
+                                </ul>     
+                            </div>
+                        </template>
             
                         <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} required></lightning-input>
                         <lightning-input class="main" label="Ship To" value={shipto} type="text" onchange={shiptoHandleChange} required></lightning-input>
                         <lightning-combobox class="configure_placeholder main" name={progress} label="Organization" value={organizationValue} placeholder="" options={organizationOption}  onchange={organizationHandleChange} required></lightning-combobox>
-                        <lightning-combobox class="configure_placeholder main" name={progress} label="Payment Type" value={paymentTypeValue} placeholder="" options={paymentTypeOption}  onchange={paymentTypeHandleChange} required></lightning-combobox>
-                        <lightning-combobox class="configure_placeholder main" name={progress} label="Payment Term" value={paymentTermValue} placeholder="" options={paymentTermOption}  onchange={paymentTermHandleChange} required></lightning-combobox>
+                        <lightning-combobox
+                            name="paymentType"
+                            placeholder=""
+                            label="Payment Type"
+                            value={paymentTypeValue}
+                            options={paymentTypeOption}
+                            onchange={paymentTypeHandleChange}
+                            required>
+                        </lightning-combobox>
+
+                        <lightning-combobox
+                            name="paymentTerm"
+                            placeholder=""
+                            label="Payment Term"
+                            value={paymentTermValue}
+                            options={paymentTermOption}
+                            onchange={paymentTermHandleChange}
+                            required>
+                        </lightning-combobox>
+
                         <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} required></lightning-input>
                         <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
                         <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
@@ -86,6 +92,11 @@
                         <lightning-button class="btnSubmit" variant="brand" label="Next" onclick={openAddProduct} ></lightning-button>
                     </div>
                 </form>
+                <!-- <ul>
+                    <template for:each={accounts} for:item="acc">
+                        <li key={acc.INID_Customer_Code__c}>{acc.INID_Customer_Code__c}-{acc.Name}</li>
+                    </template>
+                </ul> -->
             </lightning-quick-action-panel>
         </template>
     
