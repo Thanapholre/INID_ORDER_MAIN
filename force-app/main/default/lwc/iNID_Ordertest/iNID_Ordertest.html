@@ -19,7 +19,6 @@
                         </div>
                             
                         <!-- Display the customer options in a dropdown -->
-<<<<<<< HEAD
                         <template if:true={showDropdown}>
                             <div class="main">
                                 <ul class="dropdown-list">
@@ -35,24 +34,6 @@
                                 </ul>     
                             </div>
                         </template>
-=======
-                        <div class="main" >
-                           <template if:true={showDropdown}>
-                                <div class="dropdown container_dropdown">
-                                    <template for:each={filteredCustomerOptions} for:item="cust">
-                                        <div key={cust.id}
-                                            class="dropdown-item edit_dropdown"
-                                            data-id={cust.id}
-                                            data-name={cust.name}
-                                            data-code={cust.customerCode}
-                                            onclick={handleSelectCustomer}>
-                                            {cust.customerCode} - {cust.name}
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
->>>>>>> 129a21240fd2753e3a579c8b66e463b1ed5168d2
             
                         <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} required></lightning-input>
                         <lightning-input class="main" label="Ship To" value={shipto} type="text" onchange={shiptoHandleChange} required></lightning-input>
@@ -111,23 +92,11 @@
                         <lightning-button class="btnSubmit" variant="brand" label="Next" onclick={openAddProduct} ></lightning-button>
                     </div>
                 </form>
-<<<<<<< HEAD
                 <!-- <ul>
                     <template for:each={accounts} for:item="acc">
                         <li key={acc.INID_Customer_Code__c}>{acc.INID_Customer_Code__c}-{acc.Name}</li>
                     </template>
                 </ul> -->
-=======
-                <!-- <lightning-button label="Refresh Data" onclick={handleRefresh}></lightning-button> -->
-                <div>
-                    <ul style="padding-bottom:200px">
-                        <template for:each={accounts.data} for:item="acc">
-                        <li key={acc.INID_Customer_Code__c}>{acc.Name}</li>
-                        </template>
-                    </ul>
-                </div>
-                   
->>>>>>> 129a21240fd2753e3a579c8b66e463b1ed5168d2
             </lightning-quick-action-panel>
         </template>
     
@@ -450,4 +419,4 @@
     <!-- End Summary Promotion Component -->
 
 
-</template>     
+</template>
