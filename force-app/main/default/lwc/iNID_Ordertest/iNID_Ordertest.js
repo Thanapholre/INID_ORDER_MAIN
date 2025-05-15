@@ -7,15 +7,16 @@ import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 
 // import class
 import testFetchData from '@salesforce/apex/TestAccount.testFetchData';
-
+import fetchDataBillto from '@salesforce/apex/TestAccount.fetchDataBillto';
+import fetchDataShipto from '@salesforce/apex/TestAccount.fetchDataShipto';
 
 
 // import getRecord API
 import { getRecord, getFieldValue } from "lightning/uiRecordApi";
-import ACCOUNT_OBJECT from '@salesforce/schema/Account';
 import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
-
+import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
+import INID_Bill_To_Code__c from '@salesforce/schema/INID_Account_Address__c.INID_Bill_To_Code__c';
 
 export default class INID_Ordertest extends LightningElement {
     @track accounts = [];
@@ -26,6 +27,9 @@ export default class INID_Ordertest extends LightningElement {
 
     @track paymentTypeValue = '';
     @track paymentTermValue = '';
+    @track organizationValue = '';
+    @track billto = '';
+    @track shipto = '';
 
     @api recordId;
 
@@ -36,6 +40,10 @@ export default class INID_Ordertest extends LightningElement {
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
+    }
+
+    get billToCodes() {
+        return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
     }
 
     handleInput(event) {
@@ -50,64 +58,107 @@ export default class INID_Ordertest extends LightningElement {
                 (cust.Name && cust.Name.toLowerCase().includes(term)) ||
                 (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
             );
-            this.showDropdown = this.filteredCustomerOptions.length > 0;
+            this.showDropdown = true;
         } else {
             this.filteredCustomerOptions = [];
             this.showDropdown = false;
         }
 
     }
+    
+    // fetch Auto Field Bill To
+    @wire(fetchDataBillto)
+    fetchBillTo(accountId) {
+        fetchDataBillto({ accountId: accountId })
+        .then(data => {
+            if (data && data.length > 0) {
+                const record = data[0];
+                this.billto = `${record.Name} `;
+                // this.shipto = record.Name;
+            } else {
+                this.billto = '';
+                this.shipto = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching BillTo/ShipTo:', error);
+        });
+    }
+
+
+    // fetch Auto Field Ship To 
+    @track shipto = ''; // ← value ที่เลือก
+    @track shiptoOptions = []; // ← options ใน dropdown
+
+    @wire(fetchDataShipto)
+    fetchShipto(accountId) {
+        fetchDataShipto({ accountId: accountId })
+        .then(data => {
+             if (data && data.length > 0) {
+                this.shiptoOptions = data.map(addr => ({
+                    label: addr.Name,
+                    value: addr.Id
+                }));
+
+                // ตั้งค่า default เป็นตัวแรก
+                this.shipto = data[0].Id;
+            } else {
+                this.shiptoOptions = [];
+                this.shipto = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching ShipTo options:', error);
+        });
+    }
 
     handleSelectCustomer(event) {
         const selectedId = event.currentTarget.dataset.id;
         const selectedName = event.currentTarget.dataset.name;
-
+        const selectedCode = event.currentTarget.dataset.code; 
         this.customerId = selectedId;
-        this.searchTerm = `${selectedId} ${selectedName}`;
+        this.searchTerm = `${selectedCode} ${selectedName}`;
         this.showDropdown = false;
-        
-        this.recordId = selectedId; // <- ต้องเปลี่ยนใหม่ทุกครั้ง
 
-        this.fetchCustomerDetails(selectedId);
-        
+        this.recordId = selectedId;
+        this.fetchBillTo(selectedId);
+        this.fetchShipto(selectedId);
     }
+
 
     handleBlur() {
         setTimeout(() => {
             this.showDropdown = false;
-        }, 200); // รอให้ onmousedown ทำงานเสร็จก่อน
+        }, 200); 
     }
-    
-
-    fetchCustomerDetails(customerId) {
-        
-    }
-
-
 
     //End get Apex Class
 
     // --------------------------------------------------------------------------------
     
     //getRecord 
-    
-  @wire(getRecord, {
-    recordId: "$recordId",
-    fields: [PAYMENT_TYPE_FIELD, PAYMENT_TERM_FIELD]
-})
-fetchOrder({ error, data }) {
-    if (data) {
-        const fetchedPaymentType = getFieldValue(data, PAYMENT_TYPE_FIELD);
-        const fetchedPaymentTerm = getFieldValue(data, PAYMENT_TERM_FIELD);
+    @wire(getRecord, {
+        recordId: "$recordId",
+        fields: [PAYMENT_TYPE_FIELD, PAYMENT_TERM_FIELD, INID_Organization__c]
+    })
+    fetchOrder({ error, data }) {
+        if (data) {
+            const fetchedPaymentType = getFieldValue(data, PAYMENT_TYPE_FIELD);
+            const fetchedPaymentTerm = getFieldValue(data, PAYMENT_TERM_FIELD);
+            const fetchedOrganization = getFieldValue(data, INID_Organization__c);
 
-        // ตรวจสอบว่า paymentType ที่ได้มาอยู่ในตัวเลือกหรือไม่
-        const isValidPaymentType = this.paymentTypeOption.some(opt => opt.value === fetchedPaymentType);
-        this.paymentTypeValue = isValidPaymentType ? fetchedPaymentType : '';
+            // ตรวจสอบว่า paymentType ที่ได้มาอยู่ในตัวเลือกหรือไม่
+            const isValidPaymentType = this.paymentTypeOption.some(opt => opt.value === fetchedPaymentType);
+            this.paymentTypeValue = isValidPaymentType ? fetchedPaymentType : '';
 
-        // ตรวจสอบว่า paymentTerm ที่ได้มาอยู่ในตัวเลือกหรือไม่
-        const isValidPaymentTerm = this.paymentTermOption.some(opt => opt.value === fetchedPaymentTerm);
-        this.paymentTermValue = isValidPaymentTerm ? fetchedPaymentTerm : '';
-    }
+            // ตรวจสอบว่า paymentTerm ที่ได้มาอยู่ในตัวเลือกหรือไม่
+            const isValidPaymentTerm = this.paymentTermOption.some(opt => opt.value === fetchedPaymentTerm);
+            this.paymentTermValue = isValidPaymentTerm ? fetchedPaymentTerm : '';
+
+            const isValidOrganization = this.organizationOption.some(opt => opt.value === fetchedOrganization);
+            this.organizationValue = isValidOrganization ? fetchedOrganization : '';
+
+        }
 
     if (error) {
         
@@ -144,9 +195,9 @@ fetchOrder({ error, data }) {
 
     get organizationOption() {
         return [
-            { value: '1001', label: '1001-MEDLINE' },
-            { value: '2001', label: '2001-UNISON' },
-            { value: '3001', label: '3001-F.C.P.' }
+            { value: '1001-MEDLINE', label: '1001-MEDLINE' },
+            { value: '2001-UNISON', label: '2001-UNISON' },
+            { value: '3001-F.C.P.', label: '3001-F.C.P.' }
         ];
     }
 

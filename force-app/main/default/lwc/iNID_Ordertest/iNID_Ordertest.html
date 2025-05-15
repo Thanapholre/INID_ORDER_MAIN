@@ -27,6 +27,7 @@
                                             class="dropdown-item edit_dropdown"
                                             data-id={cust.Id}
                                             data-name={cust.Name}
+                                            data-code={cust.INID_Customer_Code__c}
                                             onmousedown={handleSelectCustomer}>
                                             {cust.INID_Customer_Code__c} {cust.Name}
                                         </div>
@@ -35,9 +36,25 @@
                             </div>
                         </template>
             
-                        <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} required></lightning-input>
-                        <lightning-input class="main" label="Ship To" value={shipto} type="text" onchange={shiptoHandleChange} required></lightning-input>
-                        <lightning-combobox class="configure_placeholder main" name={progress} label="Organization" value={organizationValue} placeholder="" options={organizationOption}  onchange={organizationHandleChange} required></lightning-combobox>
+                        <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange}  required></lightning-input>
+                        <lightning-combobox
+                             class="main"
+                            label="Ship To"
+                            value={shipto}
+                            options={shiptoOptions}
+                            onchange={handleShiptoChange}
+                            required>
+                        </lightning-combobox>
+                        <lightning-combobox 
+                            class="configure_placeholder main" 
+                            name="Organization"
+                            label="Organization" 
+                            value={organizationValue} 
+                            placeholder="" 
+                            options={organizationOption}  
+                            onchange={organizationHandleChange} 
+                            required>
+                        </lightning-combobox>
                         <lightning-combobox
                             name="paymentType"
                             placeholder=""
@@ -45,6 +62,7 @@
                             value={paymentTypeValue}
                             options={paymentTypeOption}
                             onchange={paymentTypeHandleChange}
+                            read-only
                             required>
                         </lightning-combobox>
 
@@ -55,10 +73,11 @@
                             value={paymentTermValue}
                             options={paymentTermOption}
                             onchange={paymentTermHandleChange}
+                            read-only
                             required>
                         </lightning-combobox>
 
-                        <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} required></lightning-input>
+                        <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} ></lightning-input>
                         <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
                         <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
             
