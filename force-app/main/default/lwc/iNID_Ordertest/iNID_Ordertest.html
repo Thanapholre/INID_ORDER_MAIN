@@ -36,9 +36,11 @@
                             </div>
                         </template>
             
-                        <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange}  required></lightning-input>
+                        <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} disabled required></lightning-input>
+                        
                         <lightning-combobox
-                             class="main"
+                            placeholder=""
+                            class="main" 
                             label="Ship To"
                             value={shipto}
                             options={shiptoOptions}
@@ -128,8 +130,6 @@
     <!-- ##################################################################################################################### -->
 
 
-
-
     <!-- Start Add Product -->
 
     <template if:true={isShowAddProduct} >
@@ -151,10 +151,10 @@
                 <template if:true={showProductDropdown}>
                     <ul class="dropdown-list">
                         <template for:each={filteredProductOptions} for:item="prod">
-                            <li key={prod.materialCode}
-                                data-id={prod.materialCode}
+                            <li key={prod.Id}
+                                data-id={prod.Id}
                                 onclick={handleSelectProduct}>
-                                {prod.materialCode} {prod.description}
+                                {prod.ProductCode} {prod.Name}
                             </li>
                         </template>
                     </ul>

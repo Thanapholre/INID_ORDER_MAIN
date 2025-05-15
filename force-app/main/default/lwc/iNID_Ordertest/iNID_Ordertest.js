@@ -6,9 +6,11 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 
 // import class
-import testFetchData from '@salesforce/apex/TestAccount.testFetchData';
-import fetchDataBillto from '@salesforce/apex/TestAccount.fetchDataBillto';
-import fetchDataShipto from '@salesforce/apex/TestAccount.fetchDataShipto';
+import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
+import fetchDataBillto from '@salesforce/apex/INID_OrderTest.fetchDataBillto';
+import fetchDataShipto from '@salesforce/apex/INID_OrderTest.fetchDataShipto';
+import fetchDataProducts from '@salesforce/apex/INID_OrderTest.fetchDataProducts'
+// import fetchDataProduct from '@salesforce/apex/Test'
 
 
 // import getRecord API
@@ -20,6 +22,7 @@ import INID_Bill_To_Code__c from '@salesforce/schema/INID_Account_Address__c.INI
 
 export default class INID_Ordertest extends LightningElement {
     @track accounts = [];
+
     @track filteredCustomerOptions = [];
     @track searchTerm = '';
     @track showDropdown = false;
@@ -33,7 +36,10 @@ export default class INID_Ordertest extends LightningElement {
 
     @api recordId;
 
-    @wire(testFetchData)
+    // Call Apex Method HERE
+
+    // fetch Customer
+    @wire(fetchCustomers)
     wiredAccounts({ error, data }) {
         if (data) {
             this.accounts = data;
@@ -42,31 +48,7 @@ export default class INID_Ordertest extends LightningElement {
         }
     }
 
-    get billToCodes() {
-        return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
-    }
-
-    handleInput(event) {
-        const input = event.target.value;
-        this.searchTerm = input;
-        
-        console.log('Search term:', input);
-        
-        if (input && input.length > 2) {
-            const term = input.toLowerCase();
-            this.filteredCustomerOptions = this.accounts.filter(cust =>
-                (cust.Name && cust.Name.toLowerCase().includes(term)) ||
-                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
-            );
-            this.showDropdown = true;
-        } else {
-            this.filteredCustomerOptions = [];
-            this.showDropdown = false;
-        }
-
-    }
-    
-    // fetch Auto Field Bill To
+     // fetch Auto Field Bill To
     @wire(fetchDataBillto)
     fetchBillTo(accountId) {
         fetchDataBillto({ accountId: accountId })
@@ -86,7 +68,7 @@ export default class INID_Ordertest extends LightningElement {
     }
 
 
-    // fetch Auto Field Ship To 
+     // fetch Auto Field Ship To 
     @track shipto = ''; // ← value ที่เลือก
     @track shiptoOptions = []; // ← options ใน dropdown
 
@@ -112,6 +94,45 @@ export default class INID_Ordertest extends LightningElement {
         });
     }
 
+    
+    @track products = [] ;
+
+    @wire(fetchDataProducts)
+    wiredProduct({ error, data }){
+        if(data) {
+            this.products = data;
+        }else if (error) {
+            console.error('Error fetching Products:', error);
+        }
+    }
+
+
+    get billToCodes() {
+        return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
+    }
+
+    handleInput(event) {
+        const input = event.target.value;
+        this.searchTerm = input;
+        
+        console.log('Search term:', input);
+        
+        const term = input.toLowerCase().trim();
+
+        if (term.length > 2) {
+            this.filteredCustomerOptions = this.accounts.filter(cust =>
+                (cust.Name && cust.Name.toLowerCase().includes(term)) ||
+                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
+            );
+
+            // แสดง dropdown เฉพาะกรณีมีข้อมูล
+            this.showDropdown = this.filteredCustomerOptions.length > 0;
+        } else {
+            this.filteredCustomerOptions = [];
+            this.showDropdown = false;
+        }
+    }
+
     handleSelectCustomer(event) {
         const selectedId = event.currentTarget.dataset.id;
         const selectedName = event.currentTarget.dataset.name;
@@ -124,7 +145,6 @@ export default class INID_Ordertest extends LightningElement {
         this.fetchBillTo(selectedId);
         this.fetchShipto(selectedId);
     }
-
 
     handleBlur() {
         setTimeout(() => {
@@ -164,12 +184,8 @@ export default class INID_Ordertest extends LightningElement {
         
     }
 }
-
-
     // End Get Record
 
-
-    
     // Call Font Awesome
     connectedCallback() {
         loadStyle(this, FONT_AWESOME + '/css/all.min.css');
@@ -353,7 +369,7 @@ export default class INID_Ordertest extends LightningElement {
                 })
                 .catch(error => console.error('DataTables Load Error:', error));
             } else if (this.dataTableInstance) {
-                this.dataTableInstanceAddProduct.clear().draw();
+                // this.dataTableInstanceAddProduct.clear().draw();
                 this.updateDataTable();
             }
         }, 50); // wait for DOM to be visible
@@ -379,21 +395,21 @@ export default class INID_Ordertest extends LightningElement {
     dataTableInstance;
     datatableInitialized = false;
 
-    productOption = [
-        { materialCode: '1000000002', description: 'AFZOLINE XL 10 MG.TAB.3X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
-        { materialCode: '1000000003', description: 'ALBER-T OINT.10 GM.', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
-        { materialCode: '1000000004', description: 'ALLORA 5 MG.TAB.1X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
-        { materialCode: '1000000005', description: 'AMOXICILLIN 500 MG.CAP.', unitPrice: 120.00, salePrice: 120.00, quantity: 5, unit: 'Box' },
-        { materialCode: '1000000006', description: 'PARACETAMOL 650 MG.TAB.', unitPrice: 90.00, salePrice: 90.00, quantity: 20, unit: 'Box' },
-        { materialCode: '1000000007', description: 'CETIRIZINE 10 MG.TAB.', unitPrice: 110.00, salePrice: 110.00, quantity: 15, unit: 'Box' },
-        { materialCode: '1000000008', description: 'IBUPROFEN 400 MG.TAB.', unitPrice: 100.00, salePrice: 100.00, quantity: 10, unit: 'Box' },
-        { materialCode: '1000000009', description: 'VITAMIN C 1000 MG.TAB.', unitPrice: 80.00, salePrice: 80.00, quantity: 30, unit: 'Bottle' },
-        { materialCode: '1000000010', description: 'FOLIC ACID 5 MG.TAB.', unitPrice: 60.00, salePrice: 60.00, quantity: 25, unit: 'Box' },
-        { materialCode: '1000000011', description: 'LORATADINE 10 MG.TAB.', unitPrice: 95.00, salePrice: 95.00, quantity: 12, unit: 'Box' },
-        { materialCode: '1000000012', description: 'RANITIDINE 150 MG.TAB.', unitPrice: 105.00, salePrice: 105.00, quantity: 8, unit: 'Box' },
-        { materialCode: '1000000013', description: 'METFORMIN 500 MG.TAB.', unitPrice: 140.00, salePrice: 140.00, quantity: 10, unit: 'Box' },
-        { materialCode: '1000000014', description: 'ATORVASTATIN 20 MG.TAB.', unitPrice: 160.00, salePrice: 160.00, quantity: 10, unit: 'Box' }
-    ];
+    // productOption = [
+    //     { materialCode: '1000000002', description: 'AFZOLINE XL 10 MG.TAB.3X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
+    //     { materialCode: '1000000003', description: 'ALBER-T OINT.10 GM.', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
+    //     { materialCode: '1000000004', description: 'ALLORA 5 MG.TAB.1X10 S', unitPrice: 150.00, salePrice: 150.00, quantity: 10, unit: 'Box' },
+    //     { materialCode: '1000000005', description: 'AMOXICILLIN 500 MG.CAP.', unitPrice: 120.00, salePrice: 120.00, quantity: 5, unit: 'Box' },
+    //     { materialCode: '1000000006', description: 'PARACETAMOL 650 MG.TAB.', unitPrice: 90.00, salePrice: 90.00, quantity: 20, unit: 'Box' },
+    //     { materialCode: '1000000007', description: 'CETIRIZINE 10 MG.TAB.', unitPrice: 110.00, salePrice: 110.00, quantity: 15, unit: 'Box' },
+    //     { materialCode: '1000000008', description: 'IBUPROFEN 400 MG.TAB.', unitPrice: 100.00, salePrice: 100.00, quantity: 10, unit: 'Box' },
+    //     { materialCode: '1000000009', description: 'VITAMIN C 1000 MG.TAB.', unitPrice: 80.00, salePrice: 80.00, quantity: 30, unit: 'Bottle' },
+    //     { materialCode: '1000000010', description: 'FOLIC ACID 5 MG.TAB.', unitPrice: 60.00, salePrice: 60.00, quantity: 25, unit: 'Box' },
+    //     { materialCode: '1000000011', description: 'LORATADINE 10 MG.TAB.', unitPrice: 95.00, salePrice: 95.00, quantity: 12, unit: 'Box' },
+    //     { materialCode: '1000000012', description: 'RANITIDINE 150 MG.TAB.', unitPrice: 105.00, salePrice: 105.00, quantity: 8, unit: 'Box' },
+    //     { materialCode: '1000000013', description: 'METFORMIN 500 MG.TAB.', unitPrice: 140.00, salePrice: 140.00, quantity: 10, unit: 'Box' },
+    //     { materialCode: '1000000014', description: 'ATORVASTATIN 20 MG.TAB.', unitPrice: 160.00, salePrice: 160.00, quantity: 10, unit: 'Box' }
+    // ];
     
 
   //initializeDataTable method
@@ -421,25 +437,26 @@ export default class INID_Ordertest extends LightningElement {
         this.searchProductTerm = event.target.value;
         const term = this.searchProductTerm.toLowerCase();
         this.showProductDropdown = term.length > 2;
-        this.filteredProductOptions = this.productOption.filter(p =>
-            p.description.toLowerCase().includes(term) || p.materialCode.includes(term)
+        this.filteredProductOptions = this.products.filter(p =>
+            p.Name.toLowerCase().includes(term) || p.ProductCode.includes(term)
         );
     }
 
     handleSelectProduct(event) {
-        const materialCode = event.currentTarget.dataset.id;
-        const existing = this.selectedProducts.find(p => p.materialCode === materialCode && p.salePrice !== 0);
+        const id = event.currentTarget.dataset.id;
+        alert
+        const existing = this.selectedProducts.find(p => p.id === id && p.salePrice !== 0);
         if (!existing) {
-            const selected = this.productOption.find(p => p.materialCode === materialCode);
+            const selected = this.products.find(p => p.id === id);
             if (selected) {
                 const total = selected.salePrice * selected.quantity;
                 const newProduct = { ...selected, total };
                 this.selectedProducts = [...this.selectedProducts, newProduct];
 
                 const relatedAddons = this.addonSelections.filter(
-                    a => a.productCode === materialCode
+                    a => a.id === id
                 ).map(a => ({
-                    materialCode: a.addonMaterialCode,
+                    id : id,
                     description: a.addonDescription,
                     salePrice: 0,
                     quantity: 0,
@@ -455,8 +472,8 @@ export default class INID_Ordertest extends LightningElement {
                 this.selectedProducts.forEach(product => {
                     this.dataTableInstance.row.add([
                             `<input style="text-align: center;" type="checkbox" />`,
-                            `<div style="text-align: left;">${product.materialCode}</div>`,
-                            `<div style="text-align: left;">${product.description}</div>`,
+                            `<div style="text-align: left;">${product.id}</div>`,
+                            `<div style="text-align: left;">${product.Name}</div>`,
                             product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
                             product.salePrice.toFixed(2),
                             product.quantity,
@@ -479,7 +496,7 @@ export default class INID_Ordertest extends LightningElement {
                                             align-items:center;
                                             justify-content:center;
                                             cursor:pointer;"
-                                            data-id="${product.materialCode}">
+                                            data-id="${product.id}">
                                     </i>
                                 </div>
                             `
@@ -490,7 +507,7 @@ export default class INID_Ordertest extends LightningElement {
             }
         }
 
-        this.searchProductTerm = '';
+        this.searchProductTerm = '';    
         this.showProductDropdown = false;
     }    
     // ---------------------------------------------------------------------------
