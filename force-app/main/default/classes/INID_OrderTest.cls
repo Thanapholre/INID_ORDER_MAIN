@@ -22,7 +22,7 @@ public with sharing class INID_OrderTest {
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
         return [
-            SELECT Id , INID_Meterial_code__c, Name, INID_Quantity__C, INID_Sale_Price__c, INID_SKU_Description__c, INID_Total, INID_Unit_Price__c
+            SELECT Id , INID_Quantity__C, INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c
             FROM INID_Product_Price_Book__c LIMIT 20
             ];
     }

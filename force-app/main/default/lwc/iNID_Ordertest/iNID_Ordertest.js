@@ -21,6 +21,7 @@ import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__
 
 export default class INID_Ordertest extends LightningElement {
     @track accounts = [];
+    @track productPriceBook = [] ;
 
     @track filteredCustomerOptions = [];
     @track searchTerm = '';
@@ -93,15 +94,14 @@ export default class INID_Ordertest extends LightningElement {
         });
     }
 
-    
-    @track products = [] ;
-
+    // Fetch Data Price Book
     @wire(fetchDataProductPriceBook)
-    wiredProduct({ error, data }){
-        if(data) {
-            this.products = data;
-        }else if (error) {
-            console.error('Error fetching Products:', error);
+    wiredproductPriceBook({ error, data }) {
+        if (data) {
+            this.productPriceBook = data;
+            //  alert('Fetched Products:\n' + JSON.stringify(this.productPriceBook, null, 2));
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
         }
     }
 
@@ -343,12 +343,9 @@ export default class INID_Ordertest extends LightningElement {
 
 
     openAddProduct() {
-
         if(!this.validateOrder()){
             return;
         }
-
-        
 
         this.isShowAddProduct = true;
         this.isShowOrder = false;
@@ -433,26 +430,45 @@ export default class INID_Ordertest extends LightningElement {
 
     // กรองจากการ search input
     handleInputProduct(event) {
-        this.searchProductTerm = event.target.value;
-        const term = this.searchProductTerm.toLowerCase();
-        this.showProductDropdown = term.length > 2;
-        this.filteredProductOptions = this.products.filter(p =>
-            p.Name.toLowerCase().includes(term) || p.ProductCode.includes(term)
-        );
-    }
+    this.searchProductTerm = event.target.value;
+    const term = this.searchProductTerm.toLowerCase();
+    this.showProductDropdown = term.length > 2;
+
+    this.filteredProductOptions = this.productPriceBook.filter(p => {
+        const nameStr = p.NameINID_SKU_Description__c ? p.INID_SKU_Description__c.toLowerCase() : '';
+        const codeStr = p.INID_Material_Code__c ? p.INID_Material_Code__c.toString().toLowerCase() : '';
+
+        return nameStr.includes(term) || codeStr.includes(term);
+    });
+}
 
     handleSelectProduct(event) {
         const id = event.currentTarget.dataset.id;
-        alert
-        const existing = this.selectedProducts.find(p => p.id === id && p.salePrice !== 0);
+        const existing = this.selectedProducts.find(p => p.id === id);
+
         if (!existing) {
-            const selected = this.products.find(p => p.id === id);
+            const selected = this.productPriceBook.find(p => p.Id === id);
             if (selected) {
-                const total = selected.salePrice * selected.quantity;
-                const newProduct = { ...selected, total };
+                const unitPrice = selected.INID_Unit_Price__c || 0;
+                const quantity = selected.INID_Quantity__c;
+                // const salePrice = unitPrice;
+                const total = unitPrice * quantity;
+
+                const newProduct = {
+                    id: selected.Id, // ใช้ Id นี้สำหรับเช็คซ้ำ
+                    code: selected.INID_Material_Code__c, // ใช้ code นี้สำหรับแสดงในตาราง
+                    Name: selected.Name,
+                    description: selected.INID_SKU_Description__c,
+                    // salePrice: salePrice,
+                    quantity: quantity,
+                    unit: selected.INID_Unit__c,
+                    unitPrice: unitPrice,
+                    total: total
+                };
                 this.selectedProducts = [...this.selectedProducts, newProduct];
 
-                const relatedAddons = this.addonSelections.filter(
+                // Optional: ถ้ามีระบบ Add-on ค่อยใส่ relatedAddons
+                const relatedAddons = this.addonSelections?.filter(
                     a => a.id === id
                 ).map(a => ({
                     id : id,
@@ -462,43 +478,44 @@ export default class INID_Ordertest extends LightningElement {
                     unit: '-',
                     total: Number(a.discountValue || 0),
                     addonLabel: a.addonLabel
-                }));
+                })) || [];
 
                 this.selectedProducts = [...this.selectedProducts, ...relatedAddons];
 
+                // Reset and add rows
                 this.dataTableInstance.clear();
 
                 this.selectedProducts.forEach(product => {
                     this.dataTableInstance.row.add([
-                            `<input style="text-align: center;" type="checkbox" />`,
-                            `<div style="text-align: left;">${product.id}</div>`,
-                            `<div style="text-align: left;">${product.Name}</div>`,
-                            product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
-                            product.salePrice.toFixed(2),
-                            product.quantity,
-                            `<div style="text-align: center;">${product.unit}</div>`,
-                            product.total.toFixed(2),
-                            product.salePrice === 0 ? product.addonLabel : 
-                            `
-                                <div style="display: flex; justify-content: center; align-items: center;">
-                                    
-                                    <i class="fa-solid fa-plus addon-btn"
-                                        style=" 
-                                            width:35px;
-                                            height:35px;
-                                            border-radius:50%;
-                                            border:1px solid #ccc;
-                                            background-color:white;
-                                            color:#007bff;
-                                            font-size:20px;
-                                            display:flex;
-                                            align-items:center;
-                                            justify-content:center;
-                                            cursor:pointer;"
-                                            data-id="${product.id}">
-                                    </i>
-                                </div>
-                            `
+                        `<input style="text-align: center;" type="checkbox" />`,
+                        // `<div style="text-align: left;">${product.id}</div>`,
+                        `<div style="text-align: left;">${product.code}</div>`,
+                        `<div style="text-align: left;">${product.description}</div>`,
+                        product.salePrice === 0 ? '-' : product.unitPrice.toFixed(2),
+                        // product.salePrice.toFixed(2),
+                        product.quantity,
+                        `<div style="text-align: center;">${product.unit}</div>`,
+                        product.total.toFixed(2),
+                        product.salePrice === 0 ? product.addonLabel : 
+                        `
+                            <div style="display: flex; justify-content: center; align-items: center;">
+                                <i class="fa-solid fa-plus addon-btn"
+                                    style=" 
+                                        width:35px;
+                                        height:35px;
+                                        border-radius:50%;
+                                        border:1px solid #ccc;
+                                        background-color:white;
+                                        color:#007bff;
+                                        font-size:20px;
+                                        display:flex;
+                                        align-items:center;
+                                        justify-content:center;
+                                        cursor:pointer;"
+                                    data-id="${product.code}">
+                                </i>
+                            </div>
+                        `
                     ]);
                 });
 
@@ -508,7 +525,8 @@ export default class INID_Ordertest extends LightningElement {
 
         this.searchProductTerm = '';    
         this.showProductDropdown = false;
-    }    
+    }
+    
     // ---------------------------------------------------------------------------
     // End JS Add Product --------------------------------------------------------
     // ---------------------------------------------------------------------------
@@ -540,6 +558,7 @@ export default class INID_Ordertest extends LightningElement {
     }
 
     showPopupFreeGood(materialCode) {
+        alert(materialCode) ;
         this.currentMaterialCodeForAddOn = materialCode;
         this.isPopupOpenFreeGood = true;
     }
@@ -561,141 +580,146 @@ export default class INID_Ordertest extends LightningElement {
     @track showProductDropdownAddOn = false;
     @track searchProductTermAddOn = '';
     @track selectedProductsAddOn = [];
-    selectedAddOnProduct = null;
+    // selectedAddOnProduct = null;
 
-    handleInputProductAddOn(event) {
-        this.searchProductTermAddOn = event.target.value;
-        if (this.searchProductTermAddOn.length > 2) {
-            const term = this.searchProductTermAddOn.toLowerCase();
-            this.filteredProductOptionsAddOn = this.productOption.filter(
-                p => p.description.toLowerCase().includes(term) || p.materialCode.toLowerCase().includes(term)
-            );
-            this.showProductDropdownAddOn = true;
-        } else {
-            this.showProductDropdownAddOn = false;
+    // handleInputProductAddOn(event) {
+    //     this.searchProductTermAddOn = event.target.value;
+    //     if (this.searchProductTermAddOn.length > 2) {
+    //         const term = this.searchProductTermAddOn.toLowerCase();
+    //         this.filteredProductOptionsAddOn = this.productOption.filter(
+    //             p => p.description.toLowerCase().includes(term) || p.materialCode.toLowerCase().includes(term)
+    //         );
+    //         this.showProductDropdownAddOn = true;
+    //     } else {
+    //         this.showProductDropdownAddOn = false;
+    //     }
+    // }
+
+        handleSelectProductAddOn(event) {
+            const materialCode = event.currentTarget.dataset.id;
+            const selected = this.productPriceBook.find(p => p.INID_Material_Code__c === materialCode);
+            if (selected) {
+                this.selectedAddOnProduct = selected;
+                this.searchProductTermAddOn = `${selected.INID_Material_Code__c} ${selected.INID_SKU_Description__c}`;
+                this.showProductDropdownAddOn = false;
+            }
         }
-    }
 
-    handleSelectProductAddOn(event) {
-        const materialCode = event.currentTarget.dataset.id;
-        const description  = event.currentTarget.dataset.name;
-
-        this.selectedAddOnProduct = this.productOption.find(p => p.materialCode === materialCode);
-        this.searchProductTermAddOn = `${materialCode} ${description}`;
-        this.showProductDropdownAddOn = false;
-    }
     
 
     handleSave() {
+    const errorCombobox = this.template.querySelector('[data-id="error-combobox"]');
+    if (errorCombobox) errorCombobox.textContent = '';
 
-        const errorCombobox = this.template.querySelector('[data-id="error-combobox"]');
-        const errorProduct = this.template.querySelector('[data-id="error-product"]');
+    let hasError = false;
 
-        // เคลียร์ข้อความเก่าก่อน
-        if (errorCombobox) errorCombobox.textContent = '';
-        if (errorProduct) errorProduct.textContent = '';
-
-        let hasError = false;
-
-        if (!this.selectedValue) {
-            if (errorCombobox) errorCombobox.textContent = 'โปรดระบุประเภทการ Add-on';
-            hasError = true;
-        }
-
-        if (!this.selectedAddOnProduct) {
-            if (errorProduct) errorProduct.textContent = 'โปรดระบุสินค้าที่จะ Add-on ';
-            hasError = true;
-        }
-
-        if (hasError) {
-            return;
-        }
-
-        const matchedMainProduct = this.productOption.find(
-            p => p.materialCode === this.currentMaterialCodeForAddOn
-        );
-
-        const selectedOption = this.options.find(opt => opt.value === this.selectedValue);
-        const addonLabel = selectedOption ? selectedOption.label : 'ของแถม';
-
-        const isAlreadyUsed = this.addonSelections.some(
-            a => a.productCode === this.currentMaterialCodeForAddOn &&
-                a.addonType === this.selectedValue &&
-                a.addonMaterialCode === this.selectedAddOnProduct.materialCode
-        );
-
-        if (isAlreadyUsed) {
-            alert('Add-on นี้ถูกเลือกไปแล้ว');
-            return;
-        }
-
-        let addonProduct;
-
-        if (addonLabel === 'ส่วนลด') {
-            const discountPercent = 10;
-            const mainTotal = matchedMainProduct.salePrice * matchedMainProduct.quantity;
-            const discountValue = (mainTotal * discountPercent / 100).toFixed(2);
-
-            addonProduct = {
-                ...this.selectedAddOnProduct,
-                salePrice: 0.00,
-                quantity: 0,
-                unit: '-',
-                total: Number(discountValue),
-                addonLabel: addonLabel,
-                isDiscount: true,
-                discountPercent: `${discountPercent}%`,
-                discountValue: discountValue
-            };
-        } else {
-            addonProduct = {
-                ...this.selectedAddOnProduct,
-                salePrice: 0.00,
-                quantity: 2,
-                total: 0.00,
-                addonLabel: addonLabel,
-                isDiscount: false
-            };
-        }
-
-        const mainIndex = this.selectedProducts.findIndex(
-            p => p.materialCode === this.currentMaterialCodeForAddOn && p.salePrice !== 0
-        );
-
-        if (mainIndex !== -1) {
-            let insertIndex = mainIndex + 1;
-            while (
-                insertIndex < this.selectedProducts.length &&
-                this.selectedProducts[insertIndex].salePrice === 0
-            ) {
-                insertIndex++;
-            }
-
-            const before = this.selectedProducts.slice(0, insertIndex);
-            const after = this.selectedProducts.slice(insertIndex);
-            this.selectedProducts = [...before, addonProduct, ...after];
-        } else {
-            this.selectedProducts = [...this.selectedProducts, addonProduct];
-        }
-
-        const record = {
-            productCode: this.currentMaterialCodeForAddOn,
-            productDescription: matchedMainProduct.description,
-            addonType: this.selectedValue,
-            addonLabel: addonLabel,
-            addonMaterialCode: this.selectedAddOnProduct.materialCode,
-            addonDescription: this.selectedAddOnProduct.description
-        };
-
-        this.addonSelections = [...this.addonSelections, record];
-        this.searchProductTermAddOn = `${this.selectedAddOnProduct.materialCode} ${this.selectedAddOnProduct.description}`;
-        this.updateDataTable();
-        this.closePopupFreeGood();
-        this.currentMaterialCodeForAddOn = null;
-        this.selectedValue = '';
-        this.selectedAddOnProduct = null;
-        this.searchProductTermAddOn = '';
+    if (!this.selectedValue) {
+        if (errorCombobox) errorCombobox.textContent = 'โปรดระบุประเภทการ Add-on';
+        hasError = true;
     }
+
+    if (hasError) return;
+
+    const matchedMainProduct = this.productPriceBook.find(
+        p => p.INID_Material_Code__c === this.currentMaterialCodeForAddOn
+    );
+
+    const selectedOption = this.options.find(opt => opt.value === this.selectedValue);
+    const addonLabel = selectedOption ? selectedOption.label : 'ของแถม';
+
+    const isAlreadyUsed = this.addonSelections.some(
+        a => a.productCode === this.currentMaterialCodeForAddOn &&
+             a.addonType === this.selectedValue &&
+             a.addonMaterialCode === this.selectedAddOnProduct.INID_Material_Code__c
+    );
+
+    if (isAlreadyUsed) {
+        alert('Add-on นี้ถูกเลือกไปแล้ว');
+        return;
+    }
+
+    let addonProduct;
+    if (addonLabel === 'ส่วนลด') {
+        const discountPercent = 10;
+        const mainTotal = matchedMainProduct.salePrice * matchedMainProduct.quantity;
+        const discountValue = (mainTotal * discountPercent / 100).toFixed(2);
+
+        addonProduct = {
+            ...this.selectedAddOnProduct,
+            materialCode: this.selectedAddOnProduct.INID_Material_Code__c,
+            description: this.selectedAddOnProduct.INID_SKU_Description__c,
+            salePrice: 0.00,
+            quantity: 0,
+            unit: '-',
+            total: Number(discountValue),
+            addonLabel: addonLabel,
+            isDiscount: true,
+            discountPercent: `${discountPercent}%`,
+            discountValue: discountValue
+        };
+    } else {
+        addonProduct = {
+            ...this.selectedAddOnProduct,
+            materialCode: this.selectedAddOnProduct.INID_Material_Code__c,
+            description: this.selectedAddOnProduct.INID_SKU_Description__c,
+            salePrice: 0.00,
+            quantity: 2,
+            unit: this.selectedAddOnProduct.INID_Unit__c || '-',
+            total: 0.00,
+            addonLabel: addonLabel,
+            isDiscount: false
+        };
+    }
+
+    const mainIndex = this.selectedProducts.findIndex(
+        p => p.code === this.currentMaterialCodeForAddOn && p.salePrice !== 0
+    );
+
+
+    if (mainIndex !== -1) {
+        let insertIndex = mainIndex + 1;
+        while (
+            insertIndex < this.selectedProducts.length &&
+            this.selectedProducts[insertIndex].salePrice === 0
+        ) {
+            insertIndex++;
+        }
+
+        const before = this.selectedProducts.slice(0, insertIndex);
+        const after = this.selectedProducts.slice(insertIndex);
+        this.selectedProducts = [...before, addonProduct, ...after];
+    } else {
+        this.selectedProducts = [...this.selectedProducts, addonProduct];
+    }
+
+    const record = {
+        productCode: this.currentMaterialCodeForAddOn,
+        productDescription: matchedMainProduct.description,
+        addonType: this.selectedValue,
+        addonLabel: addonLabel
+    };
+
+    this.addonSelections = [...this.addonSelections, record];
+    this.searchProductTermAddOn = `${this.selectedAddOnProduct.INID_Material_Code__c} ${this.selectedAddOnProduct.INID_SKU_Description__c}`;
+    this.updateDataTable();
+    this.closePopupFreeGood();
+
+    // ✅ แสดง alert ตอน Add-on สำเร็จ
+    alert(
+        `เพิ่ม ${addonLabel} ให้กับสินค้า\n` +
+        `Material Code: ${matchedMainProduct.INID_Material_Code__c || '-'}\n` +
+        `Description: ${matchedMainProduct.INID_SKU_Description__c || '-'}\n` +
+        `Add-on: ${addonProduct.description || '-'}`
+    );
+
+    // ✅ reset state
+    this.currentMaterialCodeForAddOn = null;
+    this.selectedValue = '';
+    this.selectedAddOnProduct = null;
+    this.searchProductTermAddOn = '';
+}
+
+
 
 
     //Update Data Table
@@ -705,53 +729,54 @@ export default class INID_Ordertest extends LightningElement {
     this.dataTableInstance.clear();
 
     if (this.isShowSummary) {
-        this.selectedProducts.forEach(product => {
-            const netPrice = product.total / (product.quantity + 2); // สูตรการคำนวณ Net Price
-            this.dataTableInstance.row.add([
-                `<div style="text-align: left;">${product.materialCode}</div>`,
-                `<div style="text-align: left;">${product.description}</div>`,
-                `<div style="text-align: right;">${product.unitPrice.toFixed(2)}</div>`,
-                `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
-                `<div style="text-align: right;">${product.quantity}</div>`,
-                `<div style="text-align: center;">${product.unit}</div>`,
-                `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
-                `<div style="text-align: center;">${product.addonLabel || ''}</div>`,
-                `<div style="text-align: right;">${netPrice != 0 ? netPrice.toFixed(2) : ''}</div>`
-            ]);
-        });
-    } else {
-        this.selectedProducts.forEach(product => {
-            this.dataTableInstance.row.add([
-                `<input style="text-align: center;" type="checkbox" />`,
-                `<div style="text-align: left;">${product.materialCode}</div>`,
-                `<div style="text-align: left;">${product.description}</div>`,
-                `<div style="text-align: right;">${product.unitPrice.toFixed(2)}</div>`,
-                `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
-                `<div style="text-align: right;">${product.quantity}</div>`,
-                `<div style="text-align: center;">${product.unit}</div>`,
-                `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
-                product.salePrice === 0 
-                    ? `<div style="text-align: center;">${product.addonLabel}</div>`
-                    : `<div style="display: flex; justify-content: center; align-items: center;">
-                            <i class="fa-solid fa-plus addon-btn"
-                                    style="
-                                        width:35px;
-                                        height:35px;
-                                        border-radius:50%;
-                                        border:1px solid #ccc;
-                                        background-color:white;
-                                        color:#007bff;
-                                        font-size:20px;
-                                        display:flex;
-                                        align-items:center;
-                                        justify-content:center;
-                                        cursor:pointer;"
-                                        data-id="${product.materialCode}">
-                            </i>
-                        `
-            ]);
-        });
-    }
+    this.selectedProducts.forEach(product => {
+        const netPrice = product.total / (product.quantity + 2);
+        this.dataTableInstance.row.add([
+            `<div style="text-align: left;">${product.code}</div>`,
+            `<div style="text-align: left;">${product.description}</div>`,
+            `<div style="text-align: right;">${product.unitPrice.toFixed(2)}</div>`,
+            `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
+            `<div style="text-align: right;">${product.quantity}</div>`,
+            `<div style="text-align: center;">${product.unit}</div>`,
+            `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
+            `<div style="text-align: center;">${product.addonLabel || ''}</div>`,
+            `<div style="text-align: right;">${netPrice != 0 ? netPrice.toFixed(2) : ''}</div>`
+        ]);
+    });
+} else {
+    this.selectedProducts.forEach(product => {
+        this.dataTableInstance.row.add([
+            `<input style="text-align: center;" type="checkbox" />`,
+            `<div style="text-align: left;">${product.code}</div>`,
+            `<div style="text-align: left;">${product.description}</div>`,
+            `<div style="text-align: right;">${product.unitPrice.toFixed(2)}</div>`,
+            `<div style="text-align: right;">${product.salePrice.toFixed(2)}</div>`,
+            `<div style="text-align: right;">${product.quantity}</div>`,
+            `<div style="text-align: center;">${product.unit}</div>`,
+            `<div style="text-align: right;">${product.total.toFixed(2)}</div>`,
+            product.salePrice === 0 
+                ? `<div style="text-align: center;">${product.addonLabel}</div>`
+                : `<div style="display: flex; justify-content: center; align-items: center;">
+                        <i class="fa-solid fa-plus addon-btn"
+                            style="
+                                width:35px;
+                                height:35px;
+                                border-radius:50%;
+                                border:1px solid #ccc;
+                                background-color:white;
+                                color:#007bff;
+                                font-size:20px;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                cursor:pointer;"
+                            data-id="${product.code}">
+                        </i>
+                    </div>`
+                ]);
+            });
+        }
+
 
     this.dataTableInstance.draw();
 }
@@ -821,10 +846,12 @@ export default class INID_Ordertest extends LightningElement {
         this.template.addEventListener('click', event => {
             if (event.target.classList.contains('addon-btn')) {
                 const materialCode = event.target.dataset.id;
-                this.showPopupFreeGood(materialCode);
+                this.showPopupFreeGood(materialCode); // เปิด popup เท่านั้น
             }
         });
     }
+
+
 
     isShowApplyPromotion = false ;
 
