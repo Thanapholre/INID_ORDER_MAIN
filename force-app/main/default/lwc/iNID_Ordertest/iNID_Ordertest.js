@@ -9,7 +9,7 @@ import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
 import fetchDataBillto from '@salesforce/apex/INID_OrderTest.fetchDataBillto';
 import fetchDataShipto from '@salesforce/apex/INID_OrderTest.fetchDataShipto';
-import fetchDataProducts from '@salesforce/apex/INID_OrderTest.fetchDataProducts'
+import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderTest.fetchDataProductPriceBook'
 // import fetchDataProduct from '@salesforce/apex/Test'
 
 
@@ -18,7 +18,6 @@ import { getRecord, getFieldValue } from "lightning/uiRecordApi";
 import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
-import INID_Bill_To_Code__c from '@salesforce/schema/INID_Account_Address__c.INID_Bill_To_Code__c';
 
 export default class INID_Ordertest extends LightningElement {
     @track accounts = [];
@@ -97,7 +96,7 @@ export default class INID_Ordertest extends LightningElement {
     
     @track products = [] ;
 
-    @wire(fetchDataProducts)
+    @wire(fetchDataProductPriceBook)
     wiredProduct({ error, data }){
         if(data) {
             this.products = data;

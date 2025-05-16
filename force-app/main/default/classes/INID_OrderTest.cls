@@ -20,9 +20,10 @@ public with sharing class INID_OrderTest {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<Product2> fetchDataProducts() {
+    public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
         return [
-            SELECT Id , Name, ProductCode FROM Product2 LIMIT 20
+            SELECT Id , INID_Meterial_code__c, Name, INID_Quantity__C, INID_Sale_Price__c, INID_SKU_Description__c, INID_Total, INID_Unit_Price__c
+            FROM INID_Product_Price_Book__c LIMIT 20
             ];
     }
 
