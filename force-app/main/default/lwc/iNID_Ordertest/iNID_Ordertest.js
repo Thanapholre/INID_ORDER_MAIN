@@ -737,13 +737,69 @@ export default class INID_Ordertest extends LightningElement {
 
     // End Add On Section
 
-    //handleDeleteSelected
+    //handleDeleteSelected (set version)
+    // handleDeleteSelected() {
+    //     const table = this.template.querySelector('.product-table');
+    //     const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
+
+    //     const selectedMainCodes = new Set();
+    //     const selectedAddonCodes = new Set();
+
+    //     checkboxes.forEach(checkbox => {
+    //         const row = checkbox.closest('tr');
+    //         const rowData = this.dataTableInstance.row(row).data();
+
+    //         const materialColumn = rowData[1];
+    //         const matchMaterial = materialColumn.match(/>(.*?)</);
+    //         const materialCode = matchMaterial ? matchMaterial[1].trim() : null;
+
+    //         const unitPriceColumn = rowData[3];
+    //         const matchUnitPrice = unitPriceColumn.match(/>(.*?)</);
+    //         const unitPrice = matchUnitPrice ? parseFloat(matchUnitPrice[1].trim()) : null;
+
+    //         if (materialCode !== null && unitPrice !== null) {
+    //             if (unitPrice === 0) {
+    //                 selectedAddonCodes.add(materialCode); // ติ๊ก Add-on
+    //             } else {
+    //                 selectedMainCodes.add(materialCode); // ติ๊ก Main
+    //             }
+    //         }
+    //     });
+
+    //     if (selectedMainCodes.size === 0 && selectedAddonCodes.size === 0) {
+    //         alert('กรุณาเลือกรายการที่ต้องการลบ');
+    //         return;
+    //     }
+
+    //     const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
+    //     if (!confirmDelete) return;
+
+    //     // ✅ ลบจาก selectedProducts
+    //     this.selectedProducts = this.selectedProducts.filter(p => {
+    //         const isMainSelected = selectedMainCodes.has(p.code) && p.salePrice !== 0;
+    //         const isAddonSelected = selectedAddonCodes.has(p.code) && p.salePrice === 0;
+    //         const isAddonOfSelectedMain = p.salePrice === 0 && selectedMainCodes.has(p.productCode);
+    //         return !(isMainSelected || isAddonSelected || isAddonOfSelectedMain);
+    //     });
+
+    //     // ✅ ลบจาก addonSelections
+    //     this.addonSelections = this.addonSelections.filter(a => {
+    //         const isAddonSelected = selectedAddonCodes.has(a.id); // id === addonCode
+    //         const isAddonOfSelectedMain = selectedMainCodes.has(a.productCode);
+    //         return !(isAddonSelected || isAddonOfSelectedMain);
+    //     });
+
+    //     this.updateDataTable();
+    // }
+
+
+    // handleDeleteSelected (Array version)
     handleDeleteSelected() {
         const table = this.template.querySelector('.product-table');
         const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
 
-        const selectedMainCodes = new Set();
-        const selectedAddonCodes = new Set();
+        const selectedMainCodes = [];
+        const selectedAddonCodes = [];
 
         checkboxes.forEach(checkbox => {
             const row = checkbox.closest('tr');
@@ -759,14 +815,14 @@ export default class INID_Ordertest extends LightningElement {
 
             if (materialCode !== null && unitPrice !== null) {
                 if (unitPrice === 0) {
-                    selectedAddonCodes.add(materialCode); // ติ๊ก Add-on
+                    selectedAddonCodes.push(materialCode);
                 } else {
-                    selectedMainCodes.add(materialCode); // ติ๊ก Main
+                    selectedMainCodes.push(materialCode);
                 }
             }
         });
 
-        if (selectedMainCodes.size === 0 && selectedAddonCodes.size === 0) {
+        if (selectedMainCodes.length === 0 && selectedAddonCodes.length === 0) {
             alert('กรุณาเลือกรายการที่ต้องการลบ');
             return;
         }
@@ -774,19 +830,17 @@ export default class INID_Ordertest extends LightningElement {
         const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
         if (!confirmDelete) return;
 
-        // ✅ ลบจาก selectedProducts
+        // ลบออกจาก selectedProducts
         this.selectedProducts = this.selectedProducts.filter(p => {
-            const isMainSelected = selectedMainCodes.has(p.code) && p.salePrice !== 0;
-            const isAddonSelected = selectedAddonCodes.has(p.code) && p.salePrice === 0;
-            const isAddonOfSelectedMain = p.salePrice === 0 && selectedMainCodes.has(p.productCode);
+            const isMainSelected = selectedMainCodes.includes(p.code) && p.salePrice !== 0;
+            const isAddonSelected = selectedAddonCodes.includes(p.code) && p.salePrice === 0;
+            const isAddonOfSelectedMain = p.salePrice === 0 && selectedMainCodes.includes(p.productCode);
             return !(isMainSelected || isAddonSelected || isAddonOfSelectedMain);
         });
 
-        // ✅ ลบจาก addonSelections
+        // ลบออกจาก addonSelections
         this.addonSelections = this.addonSelections.filter(a => {
-            const isAddonSelected = selectedAddonCodes.has(a.id); // id === addonCode
-            const isAddonOfSelectedMain = selectedMainCodes.has(a.productCode);
-            return !(isAddonSelected || isAddonOfSelectedMain);
+            return !selectedMainCodes.includes(a.productCode) && !selectedAddonCodes.includes(a.id);
         });
 
         this.updateDataTable();
@@ -795,8 +849,6 @@ export default class INID_Ordertest extends LightningElement {
 
 
 
-
-    
     //Ckeckbox Select All
     handleSelectAll(event) {
         const isChecked = event.target.checked;
