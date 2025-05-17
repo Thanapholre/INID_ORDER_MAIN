@@ -512,10 +512,10 @@ export default class INID_Ordertest extends LightningElement {
     get options(){
         return [
             { label: 'ของแถม', value: '1' },
-            { label: 'ตัวอย่าง', value: '3' },
-            { label: 'บริจาค', value: '4' },
-            { label: 'ชดเชย', value: '5' },
-            { label: 'สมนาคุณ', value: '6' },
+            { label: 'ตัวอย่าง', value: '2' },
+            { label: 'บริจาค', value: '3' },
+            { label: 'ชดเชย', value: '4' },
+            { label: 'สมนาคุณ', value: '5' },
         ];
     }
 
@@ -584,22 +584,31 @@ export default class INID_Ordertest extends LightningElement {
         const isAlreadyUsed = this.addonSelections.some(
             a => a.productCode === this.currentMaterialCodeForAddOn && a.addonType === this.selectedValue
         );
+        // const isAlreadyUsed = this.addonSelections.some(
+        //     a => a.productCode === this.currentMaterialCodeForAddOn && a.addonType === this.selectedValue
+        // );
 
         if (isAlreadyUsed) {
             alert('Add-on นี้ถูกเพิ่มแล้ว');
             return;
         }
 
+        // ✅ Generate unique ID for Add-on
+        // const addonId = `addon-${this.currentMaterialCodeForAddOn}-${Date.now()}`;
+        // const addonId = `addon-${this.currentMaterialCodeForAddOn}-${Date.now()}`;
+        const addonId = `${this.currentMaterialCodeForAddOn}`;
+
         const addonProduct = {
-            code: this.currentMaterialCodeForAddOn,
-            materialCode: '',
+            code: addonId, // <-- unique ID
+            materialCode: this.currentMaterialCodeForAddOn,
             description: matchedMainProduct.description,
             salePrice: 0.00,
             quantity: 1,
             unit: '',
             total: 0.00,
             addonLabel: addonLabel,
-            isDiscount: false
+            isDiscount: false,
+            productCode: this.currentMaterialCodeForAddOn // <-- bind to main
         };
 
         const mainIndex = this.selectedProducts.findIndex(
@@ -610,7 +619,8 @@ export default class INID_Ordertest extends LightningElement {
             let insertIndex = mainIndex + 1;
             while (
                 insertIndex < this.selectedProducts.length &&
-                this.selectedProducts[insertIndex].salePrice === 0
+                this.selectedProducts[insertIndex].salePrice === 0 &&
+                this.selectedProducts[insertIndex].productCode === this.currentMaterialCodeForAddOn
             ) {
                 insertIndex++;
             }
@@ -623,6 +633,7 @@ export default class INID_Ordertest extends LightningElement {
         }
 
         const record = {
+            id: addonId,
             productCode: this.currentMaterialCodeForAddOn,
             productDescription: matchedMainProduct.description,
             addonType: this.selectedValue,
@@ -635,146 +646,156 @@ export default class INID_Ordertest extends LightningElement {
         this.closePopupFreeGood();
         this.currentMaterialCodeForAddOn = null;
         this.selectedValue = '';
+        alert(
+        `Add-on ถูกเพิ่ม:\n` +
+        `รหัสสินค้า: ${addonProduct.materialCode}\n` +
+        `ชื่อสินค้า: ${addonProduct.description}\n` +
+        `ประเภทของแถม: ${record.addonType}\n` +
+        `ป้ายกำกับของแถม: ${record.addonLabel}\n` +
+        `จำนวน: ${addonProduct.quantity}`
+     );
     }
+
     //End Handle Save
 
     //Update Data Table
     updateDataTable() {
-    if (!this.dataTableInstance) return;
+        if (!this.dataTableInstance) return;
 
-    this.dataTableInstance.clear();
+        this.dataTableInstance.clear();
 
-    if (this.isShowSummary) {
-        const mainProducts = this.selectedProducts.filter(p => p.salePrice !== 0);
+        if (this.isShowSummary) {
+            const mainProducts = this.selectedProducts.filter(p => p.salePrice !== 0);
 
-        mainProducts.forEach(main => {
-            const relatedAddons = this.selectedProducts.filter(
-                p => p.code === main.code && p.salePrice === 0
-            );
+            mainProducts.forEach(main => {
+                const relatedAddons = this.selectedProducts.filter(
+                    p => p.productCode === main.code && p.salePrice === 0
+                );
 
-            const totalQty = (main.quantity || 0) + relatedAddons.reduce((sum, a) => sum + (a.quantity || 1), 0);
-            const netPrice = totalQty > 0 ? (main.total || 0) / totalQty : 0;
+                const totalQty = (main.quantity || 0) + relatedAddons.reduce((sum, a) => sum + (a.quantity || 1), 0);
+                const netPrice = totalQty > 0 ? (main.total || 0) / totalQty : 0;
 
-            this.dataTableInstance.row.add([
-                `<div style="text-align: left;">${main.code || ''}</div>`,
-                `<div style="text-align: left;">${main.description || ''}</div>`,
-                `<div style="text-align: right;">${(main.unitPrice || 0).toFixed(2)}</div>`,
-                `<div style="text-align: right;">${main.quantity || ''}</div>`,
-                `<div style="text-align: center;">${main.unit || ''}</div>`,
-                `<div style="text-align: right;">${(main.total || 0).toFixed(2)}</div>`,
-                `<div style="text-align: center;"></div>`,
-                `<div style="text-align: right;">${netPrice.toFixed(2)}</div>`
-            ]);
-
-            relatedAddons.forEach(addon => {
                 this.dataTableInstance.row.add([
-                    `<div style="text-align: left;">${addon.code || ''}</div>`,
-                    `<div style="text-align: left;">${addon.description || ''}</div>`,
-                    `<div style="text-align: right;">${(addon.unitPrice || 0).toFixed(2)}</div>`,
-                    `<div style="text-align: right;">${addon.quantity || ''}</div>`,
-                    `<div style="text-align: center;">${addon.unit || ''}</div>`,
-                    `<div style="text-align: right;">${(addon.total || 0).toFixed(2)}</div>`,
-                    `<div style="text-align: center;">${addon.addonLabel || ''}</div>`,
-                    `<div style="text-align: right;"></div>`
+                    `<div style="text-align: left;">${main.code || ''}</div>`,
+                    `<div style="text-align: left;">${main.description || ''}</div>`,
+                    `<div style="text-align: right;">${(main.unitPrice || 0).toFixed(2)}</div>`,
+                    `<div style="text-align: right;">${main.quantity || ''}</div>`,
+                    `<div style="text-align: center;">${main.unit || ''}</div>`,
+                    `<div style="text-align: right;">${(main.total || 0).toFixed(2)}</div>`,
+                    `<div style="text-align: center;">${main.addonLabel}</div>`,
+                    `<div style="text-align: right;">${netPrice.toFixed(2)}</div>`
+                ]);
+
+                relatedAddons.forEach(addon => {
+                    this.dataTableInstance.row.add([
+                        `<div style="text-align: left;">${addon.code || ''}</div>`,
+                        `<div style="text-align: left;">${addon.description || ''}</div>`,
+                        `<div style="text-align: right;">${(addon.unitPrice || 0).toFixed(2)}</div>`,
+                        `<div style="text-align: right;">${addon.quantity || ''}</div>`,
+                        `<div style="text-align: center;">${addon.unit || ''}</div>`,
+                        `<div style="text-align: right;">${(addon.total || 0).toFixed(2)}</div>`,
+                        `<div style="text-align: center;">${addon.addonLabel || ''}</div>`,
+                        `<div style="text-align: right;"></div>`
+                    ]);
+                });
+            });
+        } else {
+            this.selectedProducts.forEach((product, index) => {
+                const isAddon = product.addonLabel !== undefined;
+                const hasAddon = this.selectedProducts.some(
+                    p => p.code === product.code && p.salePrice === 0
+                );
+
+                this.dataTableInstance.row.add([
+                    `<input type="checkbox" style="text-align: center;" />`,
+                    `<div style="text-align: left;">${product.code || ''}</div>`,
+                    `<div style="text-align: left;">${product.description || ''}</div>`,
+                    `<div style="text-align: right;">${(product.unitPrice || 0).toFixed(2)}</div>`,
+                    `<div style="text-align: right;">${product.quantity || ''}</div>`,
+                    `<div style="text-align: center;">${product.unit || ''}</div>`,
+                    `<div style="text-align: right;">${(product.total || 0).toFixed(2)}</div>`,
+
+                    isAddon
+                        ? `<div style="text-align: center;">${product.addonLabel || ''}</div>`
+                        : `<div style="display: flex; justify-content: center; align-items: center;">
+                            <i class="fa-solid fa-plus addon-btn"
+                                style="width:30px;height:30px;border-radius:50%;border:1px solid #ccc;background:white;
+                                    color:${hasAddon ? '#ccc' : '#007bff'};
+                                    font-size:16px;display:flex;align-items:center;justify-content:center;
+                                    cursor:${hasAddon ? 'not-allowed' : 'pointer'};"
+                                title="เพิ่มของแถม"
+                                data-id="${product.code}"
+                                ${hasAddon ? 'disabled' : ''}>
+                            </i>
+                        </div>`
                 ]);
             });
-        });
-    } else {
-        this.selectedProducts.forEach((product, index) => {
-            const isAddon = product.addonLabel !== undefined;
-            const hasAddon = this.selectedProducts.some(
-                p => p.code === product.code && p.salePrice === 0
-            );
+        }
 
-            this.dataTableInstance.row.add([
-                `<input type="checkbox" style="text-align: center;" />`,
-                `<div style="text-align: left;">${product.code || ''}</div>`,
-                `<div style="text-align: left;">${product.description || ''}</div>`,
-                `<div style="text-align: right;">${(product.unitPrice || 0).toFixed(2)}</div>`,
-                `<div style="text-align: right;">${product.quantity || ''}</div>`,
-                `<div style="text-align: center;">${product.unit || ''}</div>`,
-                `<div style="text-align: right;">${(product.total || 0).toFixed(2)}</div>`,
-
-                isAddon
-                    ? `<div style="text-align: center;">${product.addonLabel || ''}</div>`
-                    : `<div style="display: flex; justify-content: center; align-items: center;">
-                        <i class="fa-solid fa-plus addon-btn"
-                            style="width:30px;height:30px;border-radius:50%;border:1px solid #ccc;background:white;
-                                color:${hasAddon ? '#ccc' : '#007bff'};
-                                font-size:16px;display:flex;align-items:center;justify-content:center;
-                                cursor:${hasAddon ? 'not-allowed' : 'pointer'};"
-                            title="เพิ่มของแถม"
-                            data-id="${product.code}"
-                            ${hasAddon ? 'disabled' : ''}>
-                        </i>
-                    </div>`
-            ]);
-        });
+        this.dataTableInstance.draw();
     }
-
-    this.dataTableInstance.draw();
-}
 
     // End Add On Section
 
     //handleDeleteSelected
-    
     handleDeleteSelected() {
         const table = this.template.querySelector('.product-table');
         const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
-    
-        const selectedIds = [];
-    
+
+        const selectedMainCodes = new Set();
+        const selectedAddonCodes = new Set();
+
         checkboxes.forEach(checkbox => {
-            const rowData = this.dataTableInstance.row(checkbox.closest('tr')).data();
-            const materialCodeCell = rowData[1];
-            const codeMatch = materialCodeCell.match(/>(.*?)</);
-            const materialCode = codeMatch ? codeMatch[1].trim() : null;
-            
-            alert(`materialCodeCell : ${materialCodeCell}
-                    codeMatch : ${codeMatch}
-                    materialCode : ${materialCode}
+            const row = checkbox.closest('tr');
+            const rowData = this.dataTableInstance.row(row).data();
 
-                `)
+            const materialColumn = rowData[1];
+            const matchMaterial = materialColumn.match(/>(.*?)</);
+            const materialCode = matchMaterial ? matchMaterial[1].trim() : null;
 
-            if (materialCode) {
-                selectedIds.push(materialCode);
+            const unitPriceColumn = rowData[3];
+            const matchUnitPrice = unitPriceColumn.match(/>(.*?)</);
+            const unitPrice = matchUnitPrice ? parseFloat(matchUnitPrice[1].trim()) : null;
+
+            if (materialCode !== null && unitPrice !== null) {
+                if (unitPrice === 0) {
+                    selectedAddonCodes.add(materialCode); // ติ๊ก Add-on
+                } else {
+                    selectedMainCodes.add(materialCode); // ติ๊ก Main
+                }
             }
         });
-    
-        if (selectedIds.length === 0) {
+
+        if (selectedMainCodes.size === 0 && selectedAddonCodes.size === 0) {
             alert('กรุณาเลือกรายการที่ต้องการลบ');
             return;
         }
-    
+
         const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
         if (!confirmDelete) return;
-    
 
-        const mainProductCodesToDelete = this.selectedProducts
-        .filter(p => selectedIds.includes(p.code) && p.salePrice !== 0)
-
-        const addonMaterialCodesToDelete = this.selectedProducts
-        .filter(p => selectedIds.includes(p.materialCode) && p.salePrice === 0) 
-        .map(p => p.materialCode);
-    
+        // ✅ ลบจาก selectedProducts
         this.selectedProducts = this.selectedProducts.filter(p => {
-        const isMainToDelete = mainProductCodesToDelete.includes(p.code);
-        const isAddonOfMain = p.salePrice === 0 && mainProductCodesToDelete.includes(p.productCode);
-        const isAddonSelected = p.salePrice === 0 && addonMaterialCodesToDelete.includes(p.materialCode);
-        return !isMainToDelete && !isAddonOfMain && !isAddonSelected;
+            const isMainSelected = selectedMainCodes.has(p.code) && p.salePrice !== 0;
+            const isAddonSelected = selectedAddonCodes.has(p.code) && p.salePrice === 0;
+            const isAddonOfSelectedMain = p.salePrice === 0 && selectedMainCodes.has(p.productCode);
+            return !(isMainSelected || isAddonSelected || isAddonOfSelectedMain);
         });
 
+        // ✅ ลบจาก addonSelections
         this.addonSelections = this.addonSelections.filter(a => {
-        const isAddonOfMain = mainProductCodesToDelete.includes(a.productCode);
-        const isAddonSelected = addonMaterialCodesToDelete.includes(a.addonMaterialCode || a.id);
-        return !isAddonOfMain && !isAddonSelected;
+            const isAddonSelected = selectedAddonCodes.has(a.id); // id === addonCode
+            const isAddonOfSelectedMain = selectedMainCodes.has(a.productCode);
+            return !(isAddonSelected || isAddonOfSelectedMain);
         });
-        
-        this.addonSelections = this.addonSelections.filter(a => !selectedIds.includes(a.id));
+
         this.updateDataTable();
     }
-    
+
+
+
+
+
     
     //Ckeckbox Select All
     handleSelectAll(event) {
@@ -783,7 +804,6 @@ export default class INID_Ordertest extends LightningElement {
         checkboxes.forEach(checkbox => checkbox.checked = isChecked);
         // event.preventDefault();
     }
-
 
     addonButtonBound = false; 
 
@@ -797,6 +817,7 @@ export default class INID_Ordertest extends LightningElement {
                  const hasAddon = this.selectedProducts.some(
                 p => p.code === materialCode && p.salePrice === 0
                 );
+
 
             if (hasAddon) return;
 
