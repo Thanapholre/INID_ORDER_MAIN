@@ -84,23 +84,23 @@
                         <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
             
                         <!-- Check_box -->
-                        <div class="Checkbox">
+                       <div class="Checkbox slds-m-around_medium">
                             <lightning-input 
-                                checked="true"
-                                type="checkbox" 
-                                label={checkboxLabel1} 
-                                value="1" 
-                                onchange={handleChange} 
-                                class="checkbox-spacing">
+                                type="radio" 
+                                label={radioButtonOrderLabel1} 
+                                name="exampleRadio" 
+                                value="option1" 
+                                onchange={handleChangeRadioButton}
+                                class="checkbox-spacing"
+                                checked >
                             </lightning-input>
-                        </div>
-                        
-                        <div>
+
                             <lightning-input 
-                                type="checkbox" 
-                                label={checkboxLabel1} 
-                                value="1" 
-                                onchange={handleChange} 
+                                type="radio" 
+                                label={radioButtonOrderLabel2} 
+                                name="exampleRadio" 
+                                value="option2" 
+                                onchange={handleChangeRadioButton}
                                 class="checkbox-spacing">
                             </lightning-input>
                         </div>

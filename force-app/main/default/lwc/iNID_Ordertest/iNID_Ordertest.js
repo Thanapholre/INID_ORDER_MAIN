@@ -201,8 +201,8 @@ export default class INID_Ordertest extends LightningElement {
     @track noteAgent = '';
     @track noteInternal = '';
     @track organizationValue = '';
-    checkboxLabel1 = 'Include VAT';
-    checkboxLabel2 = 'Exclude VAT';
+    radioButtonOrderLabel1 = 'Include VAT';
+    radioButtonOrderLabel2 = 'Exclude VAT';
 
     @track paymentTypeOptions = [];
     @track paymentTermOptions = [];
@@ -269,7 +269,7 @@ export default class INID_Ordertest extends LightningElement {
     isShowAddProduct = false;
     isShowOrder = true;
 
-    handleChange(event) {
+    handleChangeRadioButton(event) {
         const selected = event.target.value;
         const isChecked = event.target.checked;
         this.value = isChecked ? [...this.value, selected] : this.value.filter(val => val !== selected);
@@ -371,6 +371,8 @@ export default class INID_Ordertest extends LightningElement {
     backtoOrder() {
         this.isShowAddProduct = false;
         this.isShowOrder = true;
+        this.dataTableInstanceAddProduct = false; // ต้องให้มัน init ใหม่ตอนกลับมา
+
     }
 
 
