@@ -429,6 +429,7 @@ export default class INID_Ordertest extends LightningElement {
             if (selected) {
                 const unitPrice = selected.INID_Unit_Price__c || 0;
                 const quantity = selected.INID_Quantity__c;
+                const salePrice = unitPrice ;
                 const total = unitPrice * quantity;
 
                 const newProduct = {
@@ -437,6 +438,7 @@ export default class INID_Ordertest extends LightningElement {
                     Name: selected.Name,
                     description: selected.INID_SKU_Description__c,
                     quantity: quantity,
+                    salePrice ,
                     unit: selected.INID_Unit__c,
                     unitPrice: unitPrice,
                     total: total
@@ -450,7 +452,7 @@ export default class INID_Ordertest extends LightningElement {
                     code: selected.INID_Material_Code__c,
                     description: a.addonDescription,
                     unitPrice: 0,
-                    //salePrice: 0,
+                    salePrice: unitPrice,
                     quantity: 0,
                     unit: '-',
                     total: Number(a.discountValue || 0),
@@ -460,37 +462,74 @@ export default class INID_Ordertest extends LightningElement {
                 this.selectedProducts = [...this.selectedProducts, ...relatedAddons];
 
                 this.dataTableInstance.clear();
-                this.selectedProducts.forEach(product => {
+                this.selectedProducts.forEach((product, index) => {
+                    const isAddon = product.addonLabel !== undefined;
                     const hasAddon = this.selectedProducts.some(
                         p => p.code === product.code && p.unitPrice === 0
                     );
 
                     this.dataTableInstance.row.add([
-                        `<input style="text-align: center;" type="checkbox" />`,
-                        `<div style="text-align: left;">${product.code}</div>`,
-                        `<div style="text-align: left;">${product.description}</div>`,
-                        product.unitPrice === 0 ? 0 : product.unitPrice.toFixed(2),
-                        product.quantity,
-                        `<div style="text-align: center;">${product.unit || ''}</div>`,
-                        product.total.toFixed(2),
-                        product.unitPrice === 0
-                            ? `<div style="text-align: center;">${product.addonLabel || '-'}</div>`
-                            : `
-                                <div style="display: flex; justify-content: center; align-items: center;">
-                                    <i class="fa-solid fa-plus addon-btn"
-                                        style="width:30px;height:30px;border-radius:50%;border:1px solid #ccc;background:white;
-                                            color:${hasAddon ? '#ccc' : '#007bff'};
-                                            font-size:16px;display:flex;align-items:center;justify-content:center;
-                                            cursor:${hasAddon ? 'not-allowed' : 'pointer'};"
-                                        title="เพิ่มของแถม"
-                                        data-id="${product.code}"
-                                        ${hasAddon ? 'disabled' : ''}>
-                                    </i>
-                                </div>
-                            `
+                    `<input type="checkbox" style="text-align: center;" />`,
+                    `<div style="text-align: left;">${product.code || '-'}</div>`,
+                    `<div style="text-align: left;">${product.description || ''}</div>`,
+                    `<div style="text-align: right;">${(product.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                    `${isAddon 
+                        ? `<div style="text-align: center;">${(product.quantity || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
+                        : `<input type="number" 
+                            data-index="${index}" 
+                            value="${product.quantity || 0}" 
+                            min="0"
+                            class="quantity-input"
+                            style="width:100%; text-align: center;" />`
+                        }
+                    `,
+
+                    `${isAddon 
+                        ? `<div style="text-align: center;">${(product.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
+                        : `<input type="text"
+                            data-index="${index}" 
+                            value="${(product.salePrice || 0).toFixed(2)}"
+                            min="0"
+                            class="sale-price-input"
+                            style="width:100%; text-align: center;" />`
+                        }`,
+                    `<div style="text-align: right;">${(product.unit || '-')}</div>`,    
+                   `<div style="text-align: right;">${(product.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                    product.unitPrice === 0
+                        ? `<div style="text-align: center;">${product.addonLabel || '-'}</div>`
+                        : `
+                            <div style="display: flex; justify-content: center; align-items: center;">
+                                <i class="fa-solid fa-plus addon-btn"
+                                    style="width:30px;height:30px;border-radius:50%;border:1px solid #ccc;background:white;
+                                        color:${hasAddon ? '#ccc' : '#007bff'};
+                                        font-size:16px;display:flex;align-items:center;justify-content:center;
+                                        cursor:${hasAddon ? 'not-allowed' : 'pointer'};"
+                                    title="เพิ่มของแถม"
+                                    data-id="${product.code}"
+                                    ${hasAddon ? 'disabled' : ''}>
+                                </i>
+                            </div>
+                        `
                     ]);
                 });
+
                 this.dataTableInstance.draw();
+
+                setTimeout(() => {
+                    const table = this.template.querySelector('.product-table');
+
+                    const quantityInputs = table.querySelectorAll('.quantity-input');
+                    quantityInputs.forEach(input => {
+                        input.removeEventListener('change', this.handleQuantityChange);
+                        input.addEventListener('change', this.handleQuantityChange.bind(this));
+                    });
+
+                    const salePriceInputs = table.querySelectorAll('.sale-price-input');
+                    salePriceInputs.forEach(input => {
+                        input.removeEventListener('change', this.handleSalePriceChange);
+                        input.addEventListener('change', this.handleSalePriceChange.bind(this));
+                    });
+                }, 0);
             }
         }
 
@@ -688,22 +727,24 @@ export default class INID_Ordertest extends LightningElement {
                 this.dataTableInstance.row.add([
                     `<div style="text-align: left;">${main.code || '-'}</div>`,
                     `<div style="text-align: left;">${main.description || '-'}</div>`,
-                    `<div style="text-align: right;">${(main.unitPrice || 0).toFixed(2)}</div>`,
-                    `<div style="text-align: right;">${main.quantity || ''}</div>`,
+                    `<div style="text-align: right;">${(main.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                    `<div style="text-align: right;">${(main.quantity || '').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                    `<div style="text-align: center;">${(main.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                     `<div style="text-align: center;">${main.unit || '-'}</div>`,
-                    `<div style="text-align: right;">${(main.total || 0).toFixed(2)}</div>`,
+                    `<div style="text-align: right;">${(main.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                     `<div style="text-align: center;">${main.addonLabel ?? '-'}</div>`,
-                    `<div style="text-align: right;">${netPrice.toFixed(2)}</div>`
+                    `<div style="text-align: right;">${(netPrice.toFixed(2) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
                 ]);
 
                 relatedAddons.forEach(addon => {
                     this.dataTableInstance.row.add([
                         `<div style="text-align: left;">${addon.code || '-'}</div>`,
                         `<div style="text-align: left;">${addon.description || '-'}</div>`,
-                        `<div style="text-align: right;">${(addon.unitPrice || 0).toFixed(2)}</div>`,
-                        `<div style="text-align: right;">${addon.quantity || '-'}</div>`,
+                        `<div style="text-align: right;">${(addon.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                        `<div style="text-align: right;">${(addon.quantity || '-').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                        `<div style="text-align: center;">${(addon.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                         `<div style="text-align: center;">${addon.unit || '-'}</div>`,
-                        `<div style="text-align: right;">${(addon.total || 0).toFixed(2)}</div>`,
+                        `<div style="text-align: right;">${(addon.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                         `<div style="text-align: center;">${addon.addonLabel ?? '-'}</div>`,
                         `<div style="text-align: right;"></div>`
                     ]);
@@ -720,10 +761,29 @@ export default class INID_Ordertest extends LightningElement {
                     `<input type="checkbox" style="text-align: center;" />`,
                     `<div style="text-align: left;">${product.code || '-'}</div>`,
                     `<div style="text-align: left;">${product.description || ''}</div>`,
-                    `<div style="text-align: right;">${(product.unitPrice || 0).toFixed(2)}</div>`,
-                    `<div style="text-align: right;">${product.quantity || '-'}</div>`,
-                    `<div style="text-align: center;">${product.unit || '-'}</div>`,
-                    `<div style="text-align: right;">${(product.total || 0).toFixed(2)}</div>`,
+                    `<div style="text-align: right;">${(product.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                    `${isAddon 
+                        ? `<div style="text-align: center;">${product.quantity || 0}</div>`
+                        : `<input type="text" 
+                            data-index="${index}" 
+                            value="${(product.quantity || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}" 
+                            min="0"
+                            class="quantity-input"
+                            style="width:100%; text-align: center;" />`
+                        }
+                    `,
+
+                    `${isAddon 
+                        ? `<div style="text-align: center;">${(product.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
+                        : `<input type="text"
+                            data-index="${index}" 
+                            value="${(product.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"
+                            min="0"
+                            class="sale-price-input"
+                            style="width:100%; text-align: center;" />`
+                        }`,
+                    `<div style="text-align: right;">${(product.unit || '-')}</div>`,    
+                    `<div style="text-align: right;">${(product.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
 
                     isAddon
                         ? `<div style="text-align: center;">${product.addonLabel || ''}</div>`
@@ -743,6 +803,22 @@ export default class INID_Ordertest extends LightningElement {
         }
 
         this.dataTableInstance.draw();
+
+        setTimeout(() => {
+            const table = this.template.querySelector('.product-table');
+
+            const quantityInputs = table.querySelectorAll('.quantity-input');
+            quantityInputs.forEach(input => {
+                input.removeEventListener('change', this.handleQuantityChange);
+                input.addEventListener('change', this.handleQuantityChange.bind(this));
+            });
+
+            const salePriceInputs = table.querySelectorAll('.sale-price-input');
+            salePriceInputs.forEach(input => {
+                input.removeEventListener('change', this.handleSalePriceChange);
+                input.addEventListener('change', this.handleSalePriceChange.bind(this));
+            });
+        }, 0);
     }
 
     // End Add On Section
@@ -802,69 +878,6 @@ export default class INID_Ordertest extends LightningElement {
         this.updateDataTable();
     }
 
-
-    // handleDeleteSelected (Array version)
-    // handleDeleteSelected() {
-    //     const table = this.template.querySelector('.product-table');
-    //     const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
-
-    //     const selectedMainCodes = [];
-    //     const selectedAddonCodes = [];
-
-    //     checkboxes.forEach(checkbox => {
-    //         const row = checkbox.closest('tr');
-    //         const rowData = this.dataTableInstance.row(row).data();
-
-    //         const materialColumn = rowData[1];
-    //         const matchMaterial = materialColumn.match(/>(.*?)</);
-    //         const materialCode = matchMaterial ? matchMaterial[1].trim() : null;
-
-    //         const unitPriceColumn = rowData[3];
-    //         const matchUnitPrice = unitPriceColumn.match(/>(.*?)</);
-    //         const unitPrice = matchUnitPrice ? parseFloat(matchUnitPrice[1].trim()) : null;
-
-    //         if (materialCode !== null && unitPrice !== null) {
-    //             if (unitPrice === 0) {
-    //                 selectedAddonCodes.push(materialCode);
-    //             } else {
-    //                 selectedMainCodes.push(materialCode);
-    //             }
-    //         }
-    //     });
-
-    //     if (checkboxes.length === 0) {
-    //         this.dispatchEvent(
-    //             new ShowToastEvent({
-    //                 title: 'แจ้งเตือน',
-    //                 message: 'กรุณาเลือกรายการที่ต้องการลบ',
-    //                 variant: 'warning'
-    //             })
-    //         );
-    //         return;
-    //     }
-
-    //     const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
-    //     if (!confirmDelete) return;
-
-    //     // ลบออกจาก selectedProducts
-    //     this.selectedProducts = this.selectedProducts.filter(p => {
-    //         const isMainSelected = selectedMainCodes.includes(p.code) && p.salePrice !== 0;
-    //         const isAddonSelected = selectedAddonCodes.includes(p.code) && p.salePrice === 0;
-    //         const isAddonOfSelectedMain = p.salePrice === 0 && selectedMainCodes.includes(p.productCode);
-    //         return !(isMainSelected || isAddonSelected || isAddonOfSelectedMain);
-    //     });
-
-    //     // ลบออกจาก addonSelections
-    //     this.addonSelections = this.addonSelections.filter(a => {
-    //         return !selectedMainCodes.includes(a.productCode) && !selectedAddonCodes.includes(a.id);
-    //     });
-
-    //     this.updateDataTable();
-    // }
-
-
-
-
     //Ckeckbox Select All
     handleSelectAll(event) {
         const isChecked = event.target.checked;
@@ -891,6 +904,17 @@ export default class INID_Ordertest extends LightningElement {
 
                 this.showPopupFreeGood(materialCode); // เปิด popup เท่านั้น
             }
+
+            const quantityInputs = this.template.querySelectorAll('.quantity-input')
+            const salePriceInputs = this.template.querySelectorAll('.sale-price-input');
+
+            quantityInputs.forEach(input => {
+                input.addEventListener('change', this.handleQuantityChange.bind(this));
+            });
+
+            salePriceInputs.forEach(input => {
+                input.addEventListener('change', this.handleSalePriceChange.bind(this));
+            });
         });
     }
 
@@ -1015,7 +1039,7 @@ export default class INID_Ordertest extends LightningElement {
                 .then(() => {
                     this.initializeDataTable();
                     this.datatableInitialized = true;
-                    this.updateDataTable();
+                    // this.updateDataTable();
                 })
                 .catch(error => console.error('DataTables Load Error:', error));
             } else if (this.dataTableInstance) {
@@ -1045,4 +1069,30 @@ export default class INID_Ordertest extends LightningElement {
     // ---------------------------------------------------------------------------
     // End Summary
     // ---------------------------------------------------------------------------
+
+    // handle Sale Price and Quantity function
+
+    handleQuantityChange(event) {
+        const index = Number(event.target.dataset.index);
+        const newQty = parseFloat(event.target.value);
+        const salePrice = this.selectedProducts[index].salePrice || 0;
+
+        this.selectedProducts[index].quantity = isNaN(newQty) ? 0 : newQty;
+        this.selectedProducts[index].total = salePrice * this.selectedProducts[index].quantity;
+
+        this.updateDataTable();
+    }
+
+
+    handleSalePriceChange(event) {
+        const index = Number(event.target.dataset.index);
+        const newSalePrice = parseFloat(event.target.value);
+        const quantity = this.selectedProducts[index].quantity || 0;
+
+        this.selectedProducts[index].salePrice = isNaN(newSalePrice) ? 0 : newSalePrice;
+        this.selectedProducts[index].total = this.selectedProducts[index].salePrice * quantity;
+
+        this.updateDataTable();
+    }
+
 }
