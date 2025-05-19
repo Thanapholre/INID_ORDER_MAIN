@@ -148,11 +148,24 @@
                             onfocus={handleInputProduct}>
                         </lightning-input>
                     </div>
-
-                    <div style="margin-top:25px">
-                        <lightning-button variant="neutral" label="+ Add from Text"></lightning-button>
-                    </div>
+                    
+                        <div style="margin-top:25px">
+                            <lightning-button variant="neutral" label="+ Add from Text" onclick={showProductCode}></lightning-button>
+                        </div>      
                 </div>
+                
+                <template if:true={isShowAddfromText}>
+                        <lightning-card>
+                            <div style="padding: 10px 0" >
+                                <div class="row" style="font-size: 14px; width:500px;" >
+                                    <lightning-textarea value={textareaValue} style="height:80px; margin-bottom: 10px ; " name="input3" label="Enter Product Code (1 Id per line)" placeholder="SelectProductCode here..." onchange={enterProductOnchange} ></lightning-textarea>
+                                </div>
+                                <div style="margin-top:30px; font-size: 14px">
+                                    <lightning-button variant="brand" label="Add Product Codes" onclick={addProductToTable}></lightning-button>
+                                </div> 
+                            </div> 
+                        </lightning-card> 
+                </template>
 
     
                 <!-- Dropdown Product -->

@@ -1095,4 +1095,100 @@ export default class INID_Ordertest extends LightningElement {
         this.updateDataTable();
     }
 
+
+
+    // add Product to Table section
+
+    isShowAddfromText = false ;
+    @track enteredProductCodes = [];
+    @track textareaValue = '';
+
+
+    //Plain Text
+    showProductCode() {
+        this.isShowAddfromText = !this.isShowAddfromText;
+    }
+
+    
+
+    enterProductOnchange(event){
+        const textareaValue = event.target.value || '';
+        this.enteredProductCodes = textareaValue
+            .split('\n')
+            .map(code => code.trim())
+            .filter(code => code.length > 0);
+
+        console.log('Product Codes entered:', this.enteredProductCodes);
+
+    }
+
+    addProductToTable() {
+    if (!this.enteredProductCodes || this.enteredProductCodes.length === 0) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'ไม่มีข้อมูล',
+            message: 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ',
+            variant: 'error'
+        }));
+        return; // ❗ หยุดทำงานทันที
+    }
+
+    const addedProducts = [];
+    const duplicatedCodes = [];
+
+    this.enteredProductCodes.forEach(code => {
+        const matched = this.productPriceBook.find(p => p.INID_Material_Code__c === code);
+        if (matched) {
+            const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
+            if (!alreadyAdded) {
+                const unitPrice = matched.INID_Unit_Price__c || 0;
+                const quantity = 1;
+                const total = unitPrice * quantity;
+
+                const product = {
+                    id: matched.Id,
+                    code: matched.INID_Material_Code__c,
+                    Name: matched.Name,
+                    description: matched.INID_SKU_Description__c,
+                    quantity: quantity,
+                    salePrice: unitPrice,
+                    unit: matched.INID_Unit__c,
+                    unitPrice: unitPrice,
+                    total: total
+                };
+
+                addedProducts.push(product);
+            } else {
+                duplicatedCodes.push(code);
+            }
+        } else {
+            duplicatedCodes.push(code);
+        }
+    });
+
+    if (addedProducts.length > 0) {
+        this.selectedProducts = [...this.selectedProducts, ...addedProducts];
+        this.updateDataTable();
+        this.isShowAddfromText = false ;
+
+    }
+
+    if (duplicatedCodes.length > 0) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'รายการซ้ำ',
+            message: `สินค้าต่อไปนี้มีอยู่ในตารางแล้วหรือไม่พบ: ${duplicatedCodes.join(', ')}`,
+            variant: 'warning'
+        }));
+    }
+
+    this.textareaValue = '';
+    this.enteredProductCodes = [];
+
+    const textarea = this.template.querySelector('lightning-textarea');
+    if (textarea) {
+        textarea.value = '';
+    }
+}
+
+
+
 }
