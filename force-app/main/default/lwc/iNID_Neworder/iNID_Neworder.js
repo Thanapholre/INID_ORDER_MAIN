@@ -361,6 +361,18 @@ export default class INID_Ordertest extends LightningElement {
 
 
     @track productPriceBook = [];
+
+        getAddonLabel(value) {
+            const map = {
+                '1': 'ของแถม',
+                '2': 'ตัวอย่าง',
+                '3': 'บริจาค',
+                '4': 'ชดเชย',
+                '5': 'สมนาคุณ',
+                '6': 'ของแถมนอกบิล (FOC)'
+            };
+            return map[value] || '-';
+        }
     
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text' },
@@ -370,78 +382,28 @@ export default class INID_Ordertest extends LightningElement {
         { label: 'Sale Price', fieldName: 'salePrice', type: 'number', editable: true },
         { label: 'Unit', fieldName: 'unit', type: 'text' },
         { label: 'Total', fieldName: 'total', type: 'number' },
-
-        // ปุ่มสำหรับสินค้าหลักเท่านั้น
-       {
-            label: 'Add On',
+        { 
+            label: 'Add On', 
             type: 'button',
-            fieldName: 'displayaddon', // ใช้ field เดียว
             typeAttributes: {
-                label: { fieldName: 'addonLabel' },
-                name: 'open_addon_popup',
-                iconName: { fieldName: 'addonIcon' },
-                iconPosition: 'center',
-                variant: 'bare',
-                title: 'เพิ่ม Add-on',
-                disabled: { fieldName: 'addonDisabled' }
+                label: { fieldName: 'nameBtn' },
+                name: 'btnAddOn',
+                title: 'Add On',
+                variant: {fieldName: 'variant'},
+                disabled: { fieldName: 'addonDisabled' } 
             },
             cellAttributes: {
-                class: { fieldName: 'addonClass' } // ควบคุมด้วยคลาส
-            },
-            hideDefaultActions: true
+                class: 'slds-text-align_center slds-align_absolute-center'
+            } 
         }
-
     ];
 
-    handleRowAction(event) {
-        const actionName = event.detail.action.name;
-        const row = event.detail.row;
+    mapProduct(source, addedAddons = []) {
+        const isMainProduct = source.INID_Unit_Price__c > 0;
+        const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
 
-        // ตรวจสอบว่า row นี้เป็น Add-on หรือไม่
-        const isAddon = row.unitPrice === 0;
-
-        if (actionName === 'open_addon_popup') {
-            if (isAddon) {
-                return;
-            }
-
-            // กรณีเป็นสินค้าหลัก → เปิด popup
-            this.currentMaterialCodeForAddOn = row.code;
-            this.isPopupOpenFreeGood = true;
-        }
-    }
-
-
-    handleInputProduct(event) {
-        this.searchProductTerm = event.target.value;
-        const term = this.searchProductTerm.toLowerCase().trim();
-
-        this.showProductDropdown = term.length > 2;
-
-        this.filteredProductOptions = this.productPriceBook.filter(p => {
-            const nameStr = p.INID_SKU_Description__c ? p.INID_SKU_Description__c.toLowerCase() : '';
-            const codeStr = p.INID_Material_Code__c ? p.INID_Material_Code__c.toLowerCase() : '';
-
-            return nameStr.includes(term) || codeStr.includes(term);
-        });
-    }
-
-    handleSelectProduct(event) {
-        const selectedId = event.currentTarget.dataset.id;
-        const selected = this.productPriceBook.find(p => p.Id === selectedId);
-
-        const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
-        if (!isDuplicate && selected) {
-            const product = this.mapProduct(selected);
-            this.selectedProducts = [...this.selectedProducts, product];
-            console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
-        }
-        this.searchProductTerm = '';
-        this.showProductDropdown = false;
-    }
-
-    mapProduct(source) {
-        const isMainProduct = (source.INID_Unit_Price__c || 0) > 0;
+        const salePrice = source.INID_Sale_Price__c || 0;
+        const quantity = 1;
 
         return {
             id: source.Id,
@@ -451,38 +413,21 @@ export default class INID_Ordertest extends LightningElement {
             quantity: 1,
             salePrice: source.INID_Unit_Price__c || 0,
             unit: source.INID_Unit__c || '',
-            total: (source.INID_Unit_Price__c || 0) * 1,
+            total: quantity * salePrice,
 
-            addonLabel: isMainProduct ? isMainProduct : 'hello',
-            addonIcon: isMainProduct ? 'utility:add' : '',
-            addonDisabled: !isMainProduct,
-            addonClass: isMainProduct ? 'show-as-button' : 'show-as-text'
+            addOnButton: isMainProduct ? 'Add On' : null,
+            addOnText: !isMainProduct ? 'Add-On Item' : null ,
+            addOn: isMainProduct ? 'true' : 'false' ,
+            // isAddOn: !isMainProduct ,
+
+            nameBtn: isMainProduct ? 'Add On' : 'Add-On Item' ,
+            variant: 'brand' ,
+
+            addonDisabled: isMainProduct && hasAddon
         };
     }
 
-
-    addAddonToProduct(addonProduct) {
-        const mainIndex = this.selectedProducts.findIndex(
-            p => p.code === addonProduct.productCode && p.unitPrice !== 0
-        );
-
-        if (mainIndex !== -1) {
-            let insertIndex = mainIndex + 1;
-            while (
-                insertIndex < this.selectedProducts.length &&
-                this.selectedProducts[insertIndex].unitPrice === 0 &&
-                this.selectedProducts[insertIndex].productCode === addonProduct.productCode
-            ) {
-                insertIndex++;
-            }
-
-            const before = this.selectedProducts.slice(0, insertIndex);
-            const after = this.selectedProducts.slice(insertIndex);
-            this.selectedProducts = [...before, addonProduct, ...after];
-        } else {
-            this.selectedProducts = [...this.selectedProducts, addonProduct];
-        }
-    }
+    
 
     handleSaveAddon() {
         if (!this.selectedValue) {
@@ -522,20 +467,16 @@ export default class INID_Ordertest extends LightningElement {
         const matchedMain = this.selectedProducts[matchedMainIndex];
 
         const addonProduct = {
-            code: addonCode,
+            code: matchedMain.code,
             productCode: matchedMain.code,
             description: matchedMain.description,
             unitPrice: 0,
             salePrice: 0,
             quantity: 1,
-            unit: '',
+            unit: '',   
             total: 0,
-
-            // ✅ ดึงค่าที่เลือกจาก dropdown หรือ radio
-            displaylabel: this.getAddonLabel(this.selectedValue),
-            addonDisabled: true,
-            addonIcon: this.displaylabel,
-            addonClass: 'show-as-text' // ✅ ใช้ class เพื่อแสดงเป็นข้อความเฉยๆ
+            nameBtn: this.getAddonLabel(this.selectedValue),
+            variant: 'base' ,
         };
 
 
@@ -557,19 +498,76 @@ export default class INID_Ordertest extends LightningElement {
         this.selectedValue = '';
     }
 
-    
 
-    getAddonLabel(value) {
-    const map = {
-            '1': 'ของแถม',
-            '2': 'ตัวอย่าง',
-            '3': 'บริจาค',
-            '4': 'ชดเชย',
-            '5': 'สมนาคุณ',
-            '6': 'ของแถมนอกบิล (FOC)'
-        };
-        return map[value] || '-';
+    handleRowAction(event) {
+        const actionName = event.detail.action.name;
+        const row = event.detail.row;
+
+        // ตรวจสอบว่า row นี้เป็น Add-on หรือไม่
+        const isAddon = row.unitPrice === 0;
+
+        if (actionName === 'btnAddOn') {
+            if (isAddon) {
+                return;
+            }
+
+            // กรณีเป็นสินค้าหลัก → เปิด popup
+            this.currentMaterialCodeForAddOn = row.code;
+            this.isPopupOpenFreeGood = true;
+        }
     }
+
+
+    addAddonToProduct(addonProduct) {
+        const index = this.selectedProducts.findIndex(
+            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+        );
+
+        if (index === -1) return;
+
+        // ใส่รหัสเพื่อไม่ให้ key ซ้ำ
+        addonProduct.id = `${this.currentMaterialCodeForAddOn}_${Date.now()}`;
+        addonProduct.isAddOn = true; // ปิดปุ่มในแถวนี้
+        addonProduct.buttonLabel = ''; // ไม่แสดงปุ่ม
+        addonProduct.addOnText = addonProduct.displaylabel; // ใช้ label
+
+        // แทรก Add-on ต่อจากสินค้าหลัก
+        const newData = [...this.selectedProducts];
+        newData.splice(index + 1, 0, addonProduct);
+
+        this.selectedProducts = newData;
+    }
+
+
+
+    handleInputProduct(event) {
+        this.searchProductTerm = event.target.value;
+        const term = this.searchProductTerm.toLowerCase().trim();
+
+        this.showProductDropdown = term.length > 2;
+
+        this.filteredProductOptions = this.productPriceBook.filter(p => {
+            const nameStr = p.INID_SKU_Description__c ? p.INID_SKU_Description__c.toLowerCase() : '';
+            const codeStr = p.INID_Material_Code__c ? p.INID_Material_Code__c.toLowerCase() : '';
+
+            return nameStr.includes(term) || codeStr.includes(term);
+        });
+    }
+
+    handleSelectProduct(event) {
+        const selectedId = event.currentTarget.dataset.id;
+        const selected = this.productPriceBook.find(p => p.Id === selectedId);
+
+        const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
+        if (!isDuplicate && selected) {
+            const product = this.mapProduct(selected);
+            this.selectedProducts = [...this.selectedProducts, product];
+            console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
+        }
+        this.searchProductTerm = '';
+        this.showProductDropdown = false;
+    }
+    
   
     // ---------------------------------------------------------------------------
     // End JS Add Product --------------------------------------------------------
@@ -790,7 +788,10 @@ export default class INID_Ordertest extends LightningElement {
                         salePrice: unitPrice,
                         unit: matched.INID_Unit__c,
                         unitPrice: unitPrice,
-                        total: total
+                        total: total ,
+                        nameBtn: 'Add On' ,
+                        variant: 'brand'
+                        
                     };
 
                     addedProducts.push(product);
