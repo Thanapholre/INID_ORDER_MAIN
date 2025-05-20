@@ -4,6 +4,7 @@ import datatables from '@salesforce/resourceUrl/datatables';
 import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
+import { CloseActionScreenEvent } from 'lightning/actions';
 
 // import class
 import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
@@ -751,7 +752,7 @@ export default class INID_Ordertest extends LightningElement {
                         `<div style="text-align: center;">${addon.unit || '-'}</div>`,
                         `<div style="text-align: right;">${(addon.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                         `<div style="text-align: center;">${addon.addonLabel ?? '-'}</div>`,
-                        `<div style="text-align: right;"></div>`
+                        `<div style="text-align: right;">${(netPrice - netPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
                     ]);
                 });
             });
@@ -1197,6 +1198,13 @@ export default class INID_Ordertest extends LightningElement {
         if (textarea) {
             textarea.value = '';
         }
+    }
+
+
+
+    // handle cancle function
+    handleCancel() {
+        this.dispatchEvent(new CloseActionScreenEvent());
     }
 
 

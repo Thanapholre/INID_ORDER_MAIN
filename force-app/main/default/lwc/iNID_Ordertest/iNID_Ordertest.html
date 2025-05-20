@@ -109,7 +109,7 @@
                     </lightning-card>
         
                     <div style="text-align: end;" slot="footer">
-                        <lightning-button class="btnSubmit" variant="Neutral" label="Cancel"></lightning-button>
+                        <lightning-button class="btnSubmit" variant="Neutral" label="Cancel" onclick={handleCancel}></lightning-button>
                         <lightning-button class="btnSubmit" variant="brand" label="Next" onclick={openAddProduct} ></lightning-button>
                     </div>
                 </form>
@@ -233,7 +233,7 @@
                         
                         <!-- Start Section Footer -->
                         <footer class="slds-modal__footer">
-                            <lightning-button label="Cancel" onclick={closePopupFreeGood}></lightning-button>
+                            <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
                             <lightning-button label="Save" onclick={handleSave} variant="brand"></lightning-button>
                         </footer>
                     </div>
@@ -249,7 +249,7 @@
                 </div>
                 <div class="btn_next">
                     <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
-                    <lightning-button variant="neutral" label="Cancel" onclick={handleAddProductClick}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
                     <lightning-button variant="brand" label="Next" onclick={showApplyPromotion}></lightning-button>
                 </div>
                 
@@ -294,7 +294,7 @@
                 </div>
                 <div class="btn_next">
                     <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
-                    <lightning-button variant="neutral" label="Cancel" onclick={handleAddProductClick}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
                     <lightning-button variant="brand" label="Next" onclick={showSummary}></lightning-button>
                 </div>
                     
