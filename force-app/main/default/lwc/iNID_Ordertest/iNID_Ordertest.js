@@ -208,6 +208,8 @@ export default class INID_Ordertest extends LightningElement {
     @track paymentTermOptions = [];
     @track value = [];
 
+
+    // Global Piclists
     get organizationOption() {
         return [
             { value: '1001-MEDLINE', label: '1001-MEDLINE' },
@@ -258,6 +260,9 @@ export default class INID_Ordertest extends LightningElement {
             { value: 'ZB05 - Within 5 days Disc 2% due 10 day', label: 'ZB05 - Within 5 days Disc 2% due 10 day' }
         ];
     }
+
+    // Global Piclists
+
 
     get options() {
         return [
@@ -400,7 +405,7 @@ export default class INID_Ordertest extends LightningElement {
                 responsive: false,
                 columnDefs: [
                     { targets: 0, width: '120px' },
-                    { targets: 1, width: '200px' }
+                    { targets: 1, width: '120px' }
                 ]
             });
         }
@@ -493,7 +498,7 @@ export default class INID_Ordertest extends LightningElement {
                             class="sale-price-input"
                             style="width:100%; text-align: center;" />`
                         }`,
-                    `<div style="text-align: right;">${(product.unit || '-')}</div>`,    
+                    `<div style="text-align: center;">${(product.unit || '-')}</div>`,    
                    `<div style="text-align: right;">${(product.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                     product.unitPrice === 0
                         ? `<div style="text-align: center;">${product.addonLabel || '-'}</div>`
@@ -782,7 +787,7 @@ export default class INID_Ordertest extends LightningElement {
                             class="sale-price-input"
                             style="width:100%; text-align: center;" />`
                         }`,
-                    `<div style="text-align: right;">${(product.unit || '-')}</div>`,    
+                    `<div style="text-align: center;">${(product.unit || '-')}</div>`,    
                     `<div style="text-align: right;">${(product.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
 
                     isAddon
@@ -1109,85 +1114,90 @@ export default class INID_Ordertest extends LightningElement {
         this.isShowAddfromText = !this.isShowAddfromText;
     }
 
-    
-
     enterProductOnchange(event){
         const textareaValue = event.target.value || '';
+        const uniqueCodes = new Set();
+
         this.enteredProductCodes = textareaValue
             .split('\n')
             .map(code => code.trim())
-            .filter(code => code.length > 0);
+            .filter(code => {
+                if (code.length === 0) return false;
+                const normalized = code.toLowerCase();
+                if (uniqueCodes.has(normalized)) return false;
+                uniqueCodes.add(normalized);
+                return true;
+            });
 
-        console.log('Product Codes entered:', this.enteredProductCodes);
-
+        console.log('Unique Product Codes entered:', this.enteredProductCodes);
     }
 
     addProductToTable() {
-    if (!this.enteredProductCodes || this.enteredProductCodes.length === 0) {
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'ไม่มีข้อมูล',
-            message: 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ',
-            variant: 'error'
-        }));
-        return; // ❗ หยุดทำงานทันที
-    }
+        if (!this.enteredProductCodes || this.enteredProductCodes.length === 0) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'ไม่มีข้อมูล',
+                message: 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ',
+                variant: 'error'
+            }));
+            return; // ❗ หยุดทำงานทันที
+        }
 
-    const addedProducts = [];
-    const duplicatedCodes = [];
+        const addedProducts = [];
+        const duplicatedCodes = [];
 
-    this.enteredProductCodes.forEach(code => {
-        const matched = this.productPriceBook.find(p => p.INID_Material_Code__c === code);
-        if (matched) {
-            const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
-            if (!alreadyAdded) {
-                const unitPrice = matched.INID_Unit_Price__c || 0;
-                const quantity = 1;
-                const total = unitPrice * quantity;
+        this.enteredProductCodes.forEach(code => {
+            const matched = this.productPriceBook.find(p => p.INID_Material_Code__c === code);
+            if (matched) {
+                const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
+                if (!alreadyAdded) {
+                    const unitPrice = matched.INID_Unit_Price__c || 0;
+                    const quantity = 1;
+                    const total = unitPrice * quantity;
 
-                const product = {
-                    id: matched.Id,
-                    code: matched.INID_Material_Code__c,
-                    Name: matched.Name,
-                    description: matched.INID_SKU_Description__c,
-                    quantity: quantity,
-                    salePrice: unitPrice,
-                    unit: matched.INID_Unit__c,
-                    unitPrice: unitPrice,
-                    total: total
-                };
+                    const product = {
+                        id: matched.Id,
+                        code: matched.INID_Material_Code__c,
+                        Name: matched.Name,
+                        description: matched.INID_SKU_Description__c,
+                        quantity: quantity,
+                        salePrice: unitPrice,
+                        unit: matched.INID_Unit__c,
+                        unitPrice: unitPrice,
+                        total: total
+                    };
 
-                addedProducts.push(product);
+                    addedProducts.push(product);
+                } else {
+                    duplicatedCodes.push(code);
+                }
             } else {
                 duplicatedCodes.push(code);
             }
-        } else {
-            duplicatedCodes.push(code);
+        });
+
+        if (addedProducts.length > 0) {
+            this.selectedProducts = [...this.selectedProducts, ...addedProducts];
+            this.updateDataTable();
+            this.isShowAddfromText = false ;
+
         }
-    });
 
-    if (addedProducts.length > 0) {
-        this.selectedProducts = [...this.selectedProducts, ...addedProducts];
-        this.updateDataTable();
-        this.isShowAddfromText = false ;
+        if (duplicatedCodes.length > 0) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'รายการซ้ำ',
+                message: `สินค้าต่อไปนี้มีอยู่ในตารางแล้วหรือไม่พบ: ${duplicatedCodes.join(', ')}`,
+                variant: 'warning'
+            }));
+        }
 
+        this.textareaValue = '';
+        this.enteredProductCodes = [];
+
+        const textarea = this.template.querySelector('lightning-textarea');
+        if (textarea) {
+            textarea.value = '';
+        }
     }
-
-    if (duplicatedCodes.length > 0) {
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'รายการซ้ำ',
-            message: `สินค้าต่อไปนี้มีอยู่ในตารางแล้วหรือไม่พบ: ${duplicatedCodes.join(', ')}`,
-            variant: 'warning'
-        }));
-    }
-
-    this.textareaValue = '';
-    this.enteredProductCodes = [];
-
-    const textarea = this.template.querySelector('lightning-textarea');
-    if (textarea) {
-        textarea.value = '';
-    }
-}
 
 
 

@@ -31,11 +31,15 @@
     font-size: 14px !important;
 }
 
+.btn-back {
+    display: flex;
+    justify-content: flex-start;
+}
+
 .btn_next{
         display: flex;
         gap: 12px; /* หรือใช้ margin ก็ได้ */
         justify-content: flex-end; /* ถ้าต้องการให้ปุ่มไปชิดขวา */
-        margin-top: 1rem;
     }
 
 .configure_button {
@@ -261,6 +265,22 @@ td {
 th , td {
     font-size: 14px;
 }
+
+/* .product-wrapper {
+    display: grid;
+    grid-template-columns: 10fr 2fr;
+    align-items: center;
+    gap: 1rem;
+    font-size: 14px;
+} */
+
+/* 📱 iPad, โทรศัพท์, notebook จอเล็ก */
+/* @media screen and (max-width: 1024px) {
+    .product-wrapper {
+        display: block;
+        font-size: 14px;
+    }
+} */
 
 /* End CSS Table */
 

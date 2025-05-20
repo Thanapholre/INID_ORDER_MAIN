@@ -28,7 +28,3 @@ public with sharing class INID_OrderTest {
     }
 
 }
-
-
-
-// SELECT Id , INID_Bill_To_Code__c , INID_Account__r.Name , INID_Account__r.Id , INID_Account__r.INID_Customer_Code__c , INID_Account__r.Payment_type__c , INID_Account__r.Payment_term__c FROM INID_Account_Address__c WHERE INID_Account__r.Name = 
