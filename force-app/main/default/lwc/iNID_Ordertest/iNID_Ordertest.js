@@ -434,7 +434,7 @@ export default class INID_Ordertest extends LightningElement {
             const selected = this.productPriceBook.find(p => p.Id === id);
             if (selected) {
                 const unitPrice = selected.INID_Unit_Price__c || 0;
-                const quantity = selected.INID_Quantity__c;
+                const quantity = 1;
                 const salePrice = unitPrice ;
                 const total = unitPrice * quantity;
 
@@ -459,7 +459,7 @@ export default class INID_Ordertest extends LightningElement {
                     description: a.addonDescription,
                     unitPrice: 0,
                     salePrice: unitPrice,
-                    quantity: 0,
+                    quantity: 1,
                     unit: '-',
                     total: Number(a.discountValue || 0),
                     addonLabel: a.addonLabel
@@ -480,8 +480,8 @@ export default class INID_Ordertest extends LightningElement {
                     `<div style="text-align: left;">${product.description || ''}</div>`,
                     `<div style="text-align: right;">${(product.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                     `${isAddon 
-                        ? `<div style="text-align: center;">${(product.quantity || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
-                        : `<input type="number" 
+                        ? `<div style="text-align: center;">${product.quantity || 0}</div>`
+                        : `<input type="text" 
                             data-index="${index}" 
                             value="${product.quantity || 0}" 
                             min="0"
@@ -734,12 +734,12 @@ export default class INID_Ordertest extends LightningElement {
                     `<div style="text-align: left;">${main.code || '-'}</div>`,
                     `<div style="text-align: left;">${main.description || '-'}</div>`,
                     `<div style="text-align: right;">${(main.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    `<div style="text-align: right;">${(main.quantity || '').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                    `<div style="text-align: right;">${main.quantity || ''}</div>`,
                     `<div style="text-align: center;">${(main.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                     `<div style="text-align: center;">${main.unit || '-'}</div>`,
                     `<div style="text-align: right;">${(main.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                     `<div style="text-align: center;">${main.addonLabel ?? '-'}</div>`,
-                    `<div style="text-align: right;">${(netPrice.toFixed(2) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
+                    `<div style="text-align: right;">${(netPrice|| 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
                 ]);
 
                 relatedAddons.forEach(addon => {
@@ -747,7 +747,7 @@ export default class INID_Ordertest extends LightningElement {
                         `<div style="text-align: left;">${addon.code || '-'}</div>`,
                         `<div style="text-align: left;">${addon.description || '-'}</div>`,
                         `<div style="text-align: right;">${(addon.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                        `<div style="text-align: right;">${(addon.quantity || '-').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
+                        `<div style="text-align: right;">${addon.quantity || '-'}</div>`,
                         `<div style="text-align: center;">${(addon.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
                         `<div style="text-align: center;">${addon.unit || '-'}</div>`,
                         `<div style="text-align: right;">${(addon.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
@@ -772,7 +772,7 @@ export default class INID_Ordertest extends LightningElement {
                         ? `<div style="text-align: center;">${product.quantity || 0}</div>`
                         : `<input type="text" 
                             data-index="${index}" 
-                            value="${(product.quantity || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}" 
+                            value="${product.quantity || 0}" 
                             min="0"
                             class="quantity-input"
                             style="width:100%; text-align: center;" />`
