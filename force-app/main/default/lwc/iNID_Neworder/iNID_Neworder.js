@@ -377,11 +377,11 @@ export default class INID_Ordertest extends LightningElement {
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text' },
         { label: 'SKU Description', fieldName: 'description', type: 'text' },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'number' },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2} },
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'number', editable: true },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: true },
         { label: 'Unit', fieldName: 'unit', type: 'text' },
-        { label: 'Total', fieldName: 'total', type: 'number' },
+        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}},
         { 
             label: 'Add On', 
             type: 'button',
@@ -402,8 +402,11 @@ export default class INID_Ordertest extends LightningElement {
         const isMainProduct = source.INID_Unit_Price__c > 0;
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
 
-        const salePrice = source.INID_Sale_Price__c || 0;
+        // const quantity = 1;
+
+        const salePrice = source.INID_Unit_Price__c || 0;
         const quantity = 1;
+        const total = salePrice * quantity;
 
         return {
             id: source.Id,
@@ -413,21 +416,19 @@ export default class INID_Ordertest extends LightningElement {
             quantity: 1,
             salePrice: source.INID_Unit_Price__c || 0,
             unit: source.INID_Unit__c || '',
-            total: quantity * salePrice,
+            total: total,
 
             addOnButton: isMainProduct ? 'Add On' : null,
             addOnText: !isMainProduct ? 'Add-On Item' : null ,
             addOn: isMainProduct ? 'true' : 'false' ,
             // isAddOn: !isMainProduct ,
 
-            nameBtn: isMainProduct ? 'Add On' : 'Add-On Item' ,
+            nameBtn: isMainProduct ? '+' : 'Add-On Item' ,
             variant: 'brand' ,
 
             addonDisabled: isMainProduct && hasAddon
         };
     }
-
-    
 
     handleSaveAddon() {
         if (!this.selectedValue) {
@@ -478,9 +479,6 @@ export default class INID_Ordertest extends LightningElement {
             nameBtn: this.getAddonLabel(this.selectedValue),
             variant: 'base' ,
         };
-
-
-
         // Insert Add-on ใต้สินค้าหลัก
         this.addAddonToProduct(addonProduct);
 
@@ -567,7 +565,97 @@ export default class INID_Ordertest extends LightningElement {
         this.searchProductTerm = '';
         this.showProductDropdown = false;
     }
-    
+
+    //Edid Fieled Rows
+    @track draftValues = [];
+
+    handleSaveEditedRows(event) {
+        const updatedValues = event.detail.draftValues;
+
+        this.selectedProducts = this.selectedProducts.map(product => {
+            const updated = updatedValues.find(d => d.id === product.id);
+            if (updated) {
+                const qty = Number(updated.quantity ?? product.quantity);
+                const price = Number(updated.salePrice ?? product.salePrice);
+                return {
+                    ...product,
+                    quantity: qty,
+                    salePrice: price,
+                    total: qty * price
+                };
+            }
+            return product; 
+        });
+
+        this.draftValues = []; // เคลียร์ draft เพื่อซ่อนปุ่ม
+
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: 'Edit field successfully',
+                variant: 'success'
+            })
+        );
+    }
+
+
+    @track selectedRowIds = [];
+
+    handleRowSelection(event) {
+        const selectedRows = event.detail.selectedRows;
+        this.selectedRowIds = selectedRows.map(row => row.id);
+    }
+
+    handleDeleteSelected() {
+        if (!Array.isArray(this.selectedRowIds) || this.selectedRowIds.length === 0) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'ไม่มีรายการถูกเลือก',
+                message: 'กรุณาเลือกอย่างน้อย 1 รายการ',
+                variant: 'warning'
+            }));
+            return;
+        }
+
+        const selectedIdsSet = new Set(this.selectedRowIds);
+
+        // หารหัสสินค้าหลักที่ถูกเลือก
+        const selectedMainCodes = this.selectedProducts
+            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice !== 0) // เป็นสินค้าหลัก
+            .map(p => p.code);
+
+        // หารหัสสินค้าหลักของ Add-on ที่ถูกเลือกไว้เปิดปุ่ม
+        const deletedAddonProductCodes = this.selectedProducts
+            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice === 0)
+            .map(p => p.productCode);
+
+        // ลบแถวที่ถูกเลือก และ Add-on ที่เกี่ยวข้องกับสินค้าหลักที่ถูกเลือก
+        this.selectedProducts = this.selectedProducts.filter(product => {
+            const isSelected = selectedIdsSet.has(product.id);
+            const isAddonOfDeletedMain = selectedMainCodes.includes(product.productCode);
+            return !isSelected && !isAddonOfDeletedMain;
+        });
+
+        //เวลาลบเแล้วให้มันแสดง Addon อีกครั้ง
+         this.selectedProducts = this.selectedProducts.map(product => {
+            if (product.unitPrice !== 0 && deletedAddonProductCodes.includes(product.code)) {
+                return {
+                    ...product,
+                    addonDisabled: false
+                };
+            }
+            return product;
+        });
+
+        this.selectedRowIds = [];
+
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'ลบสำเร็จ',
+            message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
+            variant: 'success'
+        }));
+    }
+
+
   
     // ---------------------------------------------------------------------------
     // End JS Add Product --------------------------------------------------------
@@ -675,11 +763,36 @@ export default class INID_Ordertest extends LightningElement {
     // ---------------------------------------------------------------------------
 
     isShowSummary = false ;
+    @track summaryProducts = [];
+
+    summaryColumns = [
+        { label: 'Material Code', fieldName: 'code', type: 'text' },
+        { label: 'SKU Description', fieldName: 'description', type: 'text' },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } },
+        { label: 'Quantity', fieldName: 'quantity', type: 'number' },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } },
+        { label: 'Unit', fieldName: 'unit', type: 'text' },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } },
+        { label: 'Remark', fieldName: 'addOnText', type: 'text',
+            cellAttributes: {
+                class: 'slds-text-align_center slds-align_absolute-center'
+            } 
+        },
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } }
+    ];
 
     showSummary() {
         this.isShowOrder = false ;
         this.isShowSummary = true ;
         this.isShowApplyPromotion = false ;
+
+        this.summaryProducts = this.selectedProducts.map(p => {
+        return {
+            ...p,
+            netPrice: (Number(p.unitPrice || 0) * Number(p.quantity || 0)).toFixed(2),
+            addOnText: p.unitPrice === 0 ? (p.nameBtn || 'Add-On Item') : null
+        };
+    });
 
     }
 
@@ -775,9 +888,9 @@ export default class INID_Ordertest extends LightningElement {
             if (matched) {
                 const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
                 if (!alreadyAdded) {
-                    const unitPrice = matched.INID_Unit_Price__c || 0;
+                    const salePrice = matched.INID_Unit_Price__c || 0;
                     const quantity = 1;
-                    const total = unitPrice * quantity;
+                    const total = salePrice * quantity;
 
                     const product = {
                         id: matched.Id,
@@ -785,10 +898,10 @@ export default class INID_Ordertest extends LightningElement {
                         Name: matched.Name,
                         description: matched.INID_SKU_Description__c,
                         quantity: quantity,
-                        salePrice: unitPrice,
+                        salePrice,
                         unit: matched.INID_Unit__c,
-                        unitPrice: unitPrice,
-                        total: total ,
+                        unitPrice: matched.INID_Unit_Price__c,
+                        total: total,
                         nameBtn: 'Add On' ,
                         variant: 'brand'
                         
