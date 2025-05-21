@@ -315,6 +315,12 @@ th , td {
     font-style: italic;
 }
 
+/* ซ่อนหมายเลขแถว */
+.custom-datatable .slds-table td:first-child,
+.custom-datatable .slds-table th:first-child {
+    display: none;
+}
+
 
 /* .product-wrapper {
     display: grid;
@@ -333,6 +339,12 @@ th , td {
 } */
 
 /* End CSS Table */
+
+
+.custom-datatable .slds-cell-fixed {
+    justify-content: center;
+    text-align: center;
+}
 
 
 /* End Add Product */

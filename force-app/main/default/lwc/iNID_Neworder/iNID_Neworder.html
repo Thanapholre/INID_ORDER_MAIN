@@ -149,36 +149,47 @@
                         </lightning-input>
                     </div>
                     
+                    <!-- Dropdown Product -->
+                    <template if:true={showProductDropdown}>
+                        <ul class="dropdown-list">
+                            <template for:each={filteredProductOptions} for:item="prod">
+                                <li key={prod.Id}
+                                    data-id={prod.Id}
+                                    data-name={prod.INID_SKU_Description__c}
+                                    onclick={handleSelectProduct}>
+                                    {prod.INID_Material_Code__c} {prod.INID_SKU_Description__c}
+                                </li>
+                            </template>
+                        </ul>
+                    </template> 
+                    
                     <div style="margin-top:25px">
                         <lightning-button variant="neutral" label="+ Add Product Code from Text" onclick={showProductCode}></lightning-button>
                     </div>      
                 </div>
 
+
                 <!-- Text Area From Text-->
                 <template if:true={isShowAddfromText}>
-                            <div  class="slds-m-top_medium">
-                                <div class="row" style="font-size: 14px; width:500px;" >
-                                    <lightning-textarea value={textareaValue} style="height:80px; margin-bottom: 10px ; " name="input3" label="Enter Product Code (1 Id per line)" placeholder="SelectProductCode here..." onchange={enterProductOnchange} ></lightning-textarea>
-                                </div>
-                                <div style="margin-top:30px; font-size: 14px">
-                                    <lightning-button variant="brand" label="Add Product Codes" onclick={addProductToTable}></lightning-button>
-                                </div> 
-                            </div> 
-                </template>
+                    <div class="slds-m-top_medium">
+                        <div style="font-size: 14px; max-width: 500px;">
+                            <lightning-textarea
+                                value={textareaValue}
+                                style="min-height: 100px; width: 100%; margin-bottom: 16px;"
+                                name="input3"
+                                label="Enter Product Code (1 Id per line)"
+                                placeholder="SelectProductCode here..."
+                                onchange={enterProductOnchange}
+                            ></lightning-textarea>
 
-    
-                <!-- Dropdown Product -->
-                <template if:true={showProductDropdown}>
-                    <ul class="dropdown-list">
-                        <template for:each={filteredProductOptions} for:item="prod">
-                            <li key={prod.Id}
-                                data-id={prod.Id}
-                                data-name={prod.INID_SKU_Description__c}
-                                onclick={handleSelectProduct}>
-                                {prod.INID_Material_Code__c} {prod.INID_SKU_Description__c}
-                            </li>
-                        </template>
-                    </ul>
+                            <lightning-button
+                                variant="brand"
+                                label="Add Product Codes"
+                                onclick={addProductToTable}
+                                class="slds-m-top_small"
+                            ></lightning-button>
+                        </div>
+                    </div>
                 </template>
             </lightning-card>
     
@@ -187,19 +198,28 @@
     
             <!-- Start Data Table Of Product -->
     
-            <div class="datatable-container slds-m-top_medium main_product" style="padding-bottom: 200px;" >
-               <lightning-datatable
-                    key-field="id"
-                    data={selectedProducts}
-                    columns={columns}
-                    onsave={handleSaveEditedRows}
-                    draft-values={draftValues}
-                    onrowaction={handleRowAction}
-                    oncellclick={handleCellClick}
-                    selected-rows={selectedRowIds}
-                    onrowselection={handleRowSelection}>
-                </lightning-datatable>
-            </div>
+            <template if:true={hasSelectedProducts}>
+                <div class="datatable-container slds-m-top_medium main_product" style="padding-bottom: 150px;">
+                    <lightning-datatable
+                        style="text-align: center;"
+                        class="custom-datatable"
+                        key-field="id"
+                        data={selectedProducts}
+                        columns={columns}
+                        onsave={handleSaveEditedRows}
+                        draft-values={draftValues}
+                        onrowaction={handleRowAction}
+                        oncellclick={handleCellClick}
+                        selected-rows={selectedRowIds}
+                        onrowselection={handleRowSelection}
+                        >
+                    </lightning-datatable>
+                </div>
+            </template>
+
+            <template if:false={hasSelectedProducts}>
+                <div class="datatable-container slds-m-top_medium main_product" style="padding-bottom: 150px;"></div> 
+            </template>
             <!-- End Data Table Of Product -->
             <!-- #################################################################################################################### -->
     
@@ -267,18 +287,12 @@
         <lightning-quick-action-panel header="Apply Promotion" class="title_product">
             <!--Table Apply Promotion -->
             <div class="datatable-container slds-m-top_medium main_product" >
-                <table class="display product-table product cell-border main_product">
-                    <thead>
-                        <tr>
-                            <th><lightning-input type="checkbox" label="Select All" onchange={handleSelectAll}></lightning-input></th>
-                            <th>Promotion</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Table rows will be added using DataTables -->
-                    </tbody>
-                </table>
+                <lightning-datatable
+                    key-field="id"
+                    data={applypromotion}
+                    columns={applypromotionColumns}
+                    class="slds-m-top_medium main_product">
+                </lightning-datatable>
             </div>
             <!-- Table Apply Promotion -->
 
@@ -322,83 +336,85 @@
             </div>
 
             <!--  Promotion Section -->
-            <lightning-card class="slds-m-top_medium">
-                <div style="background-color: #f4f6f9; padding: 1rem; border-radius: 8px;">
+            <div style="margin-top: 100px;" >
+                <lightning-card class="slds-m-top_medium">
+                    <div style="background-color: #f4f6f9; padding: 1rem; border-radius: 8px;">
 
-                    <!-- Promotion Block 1 -->
-                    <table class="display product-table product cell-border">
-                        <thead>
-                            <tr>
-                                <th colspan="3" style="text-align: center;">Promotion</th>
-                                <th colspan="3" style="text-align: center;">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 2,500 บาท</td>
-                                <td colspan="3">แถมฟรี xxxxxx 1ชิ้น (EXP 13/05/2026)</td>
-                            </tr>
-                        </tbody>
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;">Material Code</th>
-                                <th style="text-align: center;">SKU Description</th>
-                                <th style="text-align: center;">Quantity</th>
-                                <th style="text-align: center;">Unit</th>
-                                <th style="text-align: center;">Sale Price</th>
-                                <th style="text-align: center;">Remark</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="text-align: left;">1000000xxxx</td>
-                                <td style="text-align: left;">xxxxxxx</td>
-                                <td style="text-align: center;">1</td>
-                                <td style="text-align: right;">Box</td>
-                                <td style="text-align: right;">0.00</td>
-                                <td style="text-align: right;">EXP 13/05/2026</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        <!-- Promotion Block 1 -->
+                        <table class="display product-table product cell-border">
+                            <thead>
+                                <tr>
+                                    <th colspan="3" style="text-align: center;">Promotion</th>
+                                    <th colspan="3" style="text-align: center;">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 2,500 บาท</td>
+                                    <td colspan="3">แถมฟรี xxxxxx 1ชิ้น (EXP 13/05/2026)</td>
+                                </tr>
+                            </tbody>
+                            <thead>
+                                <tr>
+                                    <th style="text-align: center;">Material Code</th>
+                                    <th style="text-align: center;">SKU Description</th>
+                                    <th style="text-align: center;">Quantity</th>
+                                    <th style="text-align: center;">Unit</th>
+                                    <th style="text-align: center;">Sale Price</th>
+                                    <th style="text-align: center;">Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="text-align: left;">1000000xxxx</td>
+                                    <td style="text-align: left;">xxxxxxx</td>
+                                    <td style="text-align: center;">1</td>
+                                    <td style="text-align: right;">Box</td>
+                                    <td style="text-align: right;">0.00</td>
+                                    <td style="text-align: right;">EXP 13/05/2026</td>
+                                </tr>
+                            </tbody>
+                        </table>
 
-                    <!-- Promotion Block 2 -->
-                    <table class="display product-table product cell-border slds-m-top_medium">
-                        <thead>
-                            <tr>
-                                <th colspan="3" style="text-align: center;">Promotion</th>
-                                <th colspan="3" style="text-align: center;">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 10,000 บาท</td>
-                                <td colspan="3">ส่วนลดราคาพิเศษ Buy 1-50 get 95.00 THB each</td>
-                            </tr>
-                        </tbody>
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;">Material Code</th>
-                                <th style="text-align: center;">SKU Description</th>
-                                <th style="text-align: center;">Quantity</th>
-                                <th style="text-align: center;">Unit</th>
-                                <th style="text-align: center;">Sale Price</th>
-                                <th style="text-align: center;">Remark</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="text-align: left;">1000000xxxx</td>
-                                <td style="text-align: left;">xxxxxxx</td>
-                                <td style="text-align: center;">1</td>
-                                <td style="text-align: right;">Box</td>
-                                <td style="text-align: right;">95.00</td>
-                                <td style="text-align: right;"></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        <!-- Promotion Block 2 -->
+                        <table class="display product-table product cell-border slds-m-top_medium">
+                            <thead>
+                                <tr>
+                                    <th colspan="3" style="text-align: center;">Promotion</th>
+                                    <th colspan="3" style="text-align: center;">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 10,000 บาท</td>
+                                    <td colspan="3">ส่วนลดราคาพิเศษ Buy 1-50 get 95.00 THB each</td>
+                                </tr>
+                            </tbody>
+                            <thead>
+                                <tr>
+                                    <th style="text-align: center;">Material Code</th>
+                                    <th style="text-align: center;">SKU Description</th>
+                                    <th style="text-align: center;">Quantity</th>
+                                    <th style="text-align: center;">Unit</th>
+                                    <th style="text-align: center;">Sale Price</th>
+                                    <th style="text-align: center;">Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="text-align: left;">1000000xxxx</td>
+                                    <td style="text-align: left;">xxxxxxx</td>
+                                    <td style="text-align: center;">1</td>
+                                    <td style="text-align: right;">Box</td>
+                                    <td style="text-align: right;">95.00</td>
+                                    <td style="text-align: right;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
 
-                </div>
-            </lightning-card>
+                    </div>
+                </lightning-card>
+            </div>
 
             <!-- Footer -->
             <div slot="footer" class="btnProduct main_product" style="display: flex; justify-content: space-between;">

@@ -1,9 +1,7 @@
 import { LightningElement, track, wire , api } from 'lwc';
-import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
-import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { CloseActionScreenEvent } from 'lightning/actions';
+import LightningConfirm from 'lightning/confirm';
 
 // import class
 import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
@@ -188,7 +186,7 @@ export default class INID_Ordertest extends LightningElement {
 
     // Call Font Awesome
     connectedCallback() {
-        loadStyle(this, FONT_AWESOME + '/css/all.min.css');
+        
     }
 
     // ---------------------------------------------------------------------------
@@ -365,23 +363,24 @@ export default class INID_Ordertest extends LightningElement {
         getAddonLabel(value) {
             const map = {
                 '1': 'ของแถม',
-                '2': 'ตัวอย่าง',
-                '3': 'บริจาค',
-                '4': 'ชดเชย',
-                '5': 'สมนาคุณ',
-                '6': 'ของแถมนอกบิล (FOC)'
+                '2': 'ของแถมนอกบิล (FOC)',
+                '3': 'ตัวอย่าง',
+                '4': 'บริจาค',
+                '5': 'ชดเชย',
+                '6': 'สมนาคุณ',
+                
             };
             return map[value] || '-';
         }
     
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text' },
-        { label: 'SKU Description', fieldName: 'description', type: 'text' },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2} },
-        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: true },
-        { label: 'Unit', fieldName: 'unit', type: 'text' },
-        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}},
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'center' },},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'center' }},
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'center' } ,},
+        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'center' } , },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: true , hideDefaultActions: true ,  cellAttributes: { alignment: 'center' }},
+        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'center' }},
+        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'center' }},
         { 
             label: 'Add On', 
             type: 'button',
@@ -474,7 +473,7 @@ export default class INID_Ordertest extends LightningElement {
             unitPrice: 0,
             salePrice: 0,
             quantity: 1,
-            unit: '',   
+            unit: matchedMain.unit,   
             total: 0,
             nameBtn: this.getAddonLabel(this.selectedValue),
             variant: 'base' ,
@@ -598,59 +597,94 @@ export default class INID_Ordertest extends LightningElement {
         );
     }
 
-
     @track selectedRowIds = [];
 
     handleRowSelection(event) {
         const selectedRows = event.detail.selectedRows;
-        this.selectedRowIds = selectedRows.map(row => row.id);
+        let newSelectedIds = [];
+
+        selectedRows.forEach(row => {
+            const isMain = row.unitPrice !== 0;
+
+            if (isMain) {
+                // หาตัว Add-on ที่เกี่ยวข้องกับ main ตัวนี้
+                const relatedAddons = this.selectedProducts.filter(
+                    p => p.productCode === row.code && p.unitPrice === 0
+                );
+
+                // เก็บ id ทั้ง main + add-on
+                newSelectedIds.push(row.id);
+                relatedAddons.forEach(addon => {
+                    newSelectedIds.push(addon.id);
+                });
+            } else {
+                // ถ้าเป็น Add-on เลือกแค่ตัวมันเอง
+                newSelectedIds.push(row.id);
+            }
+        });
+
+        // กำจัด ID ซ้ำด้วย Set แล้วแปลงกลับเป็น array
+        this.selectedRowIds = [...new Set(newSelectedIds)];
     }
 
-    handleDeleteSelected() {
+
+    async handleDeleteSelected() {
         if (!Array.isArray(this.selectedRowIds) || this.selectedRowIds.length === 0) {
             this.dispatchEvent(new ShowToastEvent({
-                title: 'ไม่มีรายการถูกเลือก',
+                title: 'ไม่มีรายการถูกเลือกเลย',
                 message: 'กรุณาเลือกอย่างน้อย 1 รายการ',
                 variant: 'warning'
             }));
             return;
         }
 
+        // นับจำนวนแถวที่จะถูกลบ (รวม Add-on)
         const selectedIdsSet = new Set(this.selectedRowIds);
 
-        // หารหัสสินค้าหลักที่ถูกเลือก
         const selectedMainCodes = this.selectedProducts
-            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice !== 0) // เป็นสินค้าหลัก
+            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice !== 0)
             .map(p => p.code);
 
-        // หารหัสสินค้าหลักของ Add-on ที่ถูกเลือกไว้เปิดปุ่ม
-        const deletedAddonProductCodes = this.selectedProducts
-            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice === 0)
-            .map(p => p.productCode);
-
-        // ลบแถวที่ถูกเลือก และ Add-on ที่เกี่ยวข้องกับสินค้าหลักที่ถูกเลือก
-        this.selectedProducts = this.selectedProducts.filter(product => {
+        const toBeDeleted = this.selectedProducts.filter(product => {
             const isSelected = selectedIdsSet.has(product.id);
             const isAddonOfDeletedMain = selectedMainCodes.includes(product.productCode);
-            return !isSelected && !isAddonOfDeletedMain;
+            return isSelected || isAddonOfDeletedMain;
         });
 
-        //เวลาลบเแล้วให้มันแสดง Addon อีกครั้ง
-         this.selectedProducts = this.selectedProducts.map(product => {
-            if (product.unitPrice !== 0 && deletedAddonProductCodes.includes(product.code)) {
-                return {
-                    ...product,
-                    addonDisabled: false
-                };
-            }
-            return product;
+        // แสดงกล่องยืนยันก่อนลบ
+        const result = await LightningConfirm.open({
+            message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${toBeDeleted.length} รายการ`,
+            variant: 'header',
+            label: 'ยืนยันการลบ',
+            theme: 'warning'
         });
+
+        if (!result) {
+            return; // ผู้ใช้กดยกเลิก
+        }
+
+        // ดำเนินการลบ
+        const deletedAddonProductCodes = toBeDeleted
+            .filter(p => p.unitPrice === 0)
+            .map(p => p.productCode);
+
+        this.selectedProducts = this.selectedProducts
+            .filter(product => !toBeDeleted.includes(product))
+            .map(product => {
+                if (product.unitPrice !== 0 && deletedAddonProductCodes.includes(product.code)) {
+                    return {
+                        ...product,
+                        addonDisabled: false
+                    };
+                }
+                return product;
+            });
 
         this.selectedRowIds = [];
 
         this.dispatchEvent(new ShowToastEvent({
             title: 'ลบสำเร็จ',
-            message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
+            message: `ลบรายการทั้งหมด ${toBeDeleted.length} รายการเรียบร้อยแล้ว`,
             variant: 'success'
         }));
     }
@@ -673,10 +707,12 @@ export default class INID_Ordertest extends LightningElement {
     get options(){
         return [
             { label: 'ของแถม', value: '1' },
-            { label: 'ตัวอย่าง', value: '2' },
-            { label: 'บริจาค', value: '3' },
-            { label: 'ชดเชย', value: '4' },
-            { label: 'สมนาคุณ', value: '5' },
+            { label: 'ของแถมนอกบิล (FOC)', value: '2' },
+            { label: 'ตัวอย่าง', value: '3' },
+            { label: 'บริจาค', value: '4' },
+            { label: 'ชดเชย', value: '5' },
+            { label: 'สมนาคุณ', value: '6' },
+
         ];
     }
 
@@ -756,45 +792,85 @@ export default class INID_Ordertest extends LightningElement {
     // End Order Form - Product & Addon
     // ---------------------------------------------------------------------------
 
+    // ---------------------------------------------------------------------------
+    //Apply Promotion
+    // ---------------------------------------------------------------------------
 
+    applypromotionColumns = [
+        { label: 'Promotion' , fieldName: 'promotion', type: 'text'},
+        { label: 'Description' , fieldName: 'description', type: 'text'},
+    ]
 
     // ---------------------------------------------------------------------------
-    // Start: Apply Promotion
+    //End Apply Promotion
+    // ---------------------------------------------------------------------------
+
+    // ---------------------------------------------------------------------------
+    // Start: Sumary
     // ---------------------------------------------------------------------------
 
     isShowSummary = false ;
     @track summaryProducts = [];
 
     summaryColumns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text' },
-        { label: 'SKU Description', fieldName: 'description', type: 'text' },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } },
-        { label: 'Quantity', fieldName: 'quantity', type: 'number' },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } },
-        { label: 'Unit', fieldName: 'unit', type: 'text' },
-        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } },
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true },
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true },
+        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'center' } },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true },
+        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'center' }  },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true },
         { label: 'Remark', fieldName: 'addOnText', type: 'text',
             cellAttributes: {
                 class: 'slds-text-align_center slds-align_absolute-center'
             } 
         },
-        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 } }
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true }
     ];
 
     showSummary() {
-        this.isShowOrder = false ;
-        this.isShowSummary = true ;
-        this.isShowApplyPromotion = false ;
+        this.isShowOrder = false;
+        this.isShowSummary = true;
+        this.isShowApplyPromotion = false;
 
-        this.summaryProducts = this.selectedProducts.map(p => {
-        return {
-            ...p,
-            netPrice: (Number(p.unitPrice || 0) * Number(p.quantity || 0)).toFixed(2),
-            addOnText: p.unitPrice === 0 ? (p.nameBtn || 'Add-On Item') : null
-        };
-    });
+        this.summaryProducts = [];
 
+        const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
+
+        mainProducts.forEach(main => {
+            // หา Add-on ที่ตรงกับสินค้าหลักนี้
+            const relatedAddons = this.selectedProducts.filter(
+                p => p.productCode === main.code && p.unitPrice === 0
+            );
+
+            const mainQty = Number(main.quantity || 0);
+            const mainTotal = Number(main.total || (main.unitPrice * mainQty) || 0);
+
+            const addonQtySum = relatedAddons.reduce((sum, a) => sum + Number(a.quantity || 0), 0);
+            const addonTotalSum = relatedAddons.reduce((sum, a) => sum + Number(a.total || 0), 0);
+
+            const totalQty = mainQty + addonQtySum;
+            const totalSum = mainTotal + addonTotalSum;
+
+            const netPrice = totalQty > 0 ? (totalSum / totalQty).toFixed(2) : '0.00';
+
+            // ดันสินค้าหลักเข้า summary
+            this.summaryProducts.push({
+                ...main,
+                netPrice: netPrice,
+                addOnText: null
+            });
+
+            // ดัน Add-on ต่อจากสินค้าหลัก
+            relatedAddons.forEach(addon => {
+                this.summaryProducts.push({
+                    ...addon,
+                    addOnText: addon.nameBtn || 'Add-On Item'
+                });
+            });
+        });
     }
+
 
     backtoProduct(){
         this.isShowAddProduct = true;
@@ -902,7 +978,7 @@ export default class INID_Ordertest extends LightningElement {
                         unit: matched.INID_Unit__c,
                         unitPrice: matched.INID_Unit_Price__c,
                         total: total,
-                        nameBtn: 'Add On' ,
+                        nameBtn: '+' ,
                         variant: 'brand'
                         
                     };
@@ -924,7 +1000,7 @@ export default class INID_Ordertest extends LightningElement {
 
         if (duplicatedCodes.length > 0) {
             this.dispatchEvent(new ShowToastEvent({
-                title: 'รายการซ้ำ',
+                title: 'แจ้งเตือนพบข้อผิดพลาด',
                 message: `สินค้าต่อไปนี้มีอยู่ในตารางแล้วหรือไม่พบ: ${duplicatedCodes.join(', ')}`,
                 variant: 'warning'
             }));
@@ -959,6 +1035,23 @@ export default class INID_Ordertest extends LightningElement {
         this.isShowOrder = false ;
         
     }
+
+    get hasSelectedProducts() {
+        return this.selectedProducts && this.selectedProducts.length > 0;
+    }
+
+    get displayProducts() {
+        if (this.selectedProducts.length === 0) {
+            return [{
+                id: 'no-data',
+                name: 'ไม่มีข้อมูลที่จะแสดง',
+                isPlaceholder: true
+            }];
+        }
+        return this.selectedProducts;
+    }
+
+
 
 
 
