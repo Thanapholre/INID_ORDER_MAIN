@@ -2,6 +2,7 @@ import { LightningElement, track, wire , api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import LightningConfirm from 'lightning/confirm';
+import { NavigationMixin } from 'lightning/navigation';
 
 // import class
 import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
@@ -17,7 +18,7 @@ import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
 
-export default class INID_Ordertest extends LightningElement {
+export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
     @track filteredCustomerOptions = [];
     @track searchTerm = '';
@@ -39,6 +40,7 @@ export default class INID_Ordertest extends LightningElement {
     @wire(fetchCustomers)
     wiredAccounts({ error, data }) {
         if (data) {
+            // alert('Fetched accounts: ' + JSON.stringify(data, null, 2));
             this.accounts = data;
         } else if (error) {
             console.error('Error fetching accounts:', error);
@@ -108,6 +110,28 @@ export default class INID_Ordertest extends LightningElement {
     get billToCodes() {
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
     }
+
+    // handleInput(event) {
+    //     const input = event.target.value;
+    //     this.searchTerm = input;
+        
+    //     console.log('Search term:', input);
+        
+    //     const term = input.toLowerCase().trim();
+
+    //     if (term.length > 2) {
+    //         this.filteredCustomerOptions = this.accounts.filter(cust =>
+    //             (cust.Name && cust.Name.toLowerCase().includes(term)) ||
+    //             (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
+    //         );
+
+    //         // แสดง dropdown เฉพาะกรณีมีข้อมูล
+    //         this.showDropdown = this.filteredCustomerOptions.length > 0;
+    //     } else {
+    //         this.filteredCustomerOptions = [];
+    //         this.showDropdown = false;
+    //     }
+    // }
 
     handleInput(event) {
         const input = event.target.value;
@@ -374,13 +398,13 @@ export default class INID_Ordertest extends LightningElement {
         }
     
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' },},
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }},
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right' } ,},
-        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: true , hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
-        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
-        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 150},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 250},
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 100},
+        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100 }, 
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 170},
+        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 50},
+        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 120},
         { 
             label: 'Add On', 
             type: 'button',
@@ -393,7 +417,8 @@ export default class INID_Ordertest extends LightningElement {
             },
             cellAttributes: {
                 class: 'slds-text-align_center slds-align_absolute-center'
-            } 
+            } ,
+            initialWidth: 175
         }
     ];
 
@@ -424,6 +449,7 @@ export default class INID_Ordertest extends LightningElement {
 
             nameBtn: isMainProduct ? '+' : 'Add-On Item' ,
             variant: 'brand' ,
+            editableSalePrice : true ,
 
             addonDisabled: isMainProduct && hasAddon
         };
@@ -477,6 +503,7 @@ export default class INID_Ordertest extends LightningElement {
             total: 0,
             nameBtn: this.getAddonLabel(this.selectedValue),
             variant: 'base' ,
+            editableSalePrice: false 
         };
         // Insert Add-on ใต้สินค้าหลัก
         this.addAddonToProduct(addonProduct);
@@ -822,15 +849,15 @@ export default class INID_Ordertest extends LightningElement {
     @track summaryProducts = [];
 
     summaryColumns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' }},
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 95 },
         { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' }},
-        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' }  },
-        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }},
-        { label: 'Remark', fieldName: 'addOnText', type: 'text', cellAttributes: { alignment: 'right' } },
-        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true }
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' } , initialWidth: 120},
+        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' } , hideDefaultActions: true  , initialWidth: 100 },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 120},
+        { label: 'Remark', fieldName: 'addOnText', type: 'text', cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 150 }
     ];
 
     showSummary() {
@@ -898,12 +925,26 @@ export default class INID_Ordertest extends LightningElement {
     }
 
     handleCancel() {
-        this.isShowOrder = true;
-        this.isShowAddProduct = false;
-        this.isShowSummary = false;
-        this.isShowApplyPromotion = false ; 
+            // ปิดแท็บใน console
+            const workspaceAPI = this.template.querySelector("lightning-tabset");
 
-    }
+            // ถ้าเป็น Lightning Console App
+            const workspace = this.template.querySelector("c__workspaceAPI"); // ใช้ component ที่ wrap workspaceAPI
+
+            if (workspace && workspace.isConsoleNavigation()) {
+                workspace.getFocusedTabInfo().then((tabInfo) => {
+                    workspace.closeTab({ tabId: tabInfo.tabId });
+                });
+            }
+
+            // หรือใช้ Navigate ไป URL ที่ต้องการ
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: {
+                    url: 'https://bgrimmpharma--dev.sandbox.lightning.force.com/lightning/o/Order/list?filterName=__Recent' // เปลี่ยนเป็น URL ที่คุณต้องการ
+                }
+            });
+        }
 
     handleSaveSuccess() {
         const evt = new ShowToastEvent({
@@ -984,7 +1025,8 @@ export default class INID_Ordertest extends LightningElement {
                         unitPrice: matched.INID_Unit_Price__c,
                         total: total,
                         nameBtn: '+' ,
-                        variant: 'brand'
+                        variant: 'brand' ,
+                        editableSalePrice : true 
                         
                     };
 
@@ -1023,9 +1065,9 @@ export default class INID_Ordertest extends LightningElement {
 
 
     // handle cancle function
-    handleCancel() {
-        this.dispatchEvent(new CloseActionScreenEvent());
-    }
+    // handleCancel() {
+    //     this.dispatchEvent(new CloseActionScreenEvent());
+    // }
 
 
     openAddProduct() {
@@ -1084,10 +1126,12 @@ export default class INID_Ordertest extends LightningElement {
     isShowPickListType = true ;
 
     openOrder() {
-        this.isShowOrder = true ;
-        this.isShowAddProduct = false ;
-        this.isShowPickListType = false;
-
+         if (this.validateInputs()){
+            this.checkedAlertTypeOfOrder(this.typeOrderFirstValue,this.typeOrderSecondValue,this.searchQuoteValue);
+            this.isShowOrder = true ;
+            this.isShowAddProduct = false ;
+            this.isShowPickListType = false;
+         }
     }
 
     backtoPicList() {
@@ -1096,35 +1140,120 @@ export default class INID_Ordertest extends LightningElement {
     }
 
     @track typeOrderFirstValue = 'Create New Order';
+    @track isShowSecondValue = true ;
+    @track typeOrderSecondValue = 'Sales Order' ;
+    @track isShowSearchQuote = false;
+    @track searchQuoteValue = '' ;
+    @track quoteId = [] ;
+    @track typeOfOrder = 'Create Order'
+
 
     get typeOrderFirstOption() {
         return [
-            { value: 'Create New Order', label: 'Create New Order' },
-            { value: 'Create New Order By Quotation', label: 'Create New Order By Quotation' },
-        ];
+            {value: 'Create New Order' , label: 'Create New Order'}, 
+            {value: 'Create New Order By Quote' , label: 'Create New Order By Quote'}
+        ]
     }
 
     typeOrderFirstHandleChange(event) {
         this.typeOrderFirstValue = event.detail.value;
+        if(this.typeOrderFirstValue === "Create New Order") {
+            this.isShowSecondValue = true ;
+            this.isShowSearchQuote = false ;
+            // this.typeOfOrder = `Customer (${this.typeOrderSecondValue})` ;
+            
+        }else {
+            this.isShowSecondValue = false;
+            this.isShowSearchQuote = true ;
+            this.typeOrderSecondValue = 'Sales Order' ;
+            // messageParts.push('Quote Id is: ' + this.searchQuoteValue);
+        }
     }
-
-    // Second
-    @track typeOrderSecondValue = 'Sales Order';
 
     get typeOrderSecondOption() {
         return [
             { value: 'Sales Order', label: 'Sales Order' },
             { value: 'Borrow Order', label: 'Borrow Order' },
-        ];
+        ]
+    } 
+
+    get isNextDisabled() {
+        return !(this.selectedProducts && this.selectedProducts.length > 0);
     }
 
     typeOrderHandleChange(event) {
         this.typeOrderSecondValue = event.detail.value;
     }
 
-    get isShowSecondValue() {
-        return this.typeOrderFirstValue === 'Create New Order';
+ 
+
+    checkedAlertTypeOfOrder(firstType, secondType, searchQuoteValue) {
+        let messageParts = [];
+
+        if (searchQuoteValue !== '') {
+            messageParts.push('Quote Id is: ' + searchQuoteValue);
+            this.typeOfOrder = `Create New Order By Quotation`;
+        } else if (secondType !== '') {
+            this.typeOfOrder = `Customer (${this.typeOrderSecondValue})`;
+            messageParts.push('Value is: ' + secondType);
+        }
+
+        if (firstType !== '') {
+            messageParts.push('Type is: ' + firstType);
+        }
+
+        // if (messageParts.length > 0) {
+        //     const evt = new ShowToastEvent({
+        //         title: 'Order Information',
+        //         message: messageParts.join('\n'),
+        //         variant: 'success'
+        //     });
+        //     this.dispatchEvent(evt);
+        // }
     }
+
+    
+
+    handleInputQuoteId(event) {
+        const input = event.target.value;
+        this.searchQuoteValue = input;
+
+        const inputQuoteId = input.toLowerCase().trim();
+
+        if (inputQuoteId.length > 2) {
+            this.filteredCustomerOptions = this.accounts.filter(cust =>
+                (cust.Name && cust.Name.toLowerCase().includes(inputQuoteId)) ||
+                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(inputQuoteId))
+            );
+
+            // แสดง dropdown เฉพาะกรณีมีข้อมูล
+            this.showDropdown = this.filteredCustomerOptions.length > 0;
+        } else {
+            this.filteredCustomerOptions = [];
+            this.showDropdown = false;
+        }
+    }
+
+
+    validateInputs() {
+        let isValid = true;
+
+        // 1. Validate combobox และ input ทั้งหมดใน card
+        const inputs = this.template.querySelectorAll(
+            'lightning-combobox, lightning-input'
+        );
+
+        inputs.forEach(input => {
+            // ถ้า invalid จะ show error ด้วย
+            if (!input.checkValidity()) {
+                input.reportValidity();
+                isValid = false;
+            }
+        });
+
+        return isValid;
+    }
+
 
 
 
