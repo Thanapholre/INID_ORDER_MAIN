@@ -28,6 +28,13 @@ public with sharing class INID {
             ];
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<Qoute> fetchDataProduct() {
+        return [
+            SELECT Id , QouteNumber, QouteToName FROM Product2 LIMIT 20
+            ];
+    }
+
 }
 
 

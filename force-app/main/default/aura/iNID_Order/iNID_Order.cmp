@@ -1,0 +1,5 @@
+<aura:component implements="lightning:actionOverride,lightning:isUrlAddressable,force:hasRecordId,lightning:hasPageReference">
+    <div class="slds-align_absolute-center">
+        <c:iNID_Neworder recordId="{!v.recordId}" />
+    </div>
+</aura:component>

@@ -270,7 +270,7 @@ export default class INID_Ordertest extends LightningElement {
     }
 
     isShowAddProduct = false;
-    isShowOrder = true;
+    isShowOrder = false;
 
     handleChangeRadioButton(event) {
         const selected = event.target.value;
@@ -374,13 +374,13 @@ export default class INID_Ordertest extends LightningElement {
         }
     
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'center' },},
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'center' }},
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'center' } ,},
-        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'center' } , },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: true , hideDefaultActions: true ,  cellAttributes: { alignment: 'center' }},
-        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'center' }},
-        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'center' }},
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' },},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }},
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right' } ,},
+        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: true , hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
+        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
+        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
         { 
             label: 'Add On', 
             type: 'button',
@@ -560,6 +560,15 @@ export default class INID_Ordertest extends LightningElement {
             const product = this.mapProduct(selected);
             this.selectedProducts = [...this.selectedProducts, product];
             console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
+            
+        } else if(isDuplicate){
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'รายการซ้ำ',
+                    message: 'สินค้านี้มีอยู่ในตารางแล้ว',
+                    variant: 'warning',
+                })
+            )
         }
         this.searchProductTerm = '';
         this.showProductDropdown = false;
@@ -813,18 +822,14 @@ export default class INID_Ordertest extends LightningElement {
     @track summaryProducts = [];
 
     summaryColumns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true },
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true },
-        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'center' } },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true },
-        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'center' }  },
-        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true },
-        { label: 'Remark', fieldName: 'addOnText', type: 'text',
-            cellAttributes: {
-                class: 'slds-text-align_center slds-align_absolute-center'
-            } 
-        },
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' }},
+        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' }},
+        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' }  },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }},
+        { label: 'Remark', fieldName: 'addOnText', type: 'text', cellAttributes: { alignment: 'right' } },
         { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true }
     ];
 
@@ -1024,8 +1029,32 @@ export default class INID_Ordertest extends LightningElement {
 
 
     openAddProduct() {
-        this.isShowAddProduct = true ;
-        this.isShowOrder = false ;
+        if(!this.validateOrder()){
+            return;
+        }
+
+        this.isShowAddProduct = true;
+        this.isShowOrder = false;
+    
+        setTimeout(() => {
+            const table = this.template.querySelector('.product-table');
+            if (!this.dataTableInstanceAddProduct && table) {
+                Promise.all([
+                    loadScript(this, jquery + '/jquery.min.js'),
+                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
+                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
+                ])
+                .then(() => {
+                    this.initializeDataTable();
+                    this.dataTableInstanceAddProduct = true;
+                    this.updateDataTable();
+                })
+                .catch(error => console.error('DataTables Load Error:', error));
+            } else if (this.dataTableInstance) {
+                // this.dataTableInstanceAddProduct.clear().draw();
+                this.updateDataTable();
+            }
+        }, 50); // wait for DOM to be visible
     }
 
 
@@ -1050,6 +1079,53 @@ export default class INID_Ordertest extends LightningElement {
         }
         return this.selectedProducts;
     }
+
+
+    isShowPickListType = true ;
+
+    openOrder() {
+        this.isShowOrder = true ;
+        this.isShowAddProduct = false ;
+        this.isShowPickListType = false;
+
+    }
+
+    backtoPicList() {
+        this.isShowOrder = false ;
+        this.isShowPickListType = true ;
+    }
+
+    @track typeOrderFirstValue = 'Create New Order';
+
+    get typeOrderFirstOption() {
+        return [
+            { value: 'Create New Order', label: 'Create New Order' },
+            { value: 'Create New Order By Quotation', label: 'Create New Order By Quotation' },
+        ];
+    }
+
+    typeOrderFirstHandleChange(event) {
+        this.typeOrderFirstValue = event.detail.value;
+    }
+
+    // Second
+    @track typeOrderSecondValue = 'Sales Order';
+
+    get typeOrderSecondOption() {
+        return [
+            { value: 'Sales Order', label: 'Sales Order' },
+            { value: 'Borrow Order', label: 'Borrow Order' },
+        ];
+    }
+
+    typeOrderHandleChange(event) {
+        this.typeOrderSecondValue = event.detail.value;
+    }
+
+    get isShowSecondValue() {
+        return this.typeOrderFirstValue === 'Create New Order';
+    }
+
 
 
 
