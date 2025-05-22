@@ -1,10 +1,8 @@
 import { LightningElement, track, wire , api } from 'lwc';
-import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
-import datatables from '@salesforce/resourceUrl/datatables';
-import jquery from '@salesforce/resourceUrl/jquery';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { CloseActionScreenEvent } from 'lightning/actions';
+import LightningConfirm from 'lightning/confirm';
+import { NavigationMixin } from 'lightning/navigation';
 
 // import class
 import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
@@ -20,7 +18,7 @@ import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
 
-export default class INID_Ordertest extends LightningElement {
+export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
     @track filteredCustomerOptions = [];
     @track searchTerm = '';
@@ -42,11 +40,13 @@ export default class INID_Ordertest extends LightningElement {
     @wire(fetchCustomers)
     wiredAccounts({ error, data }) {
         if (data) {
+            // alert('Fetched accounts: ' + JSON.stringify(data, null, 2));
             this.accounts = data;
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
     }
+
 
      // fetch Auto Field Bill To
     @wire(fetchDataBillto)
@@ -111,6 +111,28 @@ export default class INID_Ordertest extends LightningElement {
     get billToCodes() {
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
     }
+
+    // handleInput(event) {
+    //     const input = event.target.value;
+    //     this.searchTerm = input;
+        
+    //     console.log('Search term:', input);
+        
+    //     const term = input.toLowerCase().trim();
+
+    //     if (term.length > 2) {
+    //         this.filteredCustomerOptions = this.accounts.filter(cust =>
+    //             (cust.Name && cust.Name.toLowerCase().includes(term)) ||
+    //             (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
+    //         );
+
+    //         // แสดง dropdown เฉพาะกรณีมีข้อมูล
+    //         this.showDropdown = this.filteredCustomerOptions.length > 0;
+    //     } else {
+    //         this.filteredCustomerOptions = [];
+    //         this.showDropdown = false;
+    //     }
+    // }
 
     handleInput(event) {
         const input = event.target.value;
@@ -189,7 +211,7 @@ export default class INID_Ordertest extends LightningElement {
 
     // Call Font Awesome
     connectedCallback() {
-        loadStyle(this, FONT_AWESOME + '/css/all.min.css');
+        
     }
 
     // ---------------------------------------------------------------------------
@@ -345,40 +367,9 @@ export default class INID_Ordertest extends LightningElement {
     }
 
 
-    openAddProduct() {
-        if(!this.validateOrder()){
-            return;
-        }
-
-        this.isShowAddProduct = true;
-        this.isShowOrder = false;
-    
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-            if (!this.dataTableInstanceAddProduct && table) {
-                Promise.all([
-                    loadScript(this, jquery + '/jquery.min.js'),
-                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
-                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
-                ])
-                .then(() => {
-                    this.initializeDataTable();
-                    this.dataTableInstanceAddProduct = true;
-                    this.updateDataTable();
-                })
-                .catch(error => console.error('DataTables Load Error:', error));
-            } else if (this.dataTableInstance) {
-                // this.dataTableInstanceAddProduct.clear().draw();
-                this.updateDataTable();
-            }
-        }, 50); // wait for DOM to be visible
-    }
-
     backtoOrder() {
         this.isShowAddProduct = false;
         this.isShowOrder = true;
-        this.dataTableInstanceAddProduct = false; // ต้องให้มัน init ใหม่ตอนกลับมา
-
     }
 
 
@@ -391,159 +382,353 @@ export default class INID_Ordertest extends LightningElement {
     @track showProductDropdown = false;
     @track searchProductTerm = '';
 
-    dataTableInstance;
-    datatableInitialized = false;
 
-  //initializeDataTable method
-    initializeDataTable() {
-        const table = this.template.querySelector('.product-table');
-        if (table) {
-            this.dataTableInstance = $(table).DataTable({
-                searching: false,
-                paging: false,
-                ordering: false,
-                info: false,
-                responsive: false,
-                columnDefs: [
-                    { targets: 0, width: '120px' },
-                    { targets: 1, width: '120px' }
-                ]
-            });
+    @track productPriceBook = [];
+
+        getAddonLabel(value) {
+            const map = {
+                '1': 'ของแถม',
+                '2': 'ของแถมนอกบิล (FOC)',
+                '3': 'ตัวอย่าง',
+                '4': 'บริจาค',
+                '5': 'ชดเชย',
+                '6': 'สมนาคุณ',
+                
+            };
+            return map[value] || '-';
+        }
+    
+    columns = [
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 110},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 230}, 
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', } , initialWidth: 110},
+        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100 }, 
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'center'} , initialWidth: 175},
+        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 70},
+        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 116},
+        { 
+            label: 'Add On', 
+            type: 'button',
+            typeAttributes: {
+                label: { fieldName: 'nameBtn' },
+                name: 'btnAddOn',
+                title: 'Add On',
+                variant: {fieldName: 'variant'},
+                disabled: { fieldName: 'addonDisabled' } 
+            },
+            cellAttributes: {
+                alignment: 'center',
+                class: 'slds-text-align_center'
+            } ,
+            initialWidth: 170
+        }
+    ];
+
+    mapProduct(source, addedAddons = []) {
+        const isMainProduct = source.INID_Unit_Price__c > 0;
+        const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
+
+        // const quantity = 1;
+
+        const salePrice = source.INID_Unit_Price__c || 0;
+        const quantity = 1;
+        const total = salePrice * quantity;
+
+        return {
+            id: source.Id,
+            code: source.INID_Material_Code__c,
+            description: source.INID_SKU_Description__c,
+            unitPrice: source.INID_Unit_Price__c || 0,
+            quantity: 1,
+            salePrice: source.INID_Unit_Price__c || 0,
+            unit: source.INID_Unit__c || '',
+            total: total,
+
+            addOnButton: isMainProduct ? 'Add On' : null,
+            addOnText: !isMainProduct ? 'Add-On Item' : null ,
+            addOn: isMainProduct ? 'true' : 'false' ,
+            // isAddOn: !isMainProduct ,
+
+            nameBtn: isMainProduct ? '+' : 'Add-On Item' ,
+            variant: 'brand' ,
+            editableSalePrice : true,
+
+            addonDisabled: isMainProduct && hasAddon
+        };
+    }
+
+    handleSaveAddon() {
+        if (!this.selectedValue) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Error',
+                message: 'กรุณาเลือกประเภทของแถม',
+                variant: 'error'
+            }));
+            return;
+        }
+
+        const matchedMainIndex = this.selectedProducts.findIndex(
+            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+        );
+
+        if (matchedMainIndex === -1) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Error',
+                message: 'ไม่พบสินค้าหลักสำหรับ Add-on นี้',
+                variant: 'error'
+            }));
+            return;
+        }
+
+        const addonCode = this.currentMaterialCodeForAddOn + '_addon_' + this.selectedValue;
+
+        const alreadyExists = this.selectedProducts.some(p => p.code === addonCode);
+        if (alreadyExists) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Warning',
+                message: 'Add-on นี้ถูกเพิ่มไปแล้ว',
+                variant: 'warning'
+            }));
+            return;
+        }
+
+        const matchedMain = this.selectedProducts[matchedMainIndex];
+
+        const addonProduct = {
+            code: matchedMain.code,
+            productCode: matchedMain.code,
+            description: matchedMain.description,
+            unitPrice: 0,
+            salePrice: 0,
+            quantity: 1,
+            unit: matchedMain.unit,   
+            total: 0,
+            nameBtn: this.getAddonLabel(this.selectedValue),
+            variant: 'base' ,
+            editableSalePrice: false
+        };
+        // Insert Add-on ใต้สินค้าหลัก
+        this.addAddonToProduct(addonProduct);
+
+        // Disable ปุ่มเพิ่ม Add-on บนสินค้าหลัก
+        this.selectedProducts[matchedMainIndex].addonDisabled = true;
+
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'เพิ่ม Add-on สำเร็จ',
+            message: `คุณเลือกประเภท: ${this.getAddonLabel(this.selectedValue)}`,
+            variant: 'success'
+        }));
+
+        this.isPopupOpenFreeGood = false;
+        this.currentMaterialCodeForAddOn = '';
+        this.selectedValue = '';
+    }
+
+
+    handleRowAction(event) {
+        const actionName = event.detail.action.name;
+        const row = event.detail.row;
+
+        // ตรวจสอบว่า row นี้เป็น Add-on หรือไม่
+        const isAddon = row.unitPrice === 0;
+
+        if (actionName === 'btnAddOn') {
+            if (isAddon) {
+                return;
+            }
+
+            // กรณีเป็นสินค้าหลัก → เปิด popup
+            this.currentMaterialCodeForAddOn = row.code;
+            this.isPopupOpenFreeGood = true;
         }
     }
 
-    // กรองจากการ search input
+
+    addAddonToProduct(addonProduct) {
+        const index = this.selectedProducts.findIndex(
+            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+        );
+
+        if (index === -1) return;
+
+        // ใส่รหัสเพื่อไม่ให้ key ซ้ำ
+        addonProduct.id = `${this.currentMaterialCodeForAddOn}_${Date.now()}`;
+        addonProduct.isAddOn = true; // ปิดปุ่มในแถวนี้
+        addonProduct.buttonLabel = ''; // ไม่แสดงปุ่ม
+        addonProduct.addOnText = addonProduct.displaylabel; // ใช้ label
+
+        // แทรก Add-on ต่อจากสินค้าหลัก
+        const newData = [...this.selectedProducts];
+        newData.splice(index + 1, 0, addonProduct);
+
+        this.selectedProducts = newData;
+    }
+
+
+
     handleInputProduct(event) {
         this.searchProductTerm = event.target.value;
-        const term = this.searchProductTerm.toLowerCase();
+        const term = this.searchProductTerm.toLowerCase().trim();
+
         this.showProductDropdown = term.length > 2;
+
         this.filteredProductOptions = this.productPriceBook.filter(p => {
-            const nameStr = p.NameINID_SKU_Description__c ? p.INID_SKU_Description__c.toLowerCase() : '';
-            const codeStr = p.INID_Material_Code__c ? p.INID_Material_Code__c.toString().toLowerCase() : '';
+            const nameStr = p.INID_SKU_Description__c ? p.INID_SKU_Description__c.toLowerCase() : '';
+            const codeStr = p.INID_Material_Code__c ? p.INID_Material_Code__c.toLowerCase() : '';
 
             return nameStr.includes(term) || codeStr.includes(term);
         });
     }
-    
-    //Select Product In Table 
+
     handleSelectProduct(event) {
-        const id = event.currentTarget.dataset.id;
-        const existing = this.selectedProducts.find(p => p.id === id);
+        const selectedId = event.currentTarget.dataset.id;
+        const selected = this.productPriceBook.find(p => p.Id === selectedId);
 
-        if (!existing) {
-            const selected = this.productPriceBook.find(p => p.Id === id);
-            if (selected) {
-                const unitPrice = selected.INID_Unit_Price__c || 0;
-                const quantity = 1;
-                const salePrice = unitPrice ;
-                const total = unitPrice * quantity;
-
-                const newProduct = {
-                    id: selected.Id,
-                    code: selected.INID_Material_Code__c,
-                    Name: selected.Name,
-                    description: selected.INID_SKU_Description__c,
-                    quantity: quantity,
-                    salePrice ,
-                    unit: selected.INID_Unit__c,
-                    unitPrice: unitPrice,
-                    total: total
-                };
-                this.selectedProducts = [...this.selectedProducts, newProduct];
-
-                const relatedAddons = this.addonSelections?.filter(
-                    a => a.id === id
-                ).map(a => ({
-                    id: id,
-                    code: selected.INID_Material_Code__c,
-                    description: a.addonDescription,
-                    unitPrice: 0,
-                    salePrice: unitPrice,
-                    quantity: 1,
-                    unit: '-',
-                    total: Number(a.discountValue || 0),
-                    addonLabel: a.addonLabel
-                })) || [];
-
-                this.selectedProducts = [...this.selectedProducts, ...relatedAddons];
-
-                this.dataTableInstance.clear();
-                this.selectedProducts.forEach((product, index) => {
-                    const isAddon = product.addonLabel !== undefined;
-                    const hasAddon = this.selectedProducts.some(
-                        p => p.code === product.code && p.unitPrice === 0
-                    );
-
-                    this.dataTableInstance.row.add([
-                    `<input type="checkbox" style="text-align: center;" />`,
-                    `<div style="text-align: left;">${product.code || '-'}</div>`,
-                    `<div style="text-align: left;">${product.description || ''}</div>`,
-                    `<div style="text-align: right;">${(product.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    `${isAddon 
-                        ? `<div style="text-align: center;">${product.quantity || 0}</div>`
-                        : `<input type="text" 
-                            data-index="${index}" 
-                            value="${product.quantity || 0}" 
-                            min="0"
-                            class="quantity-input"
-                            style="width:100%; text-align: center;" />`
-                        }
-                    `,
-
-                    `${isAddon 
-                        ? `<div style="text-align: center;">${(product.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
-                        : `<input type="text"
-                            data-index="${index}" 
-                            value="${(product.salePrice || 0).toFixed(2)}"
-                            min="0"
-                            class="sale-price-input"
-                            style="width:100%; text-align: center;" />`
-                        }`,
-                    `<div style="text-align: center;">${(product.unit || '-')}</div>`,    
-                   `<div style="text-align: right;">${(product.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    product.unitPrice === 0
-                        ? `<div style="text-align: center;">${product.addonLabel || '-'}</div>`
-                        : `
-                            <div style="display: flex; justify-content: center; align-items: center;">
-                                <i class="fa-solid fa-plus addon-btn"
-                                    style="width:30px;height:30px;border-radius:50%;border:1px solid #ccc;background:white;
-                                        color:${hasAddon ? '#ccc' : '#007bff'};
-                                        font-size:16px;display:flex;align-items:center;justify-content:center;
-                                        cursor:${hasAddon ? 'not-allowed' : 'pointer'};"
-                                    title="เพิ่มของแถม"
-                                    data-id="${product.code}"
-                                    ${hasAddon ? 'disabled' : ''}>
-                                </i>
-                            </div>
-                        `
-                    ]);
-                });
-
-                this.dataTableInstance.draw();
-
-                setTimeout(() => {
-                    const table = this.template.querySelector('.product-table');
-
-                    const quantityInputs = table.querySelectorAll('.quantity-input');
-                    quantityInputs.forEach(input => {
-                        input.removeEventListener('change', this.handleQuantityChange);
-                        input.addEventListener('change', this.handleQuantityChange.bind(this));
-                    });
-
-                    const salePriceInputs = table.querySelectorAll('.sale-price-input');
-                    salePriceInputs.forEach(input => {
-                        input.removeEventListener('change', this.handleSalePriceChange);
-                        input.addEventListener('change', this.handleSalePriceChange.bind(this));
-                    });
-                }, 0);
-            }
+        const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
+        if (!isDuplicate && selected) {
+            const product = this.mapProduct(selected);
+            this.selectedProducts = [...this.selectedProducts, product];
+            console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
+            
+        } else if(isDuplicate){
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'รายการซ้ำ',
+                    message: 'สินค้านี้มีอยู่ในตารางแล้ว',
+                    variant: 'warning',
+                })
+            )
         }
-
         this.searchProductTerm = '';
         this.showProductDropdown = false;
     }
 
-    
+    //Edid Fieled Rows
+    @track draftValues = [];
+
+    handleSaveEditedRows(event) {
+        const updatedValues = event.detail.draftValues;
+
+        this.selectedProducts = this.selectedProducts.map(product => {
+            const updated = updatedValues.find(d => d.id === product.id);
+            if (updated) {
+                const qty = Number(updated.quantity ?? product.quantity);
+                const price = Number(updated.salePrice ?? product.salePrice);
+                return {
+                    ...product,
+                    quantity: qty,
+                    salePrice: price,
+                    total: qty * price
+                };
+            }
+            return product; 
+        });
+
+        this.draftValues = []; // เคลียร์ draft เพื่อซ่อนปุ่ม
+
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: 'Edit field successfully',
+                variant: 'success'
+            })
+        );
+    }
+
+    @track selectedRowIds = [];
+
+    handleRowSelection(event) {
+        const selectedRows = event.detail.selectedRows;
+        let newSelectedIds = [];
+
+        selectedRows.forEach(row => {
+            const isMain = row.unitPrice !== 0;
+
+            if (isMain) {
+                // หาตัว Add-on ที่เกี่ยวข้องกับ main ตัวนี้
+                const relatedAddons = this.selectedProducts.filter(
+                    p => p.productCode === row.code && p.unitPrice === 0
+                );
+
+                // เก็บ id ทั้ง main + add-on
+                newSelectedIds.push(row.id);
+                relatedAddons.forEach(addon => {
+                    newSelectedIds.push(addon.id);
+                });
+            } else {
+                // ถ้าเป็น Add-on เลือกแค่ตัวมันเอง
+                newSelectedIds.push(row.id);
+            }
+        });
+
+        // กำจัด ID ซ้ำด้วย Set แล้วแปลงกลับเป็น array
+        this.selectedRowIds = [...new Set(newSelectedIds)];
+    }
+
+
+    async handleDeleteSelected() {
+        if (!Array.isArray(this.selectedRowIds) || this.selectedRowIds.length === 0) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'ไม่มีรายการถูกเลือกเลย',
+                message: 'กรุณาเลือกอย่างน้อย 1 รายการ',
+                variant: 'warning'
+            }));
+            return;
+        }
+
+        // นับจำนวนแถวที่จะถูกลบ (รวม Add-on)
+        const selectedIdsSet = new Set(this.selectedRowIds);
+
+        const selectedMainCodes = this.selectedProducts
+            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice !== 0)
+            .map(p => p.code);
+
+        const toBeDeleted = this.selectedProducts.filter(product => {
+            const isSelected = selectedIdsSet.has(product.id);
+            const isAddonOfDeletedMain = selectedMainCodes.includes(product.productCode);
+            return isSelected || isAddonOfDeletedMain;
+        });
+
+        // แสดงกล่องยืนยันก่อนลบ
+        const result = await LightningConfirm.open({
+            message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${toBeDeleted.length} รายการ`,
+            variant: 'header',
+            label: 'ยืนยันการลบ',
+            theme: 'warning'
+        });
+
+        if (!result) {
+            return; // ผู้ใช้กดยกเลิก
+        }
+
+        // ดำเนินการลบ
+        const deletedAddonProductCodes = toBeDeleted
+            .filter(p => p.unitPrice === 0)
+            .map(p => p.productCode);
+
+        this.selectedProducts = this.selectedProducts
+            .filter(product => !toBeDeleted.includes(product))
+            .map(product => {
+                if (product.unitPrice !== 0 && deletedAddonProductCodes.includes(product.code)) {
+                    return {
+                        ...product,
+                        addonDisabled: false
+                    };
+                }
+                return product;
+            });
+
+        this.selectedRowIds = [];
+
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'ลบสำเร็จ',
+            message: `ลบรายการทั้งหมด ${toBeDeleted.length} รายการเรียบร้อยแล้ว`,
+            variant: 'success'
+        }));
+    }
+
+
+  
     // ---------------------------------------------------------------------------
     // End JS Add Product --------------------------------------------------------
     // ---------------------------------------------------------------------------
@@ -560,22 +745,18 @@ export default class INID_Ordertest extends LightningElement {
     get options(){
         return [
             { label: 'ของแถม', value: '1' },
-            { label: 'ตัวอย่าง', value: '2' },
-            { label: 'บริจาค', value: '3' },
-            { label: 'ชดเชย', value: '4' },
-            { label: 'สมนาคุณ', value: '5' },
+            { label: 'ของแถมนอกบิล (FOC)', value: '2' },
+            { label: 'ตัวอย่าง', value: '3' },
+            { label: 'บริจาค', value: '4' },
+            { label: 'ชดเชย', value: '5' },
+            { label: 'สมนาคุณ', value: '6' },
+
         ];
     }
 
     handleRemoveProduct(event) {
         const code = event.currentTarget.dataset.id;
         this.selectedProducts = this.selectedProducts.filter(p => p.materialCode !== code);
-    }
-
-    showPopupFreeGood(materialCode) {
-        // alert(materialCode) ;
-        this.currentMaterialCodeForAddOn = materialCode;
-        this.isPopupOpenFreeGood = true;
     }
 
     closePopupFreeGood() {
@@ -608,413 +789,144 @@ export default class INID_Ordertest extends LightningElement {
         }
     }
 
-    //handleSave Addon
-    handleSave() {
-        const errorCombobox = this.template.querySelector('[data-id="error-combobox"]');
-        if (errorCombobox) errorCombobox.textContent = '';
 
-        let hasError = false;
-
-        if (!this.selectedValue) {
-            if (errorCombobox) errorCombobox.textContent = 'โปรดระบุประเภทการ Add-on';
-            hasError = true;
-        }
-
-        if (hasError) return;
-
-        const matchedMainProduct = this.selectedProducts.find(
-            p => String(p.code) === String(this.currentMaterialCodeForAddOn) && p.unitPrice !== 0
-        );
-
-        const selectedOption = this.options.find(opt => opt.value === this.selectedValue);
-        const addonLabel = selectedOption ? selectedOption.label : 'ของแถม';
-
-        const isAlreadyUsed = this.addonSelections.some(
-            a => a.productCode === this.currentMaterialCodeForAddOn && a.addonType === this.selectedValue
-        );
-        // const isAlreadyUsed = this.addonSelections.some(
-        //     a => a.productCode === this.currentMaterialCodeForAddOn && a.addonType === this.selectedValue
-        // );
-
-        if (isAlreadyUsed) {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Add-on ซ้ำ',
-                    message: 'Add-on นี้ถูกเพิ่มแล้ว',
-                    variant: 'error'
-                })
-            );
-            return;
-        }
-
-        // ✅ Generate unique ID for Add-on
-        // const addonId = `addon-${this.currentMaterialCodeForAddOn}-${Date.now()}`;
-        // const addonId = `addon-${this.currentMaterialCodeForAddOn}-${Date.now()}`;
-        const addonId = `${this.currentMaterialCodeForAddOn}`;
-
-        const addonProduct = {
-            code: addonId, // <-- unique ID
-            materialCode: this.currentMaterialCodeForAddOn,
-            description: matchedMainProduct.description,
-            unitPrice: 0,
-            salePrice: 0.00,
-            quantity: 1,
-            unit: '',
-            total: 0.00,
-            addonLabel: addonLabel,
-            isDiscount: false,
-            productCode: this.currentMaterialCodeForAddOn // <-- bind to main
-        };
-
-        const mainIndex = this.selectedProducts.findIndex(
-            p => String(p.code) === String(this.currentMaterialCodeForAddOn) && p.unitPrice !== 0
-        );
-
-        if (mainIndex !== -1) {
-            let insertIndex = mainIndex + 1;
-            while (
-                insertIndex < this.selectedProducts.length &&
-                this.selectedProducts[insertIndex].unitPrice === 0 &&
-                this.selectedProducts[insertIndex].productCode === this.currentMaterialCodeForAddOn
-            ) {
-                insertIndex++;
-            }
-
-            const before = this.selectedProducts.slice(0, insertIndex);
-            const after = this.selectedProducts.slice(insertIndex);
-            this.selectedProducts = [...before, addonProduct, ...after];
-        } else {
-            this.selectedProducts = [...this.selectedProducts, addonProduct];
-        }
-
-        const record = {
-            id: addonId,
-            productCode: this.currentMaterialCodeForAddOn,
-            productDescription: matchedMainProduct.description,
-            addonType: this.selectedValue,
-            addonLabel: addonLabel
-        };
-
-        this.addonSelections = [...this.addonSelections, record];
-
-        this.updateDataTable();
-        this.closePopupFreeGood();
-        this.currentMaterialCodeForAddOn = null;
-        this.selectedValue = '';
-        // (
-        // `Add-on ถูกเพิ่ม:\n` +
-        // `รหัสสินค้า: ${addonProduct.materialCode}\n` +
-        // `ชื่อสินค้า: ${addonProduct.description}\n` +
-        // `ประเภทของแถม: ${record.addonType}\n` +
-        // `ป้ายกำกับของแถม: ${record.addonLabel}\n` +
-        // `จำนวน: ${alertaddonProduct.quantity}`
-        // );
-    }
-
-    //End Handle Save
-
-    //Update Data Table
-    updateDataTable() {
-        if (!this.dataTableInstance) return;
-
-        this.dataTableInstance.clear();
-
-        if (this.isShowSummary) {
-            const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
-
-            mainProducts.forEach(main => {
-                const relatedAddons = this.selectedProducts.filter(
-                    p => p.productCode === main.code && p.unitPrice === 0
-                );
-
-                const totalQty = (main.quantity || 0) + relatedAddons.reduce((sum, a) => sum + (a.quantity || 1), 0);
-                const netPrice = totalQty > 0 ? (main.total || 0) / totalQty : 0;
-
-                this.dataTableInstance.row.add([
-                    `<div style="text-align: left;">${main.code || '-'}</div>`,
-                    `<div style="text-align: left;">${main.description || '-'}</div>`,
-                    `<div style="text-align: right;">${(main.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    `<div style="text-align: right;">${main.quantity || ''}</div>`,
-                    `<div style="text-align: center;">${(main.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    `<div style="text-align: center;">${main.unit || '-'}</div>`,
-                    `<div style="text-align: right;">${(main.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    `<div style="text-align: center;">${main.addonLabel ?? '-'}</div>`,
-                    `<div style="text-align: right;">${(netPrice|| 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
-                ]);
-
-                relatedAddons.forEach(addon => {
-                    this.dataTableInstance.row.add([
-                        `<div style="text-align: left;">${addon.code || '-'}</div>`,
-                        `<div style="text-align: left;">${addon.description || '-'}</div>`,
-                        `<div style="text-align: right;">${(addon.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                        `<div style="text-align: right;">${addon.quantity || '-'}</div>`,
-                        `<div style="text-align: center;">${(addon.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                        `<div style="text-align: center;">${addon.unit || '-'}</div>`,
-                        `<div style="text-align: right;">${(addon.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                        `<div style="text-align: center;">${addon.addonLabel ?? '-'}</div>`,
-                        `<div style="text-align: right;">${(netPrice - netPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
-                    ]);
-                });
-            });
-        } else {
-            this.selectedProducts.forEach((product, index) => {
-                const isAddon = product.addonLabel !== undefined;
-                const hasAddon = this.selectedProducts.some(
-                    p => p.code === product.code && p.unitPrice === 0
-                );
-
-                this.dataTableInstance.row.add([
-                    `<input type="checkbox" style="text-align: center;" />`,
-                    `<div style="text-align: left;">${product.code || '-'}</div>`,
-                    `<div style="text-align: left;">${product.description || ''}</div>`,
-                    `<div style="text-align: right;">${(product.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-                    `${isAddon 
-                        ? `<div style="text-align: center;">${product.quantity || 0}</div>`
-                        : `<input type="text" 
-                            data-index="${index}" 
-                            value="${product.quantity || 0}" 
-                            min="0"
-                            class="quantity-input"
-                            style="width:100%; text-align: center;" />`
-                        }
-                    `,
-
-                    `${isAddon 
-                        ? `<div style="text-align: center;">${(product.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`
-                        : `<input type="text"
-                            data-index="${index}" 
-                            value="${(product.salePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"
-                            min="0"
-                            class="sale-price-input"
-                            style="width:100%; text-align: center;" />`
-                        }`,
-                    `<div style="text-align: center;">${(product.unit || '-')}</div>`,    
-                    `<div style="text-align: right;">${(product.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>`,
-
-                    isAddon
-                        ? `<div style="text-align: center;">${product.addonLabel || ''}</div>`
-                        : `<div style="display: flex; justify-content: center; align-items: center;">
-                            <i class="fa-solid fa-plus addon-btn"
-                                style="width:30px;height:30px;border-radius:50%;border:1px solid #ccc;background:white;
-                                    color:${hasAddon ? '#ccc' : '#007bff'};
-                                    font-size:16px;display:flex;align-items:center;justify-content:center;
-                                    cursor:${hasAddon ? 'not-allowed' : 'pointer'};"
-                                title="เพิ่มของแถม"
-                                data-id="${product.code}"
-                                ${hasAddon ? 'disabled' : ''}>
-                            </i>
-                        </div>`
-                ]);
-            });
-        }
-
-        this.dataTableInstance.draw();
-
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-
-            const quantityInputs = table.querySelectorAll('.quantity-input');
-            quantityInputs.forEach(input => {
-                input.removeEventListener('change', this.handleQuantityChange);
-                input.addEventListener('change', this.handleQuantityChange.bind(this));
-            });
-
-            const salePriceInputs = table.querySelectorAll('.sale-price-input');
-            salePriceInputs.forEach(input => {
-                input.removeEventListener('change', this.handleSalePriceChange);
-                input.addEventListener('change', this.handleSalePriceChange.bind(this));
-            });
-        }, 0);
-    }
-
-    // End Add On Section
-
-    // handleDeleteSelected (set version)
-    handleDeleteSelected() {
-        const table = this.template.querySelector('.product-table');
-        const checkboxes = table.querySelectorAll('tbody input[type="checkbox"]:checked');
-
-        const selectedMainCodes = new Set();
-        const selectedAddonCodes = new Set();
-
-        checkboxes.forEach(checkbox => {
-            const row = checkbox.closest('tr');
-            const rowData = this.dataTableInstance.row(row).data();
-
-            const materialColumn = rowData[1];
-            const matchMaterial = materialColumn.match(/>(.*?)</);
-            const materialCode = matchMaterial ? matchMaterial[1].trim() : null;
-
-            const unitPriceColumn = rowData[3];
-            const matchUnitPrice = unitPriceColumn.match(/>(.*?)</);
-            const unitPrice = matchUnitPrice ? parseFloat(matchUnitPrice[1].trim()) : null;
-
-            if (materialCode !== null && unitPrice !== null) {
-                if (unitPrice === 0) {
-                    selectedAddonCodes.add(materialCode); // ติ๊ก Add-on
-                } else {
-                    selectedMainCodes.add(materialCode); // ติ๊ก Main
-                }
-            }
-        });
-
-        if (selectedMainCodes.size === 0 && selectedAddonCodes.size === 0) {
-            alert('กรุณาเลือกรายการที่ต้องการลบ');
-            return;
-        }
-
-        const confirmDelete = confirm('คุณต้องการลบรายการที่เลือกหรือไม่?');
-        if (!confirmDelete) return;
-
-        // ✅ ลบจาก selectedProducts
-        this.selectedProducts = this.selectedProducts.filter(p => {
-            const isMainSelected = selectedMainCodes.has(p.code) && p.unitPrice !== 0;
-            const isAddonSelected = selectedAddonCodes.has(p.code) && p.unitPrice === 0;
-            const isAddonOfSelectedMain = p.unitPrice === 0 && selectedMainCodes.has(p.productCode);
-            return !(isMainSelected || isAddonSelected || isAddonOfSelectedMain);
-        });
-
-        // ✅ ลบจาก addonSelections
-        this.addonSelections = this.addonSelections.filter(a => {
-            const isAddonSelected = selectedAddonCodes.has(a.id); // id === addonCode
-            const isAddonOfSelectedMain = selectedMainCodes.has(a.productCode);
-            return !(isAddonSelected || isAddonOfSelectedMain);
-        });
-
-        this.updateDataTable();
-    }
-
-    //Ckeckbox Select All
-    handleSelectAll(event) {
-        const isChecked = event.target.checked;
-        const checkboxes = this.template.querySelectorAll('tbody input[type="checkbox"]');
-        checkboxes.forEach(checkbox => checkbox.checked = isChecked);
-        // event.preventDefault();
-    }
-
-    addonButtonBound = false; 
+    addonButtonBound = false;     
+    isLoaded = false;
 
     renderedCallback() {
-        if (this.addonButtonBound) return;
-        this.addonButtonBound = true;
+        // ใส่ style modal
+        if (!this.template.querySelector('style[data-id="custom-modal-style"]')) {
+            const STYLE = document.createElement("style");
+            STYLE.dataset.id = "custom-modal-style";
+            STYLE.innerText = `.uiModal .modal-container {
+                width: 1200px !important;
+                max-width: 95%;
+                min-width: 480px;
+                max-height: 100%;
+                min-height: 700px;
+            }`;
+            this.template.appendChild(STYLE);
+        }
 
-        this.template.addEventListener('click', event => {
-            if (event.target.classList.contains('addon-btn')) {
-                const materialCode = event.target.dataset.id;
-                 const hasAddon = this.selectedProducts.some(
-                p => p.code === materialCode && p.unitPrice === 0
-                );
+        // Bind event แค่ครั้งเดียว
+        if (!this.addonButtonBound) {
+            this.template.addEventListener('click', event => {
+                const button = event.target.closest('.addon-btn');
+                if (button) {
+                    const materialCode = button.dataset.id;
+                    const hasAddon = this.selectedProducts.some(
+                        p => p.code === materialCode && p.unitPrice === 0
+                    );
 
+                    if (!hasAddon) {
+                        this.currentMaterialCodeForAddOn = materialCode;
+                        this.isPopupOpenFreeGood = true;
+                    }
+                }
 
-            if (hasAddon) return;
+                // optional input bindings
+                const quantityInputs = this.template.querySelectorAll('.quantity-input');
+                const salePriceInputs = this.template.querySelectorAll('.sale-price-input');
 
-                this.showPopupFreeGood(materialCode); // เปิด popup เท่านั้น
-            }
+                quantityInputs.forEach(input => {
+                    input.addEventListener('change', this.handleQuantityChange.bind(this));
+                });
 
-            const quantityInputs = this.template.querySelectorAll('.quantity-input')
-            const salePriceInputs = this.template.querySelectorAll('.sale-price-input');
-
-            quantityInputs.forEach(input => {
-                input.addEventListener('change', this.handleQuantityChange.bind(this));
+                salePriceInputs.forEach(input => {
+                    input.addEventListener('change', this.handleSalePriceChange.bind(this));
+                });
             });
 
-            salePriceInputs.forEach(input => {
-                input.addEventListener('change', this.handleSalePriceChange.bind(this));
-            });
-        });
+            this.addonButtonBound = true;
+        }
     }
 
 
     isShowApplyPromotion = false ;
-
-    showApplyPromotion() {
-        this.isShowApplyPromotion = true ;
-        this.isShowAddProduct = false ;
-        this.datatableInitialized = false;
-
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-            if (!this.datatableInitialized && table) {
-                Promise.all([
-                    loadScript(this, jquery + '/jquery.min.js'),
-                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
-                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
-                ])
-                .then(() => {
-                    this.initializeDataTable();
-                    this.datatableInitialized = true;
-                    // this.updateDataTable();
-                })
-                .catch(error => console.error('DataTables Load Error:', error));
-            } else if (this.dataTableInstance) {
-                this.dataTableInstance.clear().draw();
-                this.updateDataTable();
-            }
-        }, 50);
-    }
     // ---------------------------------------------------------------------------
     // End Order Form - Product & Addon
     // ---------------------------------------------------------------------------
 
+    // ---------------------------------------------------------------------------
+    //Apply Promotion
+    // ---------------------------------------------------------------------------
 
+    applypromotionColumns = [
+        { label: 'Promotion' , fieldName: 'promotion', type: 'text'},
+        { label: 'Description' , fieldName: 'description', type: 'text'},
+    ]
 
     // ---------------------------------------------------------------------------
-    // Start: Apply Promotion
+    //End Apply Promotion
+    // ---------------------------------------------------------------------------
+
+    // ---------------------------------------------------------------------------
+    // Start: Sumary
     // ---------------------------------------------------------------------------
 
     isShowSummary = false ;
+    @track summaryProducts = [];
+
+    summaryColumns = [
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 115 },
+        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' } , initialWidth: 130},
+        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' } , hideDefaultActions: true  , initialWidth: 100 },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 120},
+        { label: 'Remark', fieldName: 'addOnText', type: 'text', cellAttributes: { alignment: 'right' } , initialWidth: 150 , hideDefaultActions: true },
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 110 }
+    ];
 
     showSummary() {
-        this.isShowOrder = false ;
-        this.isShowSummary = true ;
-        this.isShowApplyPromotion = false ;
-        this.datatableInitialized = false;
+        this.isShowOrder = false;
+        this.isShowSummary = true;
+        this.isShowApplyPromotion = false;
 
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-            if (!this.datatableInitialized && table) {
-                Promise.all([
-                    loadScript(this, jquery + '/jquery.min.js'),
-                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
-                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
-                ])
-                .then(() => {
-                    this.initializeDataTable();
-                    this.datatableInitialized = true;
-                    this.updateDataTable();
-                })
-                .catch(error => console.error('DataTables Load Error:', error));
-            } else if (this.dataTableInstance) {
-                this.dataTableInstance.clear().draw();
-                this.updateDataTable();
-            }
-        }, 50);
+        this.summaryProducts = [];
+
+        const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
+
+        mainProducts.forEach(main => {
+            // หา Add-on ที่ตรงกับสินค้าหลักนี้
+            const relatedAddons = this.selectedProducts.filter(
+                p => p.productCode === main.code && p.unitPrice === 0
+            );
+
+            const mainQty = Number(main.quantity || 0);
+            const mainTotal = Number(main.total || (main.unitPrice * mainQty) || 0);
+
+            const addonQtySum = relatedAddons.reduce((sum, a) => sum + Number(a.quantity || 0), 0);
+            const addonTotalSum = relatedAddons.reduce((sum, a) => sum + Number(a.total || 0), 0);
+
+            const totalQty = mainQty + addonQtySum;
+            const totalSum = mainTotal + addonTotalSum;
+
+            const netPrice = totalQty > 0 ? (totalSum / totalQty).toFixed(2) : '0.00';
+
+            // ดันสินค้าหลักเข้า summary
+            this.summaryProducts.push({
+                ...main,
+                netPrice: netPrice,
+                addOnText: null
+            });
+
+            // ดัน Add-on ต่อจากสินค้าหลัก
+            relatedAddons.forEach(addon => {
+                this.summaryProducts.push({
+                    ...addon,
+                    addOnText: addon.nameBtn || 'Add-On Item'
+                });
+            });
+        });
     }
+
 
     backtoProduct(){
         this.isShowAddProduct = true;
         this.isShowApplyPromotion = false ;
-        this.datatableInitialized = false;
 
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-            if (!this.datatableInitialized && table) {
-                Promise.all([
-                    loadScript(this, jquery + '/jquery.min.js'),
-                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
-                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
-                ])
-                .then(() => {
-                    this.initializeDataTable();
-                    this.datatableInitialized = true;
-                    this.updateDataTable();
-                })
-                .catch(error => console.error('DataTables Load Error:', error));
-            } else if (this.dataTableInstance) {
-                this.dataTableInstance.clear().draw();
-                this.updateDataTable();
-            }
-        }, 50);
     }
     // ---------------------------------------------------------------------------
     // End Apply Promotion
@@ -1025,43 +937,33 @@ export default class INID_Ordertest extends LightningElement {
     // Start: Summary 
     // ---------------------------------------------------------------------------
 
-    dataTableInstanceAddProduct;
-    dataTableInstanceSummary;
-
     backToApply() {
         this.isShowOrder = false ;
         this.isShowSummary = false;
         this.isShowApplyPromotion = true ;
-        this.datatableInitialized = false;
-
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-            if (!this.datatableInitialized && table) {
-                Promise.all([
-                    loadScript(this, jquery + '/jquery.min.js'),
-                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
-                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
-                ])
-                .then(() => {
-                    this.initializeDataTable();
-                    this.datatableInitialized = true;
-                    // this.updateDataTable();
-                })
-                .catch(error => console.error('DataTables Load Error:', error));
-            } else if (this.dataTableInstance) {
-                this.dataTableInstance.clear().draw();
-                this.updateDataTable();
-            }
-        }, 50);
     }
 
     handleCancel() {
-        this.isShowOrder = true;
-        this.isShowAddProduct = false;
-        this.isShowSummary = false;
-        this.isShowApplyPromotion = false ; 
+            // ปิดแท็บใน console
+            const workspaceAPI = this.template.querySelector("lightning-tabset");
 
-    }
+            // ถ้าเป็น Lightning Console App
+            const workspace = this.template.querySelector("c__workspaceAPI"); // ใช้ component ที่ wrap workspaceAPI
+
+            if (workspace && workspace.isConsoleNavigation()) {
+                workspace.getFocusedTabInfo().then((tabInfo) => {
+                    workspace.closeTab({ tabId: tabInfo.tabId });
+                });
+            }
+
+            // หรือใช้ Navigate ไป URL ที่ต้องการ
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: {
+                    url: 'https://bgrimmpharma--dev.sandbox.lightning.force.com/lightning/o/Order/list?filterName=__Recent' // เปลี่ยนเป็น URL ที่คุณต้องการ
+                }
+            });
+        }
 
     handleSaveSuccess() {
         const evt = new ShowToastEvent({
@@ -1077,30 +979,6 @@ export default class INID_Ordertest extends LightningElement {
     // ---------------------------------------------------------------------------
 
     // handle Sale Price and Quantity function
-
-    handleQuantityChange(event) {
-        const index = Number(event.target.dataset.index);
-        const newQty = parseFloat(event.target.value);
-        const salePrice = this.selectedProducts[index].salePrice || 0;
-
-        this.selectedProducts[index].quantity = isNaN(newQty) ? 0 : newQty;
-        this.selectedProducts[index].total = salePrice * this.selectedProducts[index].quantity;
-
-        this.updateDataTable();
-    }
-
-
-    handleSalePriceChange(event) {
-        const index = Number(event.target.dataset.index);
-        const newSalePrice = parseFloat(event.target.value);
-        const quantity = this.selectedProducts[index].quantity || 0;
-
-        this.selectedProducts[index].salePrice = isNaN(newSalePrice) ? 0 : newSalePrice;
-        this.selectedProducts[index].total = this.selectedProducts[index].salePrice * quantity;
-
-        this.updateDataTable();
-    }
-
 
 
     // add Product to Table section
@@ -1151,9 +1029,9 @@ export default class INID_Ordertest extends LightningElement {
             if (matched) {
                 const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
                 if (!alreadyAdded) {
-                    const unitPrice = matched.INID_Unit_Price__c || 0;
+                    const salePrice = matched.INID_Unit_Price__c || 0;
                     const quantity = 1;
-                    const total = unitPrice * quantity;
+                    const total = salePrice * quantity;
 
                     const product = {
                         id: matched.Id,
@@ -1161,10 +1039,14 @@ export default class INID_Ordertest extends LightningElement {
                         Name: matched.Name,
                         description: matched.INID_SKU_Description__c,
                         quantity: quantity,
-                        salePrice: unitPrice,
+                        salePrice,
                         unit: matched.INID_Unit__c,
-                        unitPrice: unitPrice,
-                        total: total
+                        unitPrice: matched.INID_Unit_Price__c,
+                        total: total,
+                        nameBtn: '+' ,
+                        variant: 'brand' ,
+                        editableSalePrice : true 
+                        
                     };
 
                     addedProducts.push(product);
@@ -1178,14 +1060,13 @@ export default class INID_Ordertest extends LightningElement {
 
         if (addedProducts.length > 0) {
             this.selectedProducts = [...this.selectedProducts, ...addedProducts];
-            this.updateDataTable();
             this.isShowAddfromText = false ;
 
         }
 
         if (duplicatedCodes.length > 0) {
             this.dispatchEvent(new ShowToastEvent({
-                title: 'รายการซ้ำ',
+                title: 'แจ้งเตือนพบข้อผิดพลาด',
                 message: `สินค้าต่อไปนี้มีอยู่ในตารางแล้วหรือไม่พบ: ${duplicatedCodes.join(', ')}`,
                 variant: 'warning'
             }));
@@ -1203,9 +1084,178 @@ export default class INID_Ordertest extends LightningElement {
 
 
     // handle cancle function
-    handleCancel() {
-        this.dispatchEvent(new CloseActionScreenEvent());
+    // handleCancel() {
+    //     this.dispatchEvent(new CloseActionScreenEvent());
+    // }
+
+
+    openAddProduct() {
+        if(!this.validateOrder()){
+            return;
+        }
+        this.isShowAddProduct = true;
+        this.isShowOrder = false;
+
     }
+
+
+    showApplyPromotion() {
+        this.isShowApplyPromotion = true ;
+        this.isShowAddProduct = false ;
+        this.isShowOrder = false ;
+        
+    }
+
+    get hasSelectedProducts() {
+        return this.selectedProducts && this.selectedProducts.length > 0;
+    }
+
+    get displayProducts() {
+        if (this.selectedProducts.length === 0) {
+            return [{
+                id: 'no-data',
+                name: 'ไม่มีข้อมูลที่จะแสดง',
+                isPlaceholder: true
+            }];
+        }
+        return this.selectedProducts;
+    }
+
+
+    isShowPickListType = true ;
+
+    openOrder() {
+         if (this.validateInputs()){
+            this.checkedAlertTypeOfOrder(this.typeOrderFirstValue,this.typeOrderSecondValue,this.searchQuoteValue);
+            this.isShowOrder = true ;
+            this.isShowAddProduct = false ;
+            this.isShowPickListType = false;
+         }
+    }
+
+    backtoPicList() {
+        this.isShowOrder = false ;
+        this.isShowPickListType = true ;
+    }
+
+    @track typeOrderFirstValue = 'Create New Order';
+    @track isShowSecondValue = true ;
+    @track typeOrderSecondValue = 'Sales Order' ;
+    @track isShowSearchQuote = false;
+    @track searchQuoteValue = '' ;
+    @track quoteId = [] ;
+    @track typeOfOrder = 'Create Order'
+
+
+    get typeOrderFirstOption() {
+        return [
+            {value: 'Create New Order' , label: 'Create New Order'}, 
+            {value: 'Create New Order By Quote' , label: 'Create New Order By Quote'}
+        ]
+    }
+
+    typeOrderFirstHandleChange(event) {
+        this.typeOrderFirstValue = event.detail.value;
+        if(this.typeOrderFirstValue === "Create New Order") {
+            this.isShowSecondValue = true ;
+            this.isShowSearchQuote = false ;
+            // this.typeOfOrder = `Customer (${this.typeOrderSecondValue})` ;
+            
+        }else {
+            this.isShowSecondValue = false;
+            this.isShowSearchQuote = true ;
+            this.typeOrderSecondValue = 'Sales Order' ;
+            // messageParts.push('Quote Id is: ' + this.searchQuoteValue);
+        }
+    }
+
+    get typeOrderSecondOption() {
+        return [
+            { value: 'Sales Order', label: 'Sales Order' },
+            { value: 'Borrow Order', label: 'Borrow Order' },
+        ]
+    } 
+
+    get isNextDisabled() {
+        return !(this.selectedProducts && this.selectedProducts.length > 0);
+    }
+
+    typeOrderHandleChange(event) {
+        this.typeOrderSecondValue = event.detail.value;
+    }
+
+ 
+
+    checkedAlertTypeOfOrder(firstType, secondType, searchQuoteValue) {
+        let messageParts = [];
+
+        if (searchQuoteValue !== '') {
+            messageParts.push('Quote Id is: ' + searchQuoteValue);
+            this.typeOfOrder = `Create New Order By Quotation`;
+        } else if (secondType !== '') {
+            this.typeOfOrder = `Customer (${this.typeOrderSecondValue})`;
+            messageParts.push('Value is: ' + secondType);
+        }
+
+        if (firstType !== '') {
+            messageParts.push('Type is: ' + firstType);
+        }
+
+        // if (messageParts.length > 0) {
+        //     const evt = new ShowToastEvent({
+        //         title: 'Order Information',
+        //         message: messageParts.join('\n'),
+        //         variant: 'success'
+        //     });
+        //     this.dispatchEvent(evt);
+        // }
+    }
+
+    
+
+    handleInputQuoteId(event) {
+        const input = event.target.value;
+        this.searchQuoteValue = input;
+
+        const inputQuoteId = input.toLowerCase().trim();
+
+        if (inputQuoteId.length > 2) {
+            this.filteredCustomerOptions = this.accounts.filter(cust =>
+                (cust.Name && cust.Name.toLowerCase().includes(inputQuoteId)) ||
+                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(inputQuoteId))
+            );
+
+            // แสดง dropdown เฉพาะกรณีมีข้อมูล
+            this.showDropdown = this.filteredCustomerOptions.length > 0;
+        } else {
+            this.filteredCustomerOptions = [];
+            this.showDropdown = false;
+        }
+    }
+
+
+    validateInputs() {
+        let isValid = true;
+
+        // 1. Validate combobox และ input ทั้งหมดใน card
+        const inputs = this.template.querySelectorAll(
+            'lightning-combobox, lightning-input'
+        );
+
+        inputs.forEach(input => {
+            // ถ้า invalid จะ show error ด้วย
+            if (!input.checkValidity()) {
+                input.reportValidity();
+                isValid = false;
+            }
+        });
+
+        return isValid;
+    }
+
+
+
+
 
 
 

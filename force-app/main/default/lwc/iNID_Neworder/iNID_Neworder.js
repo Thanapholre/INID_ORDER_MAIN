@@ -1123,15 +1123,11 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         return this.selectedProducts;
     }
 
-
-    isShowPickListType = true ;
-
     openOrder() {
          if (this.validateInputs()){
             this.checkedAlertTypeOfOrder(this.typeOrderFirstValue,this.typeOrderSecondValue,this.searchQuoteValue);
             this.isShowOrder = true ;
             this.isShowAddProduct = false ;
-            this.isShowPickListType = false;
          }
     }
 

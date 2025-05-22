@@ -14,6 +14,10 @@
     box-sizing: border-box;
 }
 
+.fixContainer {
+    overflow: hidden;
+}
+
 .title_order{
     font-size: 20px;
     /* background-color: #f0f0f0; */
@@ -178,6 +182,43 @@
 }
 
 
+.circle-orange .slds-button {
+    background-color: #d94f11;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    color: white;
+    font-size: 18px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.addon-text-only {
+    font-style: italic;
+    color: #666;
+    font-size: 13px;
+    padding-left: 10px;
+}
+
+/* ปุ่มปกติสำหรับสินค้า */
+.show-as-button .slds-button {
+    display: inline-block;
+}
+
+/* ข้อความสำหรับ Add-on */
+.show-as-text .slds-button {
+    border: none;
+    background: none;
+    color: #666;
+    cursor: default;
+    pointer-events: none;
+    font-style: italic;
+    font-size: 13px;
+    padding: 0;
+}
+
 
 /* End Section Search Product */
 
@@ -266,6 +307,25 @@ th , td {
     font-size: 14px;
 }
 
+.clickable-add-on {
+    color: #0070d2;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.addon-text {
+    color: #888;
+    font-style: italic;
+}
+
+/* ซ่อนหมายเลขแถว */
+.custom-datatable .slds-table td:first-child,
+.custom-datatable .slds-table th:first-child {
+    display: none;
+}
+
+
 /* .product-wrapper {
     display: grid;
     grid-template-columns: 10fr 2fr;
@@ -284,6 +344,23 @@ th , td {
 
 /* End CSS Table */
 
+
+.custom-datatable .slds-cell-fixed {
+    justify-content: center;
+    text-align: center;
+}
+
+
+.heighter {
+    margin-top: 60px !important;
+}
+
+.custom-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
 
 /* End Add Product */
 
