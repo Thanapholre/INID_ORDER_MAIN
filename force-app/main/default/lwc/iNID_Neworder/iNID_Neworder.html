@@ -197,21 +197,22 @@
                             <div class="Checkbox slds-m-around_medium">
                                     <lightning-input 
                                         type="radio" 
+                                        label={radioButtonOrderLabel2} 
+                                        name="exampleRadio" 
+                                        value="option2" 
+                                        onchange={handleChangeRadioButton}
+                                        class="checkbox-spacing"
+                                        checked>
+                                    </lightning-input>
+
+                                    <lightning-input 
+                                        type="radio" 
                                         label={radioButtonOrderLabel1} 
                                         name="exampleRadio" 
                                         value="option1" 
                                         onchange={handleChangeRadioButton}
                                         class="checkbox-spacing"
-                                        checked >
-                                    </lightning-input>
-
-                                    <lightning-input 
-                                        type="radio" 
-                                        label={radioButtonOrderLabel2} 
-                                        name="exampleRadio" 
-                                        value="option2" 
-                                        onchange={handleChangeRadioButton}
-                                        class="checkbox-spacing">
+                                         >
                                     </lightning-input>
                                 </div>
                                 
