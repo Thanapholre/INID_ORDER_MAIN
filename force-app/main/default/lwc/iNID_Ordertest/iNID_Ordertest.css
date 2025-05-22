@@ -24,7 +24,7 @@
 }
 
 .main{
-    margin: 10px 0 ;
+    /* margin: 10px 0 ; */
 }
 
 .main:first-of-type {
@@ -152,6 +152,8 @@
 .product {
     /* padding:0 180px; */
     margin-bottom: 30px;
+    height: 100%;
+    overflow: auto; /* หรือ hidden โดยไม่ได้ตั้งใจ */
 }
 
 .dropdown-list {   

@@ -1,122 +1,121 @@
 <template>
-
-    <!-- Start Order -->
-        <template if:true={isShowOrder}>
-            <lightning-quick-action-panel header={typeOfOrder} class="main" >
-                <lightning-card class="slds-m-around_medium main_order" >
-                        <div class="slds-m-around_medium product main_product">
-                            <div class=" main ">
-                                <lightning-input
-                                    name="search"
-                                    label="Customer"
-                                    type="search"
-                                    value={searchTerm}
-                                    onchange={handleInput}
-                                    onblur={handleBlur}
-                                    onkeydown={keyDownDisplayCustomer}
-                                    required
-                                    >
-                                </lightning-input>
-                            </div>
-                            <!-- Display the customer options in a dropdown -->
-                            <template if:true={showDropdown}>
-                                <div class="">
-                                    <ul class="dropdown-list">
-                                        <template for:each={filteredCustomerOptions} for:item="cust">
-                                            <div key={cust.Id}
-                                                class="dropdown-item edit_dropdown"
-                                                data-id={cust.Id}
-                                                data-name={cust.Name}
-                                                data-code={cust.INID_Customer_Code__c}
-                                                onmousedown={handleSelectCustomer}>
-                                                {cust.INID_Customer_Code__c} {cust.Name}
-                                            </div>
-                                        </template>
-                                    </ul>     
-                                </div>
-                            </template>
-                            <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} disabled required></lightning-input>
-                        
-                            <lightning-combobox
-                                placeholder=""
-                                class="main" 
-                                label="Ship To"
-                                value={shipto}
-                                options={shiptoOptions}
-                                onchange={handleShiptoChange}
-                                required>
-                            </lightning-combobox>
-                            <lightning-combobox 
-                                class="configure_placeholder main" 
-                                name="Organization"
-                                label="Organization" 
-                                value={organizationValue} 
-                                placeholder="" 
-                                options={organizationOption}  
-                                onchange={organizationHandleChange} 
-                                required>
-                            </lightning-combobox>
-                            <lightning-combobox
-                                name="paymentType"
-                                placeholder=""
-                                label="Payment Type"
-                                value={paymentTypeValue}
-                                options={paymentTypeOption}
-                                onchange={paymentTypeHandleChange}
-                                read-only
-                                required>
-                            </lightning-combobox>
-
-                            <lightning-combobox
-                                name="paymentTerm"
-                                placeholder=""
-                                label="Payment Term"
-                                value={paymentTermValue}
-                                options={paymentTermOption}
-                                onchange={paymentTermHandleChange}
-                                read-only
-                                required>
-                            </lightning-combobox>
-
-                            <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} ></lightning-input>
-                            <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
-                            <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
-                
-                            <!-- Check_box -->
-                            <div class="Checkbox slds-m-around_medium">
-                                    <lightning-input 
-                                        type="radio" 
-                                        label={radioButtonOrderLabel2} 
-                                        name="exampleRadio" 
-                                        value="option2" 
-                                        onchange={handleChangeRadioButton}
-                                        class="checkbox-spacing"
-                                        checked>
-                                    </lightning-input>
-
-                                    <lightning-input 
-                                        type="radio" 
-                                        label={radioButtonOrderLabel1} 
-                                        name="exampleRadio" 
-                                        value="option1" 
-                                        onchange={handleChangeRadioButton}
-                                        class="checkbox-spacing"
-                                         >
-                                    </lightning-input>
-                                </div>
-                            </div>
-                        </lightning-card>           
-                    <div slot="footer" class=" main_product" style="display: flex; justify-content: space-between;" >
-                        <div>
-                            <lightning-button variant="brand" label="Back" onclick={backtoPicList}></lightning-button>
-                        </div>
-                        <div class="btn_next">
-                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
-                            <lightning-button variant="brand" label="Next" onclick={openAddProduct}></lightning-button>
-                        </div>
+    <template if:true={isShowOrder}>
+        <lightning-quick-action-panel header={typeOfOrder}  >
+            <lightning-card class="slds-m-around_medium" >
+                <div class="slds-m-around_medium product main_order" >
+                    <div class=" main ">
+                        <lightning-input
+                            name="search"
+                            label="Customer"
+                            type="search"
+                            value={searchTerm}
+                            onchange={handleInput}
+                            onblur={handleBlur}
+                            onkeydown={keyDownDisplayCustomer}
+                            required>
+                        </lightning-input>
                     </div>
-                </lightning-quick-action-panel>
-            </template>
+                    <!-- Display the customer options in a dropdown -->
+                    <template if:true={showDropdown}>
+                        <div class="">
+                            <ul class="dropdown-list">
+                                <template for:each={filteredCustomerOptions} for:item="cust">
+                                    <div key={cust.Id}
+                                        class="dropdown-item edit_dropdown"
+                                        data-id={cust.Id}
+                                        data-name={cust.Name}
+                                        data-code={cust.INID_Customer_Code__c}
+                                        onmousedown={handleSelectCustomer}>
+                                        {cust.INID_Customer_Code__c} {cust.Name}
+                                    </div>
+                                </template>
+                            </ul>     
+                        </div>
+                    </template>
+                    <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} disabled required></lightning-input>
+                        
+                    <lightning-combobox
+                        placeholder=""
+                        class="main" 
+                        label="Ship To"
+                        value={shipto}
+                        options={shiptoOptions}
+                        onchange={handleShiptoChange}
+                        required>
+                    </lightning-combobox>
+
+                    <lightning-combobox 
+                        class="configure_placeholder main" 
+                        name="Organization"
+                        label="Organization" 
+                        value={organizationValue} 
+                        placeholder="" 
+                        options={organizationOption}  
+                        onchange={organizationHandleChange} 
+                        required>
+                    </lightning-combobox>
+
+                    <lightning-combobox
+                        name="paymentType"
+                        placeholder=""
+                        label="Payment Type"
+                        value={paymentTypeValue}
+                        options={paymentTypeOption}
+                        onchange={paymentTypeHandleChange}
+                        read-only
+                        required>
+                    </lightning-combobox>
+
+                    <lightning-combobox
+                        name="paymentTerm"
+                        placeholder=""
+                        label="Payment Term"
+                        value={paymentTermValue}
+                        options={paymentTermOption}
+                        onchange={paymentTermHandleChange}
+                        read-only
+                        required>
+                    </lightning-combobox>
+
+                    <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} ></lightning-input>
+                    <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
+                    <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
+                
+                    <!-- Check_box -->
+                    <div class="Checkbox slds-m-around_medium">
+                        <lightning-input 
+                            type="radio" 
+                            label={radioButtonOrderLabel2} 
+                            name="exampleRadio" 
+                            value="option2" 
+                            onchange={handleChangeRadioButton}
+                            class="checkbox-spacing"
+                            checked>
+                        </lightning-input>
+
+                        <lightning-input 
+                            type="radio" 
+                            label={radioButtonOrderLabel1} 
+                            name="exampleRadio" 
+                            value="option1" 
+                            onchange={handleChangeRadioButton}
+                            class="checkbox-spacing"
+                                >
+                        </lightning-input>
+                    </div>
+                </div>
+            </lightning-card>           
+            <div slot="footer" class=" main_product" style="display: flex; justify-content: space-between;" >
+                <div>
+                    <lightning-button variant="brand" label="Back" onclick={backtoPicList}></lightning-button>
+                </div>
+                <div class="btn_next">
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="brand" label="Next" onclick={openAddProduct}></lightning-button>
+                </div>
+            </div>
+        </lightning-quick-action-panel>
+    </template>
         <!-- End Order -->
 
 
@@ -227,8 +226,8 @@
                     </template>
                 </div>
             </lightning-card>
-            <div slot="footer" class="btnProduct main_product" style="display: flex; justify-content: space-between;">
-                <div class="btn-back">
+            <div slot="footer" class=" main_product" style="display: flex; justify-content: space-between;">
+                <div class="">
                     <lightning-button variant="brand" label="Back" onclick={backtoOrder}></lightning-button>
                 </div>
                 <div class="btn_next">
@@ -380,7 +379,6 @@
                         </div>
                     </lightning-card>
                 </div>
-            </div>
 
             <!-- Footer -->
             <div slot="footer" class="main_product" style="display: flex; justify-content: space-between;">

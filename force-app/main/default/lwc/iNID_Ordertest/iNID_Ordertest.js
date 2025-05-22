@@ -294,8 +294,8 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         ];
     }
 
-    isShowAddProduct = false;
-    isShowOrder = true;
+        isShowAddProduct = false;
+
 
     handleChangeRadioButton(event) {
         const selected = event.target.value;
@@ -401,9 +401,9 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 110},
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 230}, 
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', } , initialWidth: 110},
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', } , initialWidth: 108},
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100 }, 
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'center'} , initialWidth: 175},
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'center'} , initialWidth: 155},
         { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 70},
         { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 116},
         { 
@@ -793,18 +793,33 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     addonButtonBound = false;     
     isLoaded = false;
 
+    isShowOrder = false;
+
+    constructor() {
+        super(); // อย่าลืมเรียก super() ก่อน
+        this.isShowOrder = true;
+        this.isShowAddProduct = false;
+
+    }
+
     renderedCallback() {
         // ใส่ style modal
         if (!this.template.querySelector('style[data-id="custom-modal-style"]')) {
             const STYLE = document.createElement("style");
             STYLE.dataset.id = "custom-modal-style";
-            STYLE.innerText = `.uiModal .modal-container {
+           STYLE.innerText = `
+            .uiModal .modal-container {
                 width: 1200px !important;
                 max-width: 95%;
                 min-width: 480px;
-                max-height: 100%;
-                min-height: 700px;
-            }`;
+                max-height: 95vh;
+                overflow: hidden !important;
+            }
+            .uiModal .modal-container .modal-body {
+                overflow-y: hidden !important;
+                max-height: 70vh;
+            }
+        `;
             this.template.appendChild(STYLE);
         }
 
