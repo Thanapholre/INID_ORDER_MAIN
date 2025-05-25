@@ -1,5 +1,4 @@
 <template>
-
     <!-- Start Select Piclist -->
      <template if:true={isShowPickListType}>
             <lightning-quick-action-panel header="Select Type Create Order" class="title_order" >
@@ -101,7 +100,8 @@
                     </lightning-card>
                 </form>
                 <div slot="footer" style="text-align: end; display: flex; justify-content: space-between;">
-                    <lightning-button class="btnSubmit" variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    
+                    <lightning-button class="btnSubmit" variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
                     <lightning-button class="btnSubmit" variant="brand" label="Next" onclick={openOrder}></lightning-button>
                 </div>
             </lightning-quick-action-panel>
@@ -403,7 +403,7 @@
                 </div>
                 <div class="btn_next">
                     <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
-                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
                     <lightning-button variant="brand" label="Next" onclick={showSummary}></lightning-button>
                 </div>
                     

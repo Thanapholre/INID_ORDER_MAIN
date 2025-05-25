@@ -1,8 +1,9 @@
-import { LightningElement, track, wire , api } from 'lwc';
+import { LightningElement, track, wire , api} from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { CloseActionScreenEvent } from 'lightning/actions';
 import LightningConfirm from 'lightning/confirm';
 import { NavigationMixin } from 'lightning/navigation';
+import { IsConsoleNavigation, getFocusedTabInfo, closeTab } from 'lightning/platformWorkspaceApi'
+
 
 // import class
 import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
@@ -32,6 +33,17 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     @track shipto = '';
 
     @api recordId;
+
+    //closeTab
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async closeTab() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+        const { tabId } = await getFocusedTabInfo();
+        await closeTab(tabId);
+    }
 
     // Call Apex Method HERE
     // fetch Customer
@@ -208,10 +220,6 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 }
     // End Get Record
 
-    // Call Font Awesome
-    connectedCallback() {
-        
-    }
 
     // ---------------------------------------------------------------------------
     // Start: Order Form - Customer & Payment Info
@@ -292,6 +300,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             { value: '2', label: 'Exclude VAT' }
         ];
     }
+    
 
     isShowAddProduct = false;
     isShowOrder = false;
@@ -925,28 +934,6 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         this.isShowApplyPromotion = true ;
     }
 
-    handleCancel() {
-            // ปิดแท็บใน console
-            const workspaceAPI = this.template.querySelector("lightning-tabset");
-
-            // ถ้าเป็น Lightning Console App
-            const workspace = this.template.querySelector("c__workspaceAPI"); // ใช้ component ที่ wrap workspaceAPI
-
-            if (workspace && workspace.isConsoleNavigation()) {
-                workspace.getFocusedTabInfo().then((tabInfo) => {
-                    workspace.closeTab({ tabId: tabInfo.tabId });
-                });
-            }
-
-            // หรือใช้ Navigate ไป URL ที่ต้องการ
-            this[NavigationMixin.Navigate]({
-                type: 'standard__webPage',
-                attributes: {
-                    url: 'https://bgrimmpharma--dev.sandbox.lightning.force.com/lightning/o/Order/list?filterName=__Recent' // เปลี่ยนเป็น URL ที่คุณต้องการ
-                }
-            });
-        }
-
     handleSaveSuccess() {
         const evt = new ShowToastEvent({
             title: 'Save Successfully',
@@ -1065,11 +1052,6 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
 
 
-    // handle cancle function
-    // handleCancel() {
-    //     this.dispatchEvent(new CloseActionScreenEvent());
-    // }
-
 
     openAddProduct() {
         if(!this.validateOrder()){
@@ -1128,8 +1110,10 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             this.checkedAlertTypeOfOrder(this.typeOrderFirstValue,this.typeOrderSecondValue,this.searchQuoteValue);
             this.isShowOrder = true ;
             this.isShowAddProduct = false ;
+            this.isShowPickListType = false;
          }
     }
+    isShowPickListType =true;
 
     backtoPicList() {
         this.isShowOrder = false ;

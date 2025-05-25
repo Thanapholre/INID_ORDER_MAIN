@@ -809,7 +809,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             STYLE.dataset.id = "custom-modal-style";
            STYLE.innerText = `
             .uiModal .modal-container {
-                width: 1200px !important;
+                width: 100vw !important;
                 max-width: 95%;
                 min-width: 480px;
                 max-height: 95vh;
