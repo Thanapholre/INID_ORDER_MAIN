@@ -10,6 +10,7 @@ import fetchCustomers from '@salesforce/apex/INID_OrderTest.fetchCustomers';
 import fetchDataBillto from '@salesforce/apex/INID_OrderTest.fetchDataBillto';
 import fetchDataShipto from '@salesforce/apex/INID_OrderTest.fetchDataShipto';
 import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderTest.fetchDataProductPriceBook'
+import fetchDataQuotation from '@salesforce/apex/INID_OrderTest.fetchDataQuotation'
 // import fetchDataProduct from '@salesforce/apex/Test'
 
 
@@ -23,6 +24,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
     @track filteredCustomerOptions = [];
     @track searchTerm = '';
+    @track searchTermQuote = '' ;
     @track showDropdown = false;
     @track customerId = ''
 
@@ -58,6 +60,102 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             console.error('Error fetching accounts:', error);
         }
     }
+
+    // Start Get Quotation
+    @track quotation = [];
+    
+
+    @wire(fetchDataQuotation)
+    wiredQuotation({ error, data }) {
+        if (data) {
+            // alert('Fetched accounts: ' + JSON.stringify(data, null, 2));
+            this.quotation = data;
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+    handleInput(event) {
+        const input = event.target.value;
+        this.searchTerm = input;
+        
+        console.log('Search term:', input);
+        
+        const term = input.toLowerCase().trim();
+
+        if (term.length > 2) {
+            this.filteredCustomerOptions = this.accounts.filter(cust =>
+                (cust.Name && cust.Name.toLowerCase().includes(term)) ||
+                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
+            );
+
+            // แสดง dropdown เฉพาะกรณีมีข้อมูล
+            this.showDropdown = this.filteredCustomerOptions.length > 0;
+        } else {
+            this.filteredCustomerOptions = [];
+            this.showDropdown = false;
+        }
+    }
+
+    handleSelectCustomer(event) {
+        const selectedId = event.currentTarget.dataset.id;
+        const selectedName = event.currentTarget.dataset.name;
+        const selectedCode = event.currentTarget.dataset.code; 
+        this.customerId = selectedId;
+        this.searchTerm = `${selectedCode} ${selectedName}`;
+        this.showDropdown = false;
+
+        this.recordId = selectedId;
+        this.fetchBillTo(selectedId);
+        this.fetchShipto(selectedId);
+    }
+
+    handleInputQuote(event) {
+        const input = event.target.value;
+        this.searchTermQuote = input;
+        
+        console.log('Search term:', input);
+        
+        const term = input.toLowerCase().trim();
+
+        if (term.length > 2) {
+            this.filteredQuotation = this.quotation.filter(q =>
+                (q.Name && q.Name.toLowerCase().includes(term)) ||
+                (q.QuoteNumber && q.QuoteNumber.toLowerCase().includes(term))
+            );
+
+            // แสดง dropdown เฉพาะกรณีมีข้อมูล
+            this.showDropdown = this.filteredQuotation.length > 0;
+        } else {
+            this.filteredQuotation = [];
+            this.showDropdown = false;
+        }
+    }
+
+     handleSelectQuote(event) {
+        const quoteId = event.currentTarget.dataset.id;
+        const quoteNumber = event.currentTarget.dataset.code;
+        const quoteName = event.currentTarget.dataset.name;
+
+        this.searchTermQuote = `${quoteNumber} ${quoteName}`;
+        this.showDropdown = false;
+
+        // optional: store selected quote
+        this.selectedQuote = {
+            id: quoteId,
+            number: quoteNumber,
+            name: quoteName
+        };
+    }
+
+    handleBlur() {
+        setTimeout(() => {
+            this.showDropdown = false;
+        }, 200); // wait a bit to allow click
+    }
+
+
+    //End Get Quotation
 
      // fetch Auto Field Bill To
     @wire(fetchDataBillto)
@@ -123,62 +221,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
     }
 
-    // handleInput(event) {
-    //     const input = event.target.value;
-    //     this.searchTerm = input;
-        
-    //     console.log('Search term:', input);
-        
-    //     const term = input.toLowerCase().trim();
-
-    //     if (term.length > 2) {
-    //         this.filteredCustomerOptions = this.accounts.filter(cust =>
-    //             (cust.Name && cust.Name.toLowerCase().includes(term)) ||
-    //             (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
-    //         );
-
-    //         // แสดง dropdown เฉพาะกรณีมีข้อมูล
-    //         this.showDropdown = this.filteredCustomerOptions.length > 0;
-    //     } else {
-    //         this.filteredCustomerOptions = [];
-    //         this.showDropdown = false;
-    //     }
-    // }
-
-    handleInput(event) {
-        const input = event.target.value;
-        this.searchTerm = input;
-        
-        console.log('Search term:', input);
-        
-        const term = input.toLowerCase().trim();
-
-        if (term.length > 2) {
-            this.filteredCustomerOptions = this.accounts.filter(cust =>
-                (cust.Name && cust.Name.toLowerCase().includes(term)) ||
-                (cust.INID_Customer_Code__c && cust.INID_Customer_Code__c.toLowerCase().includes(term))
-            );
-
-            // แสดง dropdown เฉพาะกรณีมีข้อมูล
-            this.showDropdown = this.filteredCustomerOptions.length > 0;
-        } else {
-            this.filteredCustomerOptions = [];
-            this.showDropdown = false;
-        }
-    }
-
-    handleSelectCustomer(event) {
-        const selectedId = event.currentTarget.dataset.id;
-        const selectedName = event.currentTarget.dataset.name;
-        const selectedCode = event.currentTarget.dataset.code; 
-        this.customerId = selectedId;
-        this.searchTerm = `${selectedCode} ${selectedName}`;
-        this.showDropdown = false;
-
-        this.recordId = selectedId;
-        this.fetchBillTo(selectedId);
-        this.fetchShipto(selectedId);
-    }
+    
 
     handleBlur() {
         setTimeout(() => {
@@ -1235,6 +1278,10 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         return isValid;
     }
 
+
+    get checkDataEnable() {
+        return this.handleSelectCustomer.length === 0 ;
+    }
 
 
 

@@ -1,6 +1,6 @@
 <template>
     <!-- Start Select Piclist -->
-     <template if:true={isShowPickListType}>
+        <template if:true={isShowPickListType}>
             <lightning-quick-action-panel header="Select Type Create Order" class="title_order" >
                 <form onsubmit={handleSubmit}  style="height:300px" >
                     <lightning-card class="slds-m-around_medium main_order" >
@@ -36,10 +36,9 @@
                                         name="search"
                                         label="Search Quotation Id (Demo : 50000000 Auto Field Test) "
                                         type="search"
-                                        value={searchTerm}
-                                        onchange={handleInput}
+                                        value={searchTermQuote}
+                                        onchange={handleInputQuote}
                                         onblur={handleBlur}
-                                        onkeydown={keyDownDisplayCustomer}
                                         required
                                         >
                                     </lightning-input>
@@ -50,52 +49,19 @@
                             <template if:true={showDropdown}>
                                 <div class="">
                                     <ul class="dropdown-list">
-                                        <template for:each={filteredCustomerOptions} for:item="cust">
-                                            <div key={cust.Id}
+                                        <template for:each={filteredQuotation} for:item="q">
+                                            <div key={q.Id}
                                                 class="dropdown-item edit_dropdown"
-                                                data-id={cust.Id}
-                                                data-name={cust.Name}
-                                                data-code={cust.INID_Customer_Code__c}
-                                                onmousedown={handleSelectCustomer}>
-                                                {cust.INID_Customer_Code__c} {cust.Name}
+                                                data-id={q.Id}
+                                                data-name={q.Name}
+                                                data-code={q.QuoteNumber}
+                                                onmousedown={handleSelectQuote}>
+                                                {q.QuoteNumber} {q.Name}
                                             </div>
                                         </template>
                                     </ul>     
                                 </div>
                             </template>
-
-                            <!-- input type search -->
-                            <!-- <template if:true={isShowSearchQuote} >
-                                <div style="margin-top: 10px;" >
-                                    <lightning-input
-                                        name="search"
-                                        label="Search Quotation Id"
-                                        type="search"
-                                        value={searchQuoteValue}
-                                        onchange={handleInputQuoteId}
-                                        onblur={handleBlur}
-                                        onkeydown={keyDownDisplayCustomer}
-                                        required
-                                    >
-                                    </lightning-input>
-                                </div>
-                            </template> -->
-                            <!-- <template if:true={showDropdown}>
-                                <div class="">
-                                    <ul class="dropdown-list">
-                                        <template for:each={filteredCustomerOptions} for:item="cust">
-                                            <div key={cust.Id}
-                                                class="dropdown-item edit_dropdown"
-                                                data-id={cust.Id}
-                                                data-name={cust.Name}
-                                                data-code={cust.INID_Customer_Code__c}
-                                                onmousedown={handleSelectCustomer}>
-                                                {cust.INID_Customer_Code__c} {cust.Name}
-                                            </div>
-                                        </template>
-                                    </ul>     
-                                </div>
-                            </template> -->
                         </div>
                     </lightning-card>
                 </form>
@@ -361,8 +327,8 @@
                             <lightning-button variant="brand" label="Back" onclick={backtoOrder}></lightning-button>
                         </div>
                         <div class="btn_next">
-                            <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
                             <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                            <lightning-button variant="brand" label="Delete" disabled={isNextDisabled} onclick={handleDeleteSelected}></lightning-button>
                             <lightning-button variant="brand" label="Next" disabled={isNextDisabled} onclick={showApplyPromotion}></lightning-button>
                         </div>
                     </div>
@@ -402,8 +368,8 @@
                     <lightning-button variant="brand" label="Back" onclick={backtoProduct}></lightning-button>
                 </div>
                 <div class="btn_next">
-                    <lightning-button variant="brand" label="Delete" onclick={handleDeleteSelected}></lightning-button>
                     <lightning-button variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
+                    <lightning-button variant="brand" label="Delete"  disabled={isNextDisabled} onclick={handleDeleteSelected}></lightning-button>
                     <lightning-button variant="brand" label="Next" onclick={showSummary}></lightning-button>
                 </div>
                     

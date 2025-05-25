@@ -27,5 +27,12 @@ public with sharing class INID_OrderTest {
             ];
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<Quote> fetchDataQuotation() {
+        return [
+            SELECT Id , QuoteNumber, Name FROM Quote WHERE Status = 'Approved'
+        ];
+    }
+
 
 }
