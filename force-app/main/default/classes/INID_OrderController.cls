@@ -38,19 +38,15 @@ public with sharing class INID_OrderController {
     }
 
     @AuraEnabled()
-    public static void insertProductItem(List<INID_Quote_Item__c> products) {
+    public static void insertProductItem(List<INID_Product_Order_Item__c> products) {
         insert products;
     }
 
 
-    
-
-
-
-    @AuraEnabled(cacheable=true)
-    public static List<Account> fetchAccountByQuote() {
-        return []
-    }
+    // @AuraEnabled(cacheable=true)
+    // public static List<Account> fetchAccountByQuote() {
+    //     return []
+    // }
 
 
 }

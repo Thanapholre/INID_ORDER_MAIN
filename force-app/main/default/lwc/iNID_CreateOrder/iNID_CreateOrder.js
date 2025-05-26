@@ -486,11 +486,43 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     ];
 
-    mapProduct(source, addedAddons = []) {
+    // mapProduct(source, addedAddons = []) {
+    //     const isMainProduct = source.INID_Unit_Price__c > 0;
+    //     const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
+
+    //     // const quantity = 1;
+
+    //     const salePrice = source.INID_Unit_Price__c || 0;
+    //     const quantity = 1;
+    //     const total = salePrice * quantity;
+
+    //     return {
+    //         id: source.Id,
+    //         code: source.INID_Material_Code__c,
+    //         description: source.INID_SKU_Description__c,
+    //         unitPrice: source.INID_Unit_Price__c || 0,
+    //         quantity: 1,
+    //         salePrice: source.INID_Unit_Price__c || 0,
+    //         unit: source.INID_Unit__c || '',
+    //         total: total,
+
+    //         addOnButton: isMainProduct ? 'Add On' : null,
+    //         addOnText: !isMainProduct ? 'Add-On Item' : null ,
+    //         addOn: isMainProduct ? 'true' : 'false' ,
+    //         // isAddOn: !isMainProduct ,
+
+    //         nameBtn: isMainProduct ? '+' : 'Add-On Item' ,
+    //         variant: 'brand' ,
+    //         editableSalePrice : true,
+
+    //         addonDisabled: isMainProduct && hasAddon
+    //     };
+    // }
+
+
+    mapProduct(source, addedAddons = [], hlItemNumber = null) {
         const isMainProduct = source.INID_Unit_Price__c > 0;
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
-
-        // const quantity = 1;
 
         const salePrice = source.INID_Unit_Price__c || 0;
         const quantity = 1;
@@ -507,84 +539,91 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             total: total,
 
             addOnButton: isMainProduct ? 'Add On' : null,
-            addOnText: !isMainProduct ? 'Add-On Item' : null ,
-            addOn: isMainProduct ? 'true' : 'false' ,
-            // isAddOn: !isMainProduct ,
+            addOnText: !isMainProduct ? 'Add-On Item' : null,
+            addOn: isMainProduct ? 'true' : 'false',
+            nameBtn: isMainProduct ? '+' : 'Add-On Item',
+            variant: 'brand',
+            editableSalePrice: true,
 
-            nameBtn: isMainProduct ? '+' : 'Add-On Item' ,
-            variant: 'brand' ,
-            editableSalePrice : true,
+            addonDisabled: isMainProduct && hasAddon,
 
-            addonDisabled: isMainProduct && hasAddon
+            // ✅ ใส่ HL Item Number
+            hlItemNumber: isMainProduct ? source.INID_Material_Code__c : hlItemNumber
         };
     }
+
 
     handleSaveAddon() {
-        if (!this.selectedValue) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Error',
-                message: 'กรุณาเลือกประเภทของแถม',
-                variant: 'error'
-            }));
-            return;
-        }
-
-        const matchedMainIndex = this.selectedProducts.findIndex(
-            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
-        );
-
-        if (matchedMainIndex === -1) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Error',
-                message: 'ไม่พบสินค้าหลักสำหรับ Add-on นี้',
-                variant: 'error'
-            }));
-            return;
-        }
-
-        const addonCode = this.currentMaterialCodeForAddOn + '_addon_' + this.selectedValue;
-
-        const alreadyExists = this.selectedProducts.some(p => p.code === addonCode);
-        if (alreadyExists) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Warning',
-                message: 'Add-on นี้ถูกเพิ่มไปแล้ว',
-                variant: 'warning'
-            }));
-            return;
-        }
-
-        const matchedMain = this.selectedProducts[matchedMainIndex];
-
-        const addonProduct = {
-            code: matchedMain.code,
-            productCode: matchedMain.code,
-            description: matchedMain.description,
-            unitPrice: 0,
-            salePrice: 0,
-            quantity: 1,
-            unit: matchedMain.unit,   
-            total: 0,
-            nameBtn: this.getAddonLabel(this.selectedValue),
-            variant: 'base' ,
-            editableSalePrice: false
-        };
-        // Insert Add-on ใต้สินค้าหลัก
-        this.addAddonToProduct(addonProduct);
-
-        // Disable ปุ่มเพิ่ม Add-on บนสินค้าหลัก
-        this.selectedProducts[matchedMainIndex].addonDisabled = true;
-
+    if (!this.selectedValue) {
         this.dispatchEvent(new ShowToastEvent({
-            title: 'เพิ่ม Add-on สำเร็จ',
-            message: `คุณเลือกประเภท: ${this.getAddonLabel(this.selectedValue)}`,
-            variant: 'success'
+            title: 'Error',
+            message: 'กรุณาเลือกประเภทของแถม',
+            variant: 'error'
         }));
-
-        this.isPopupOpenFreeGood = false;
-        this.currentMaterialCodeForAddOn = '';
-        this.selectedValue = '';
+        return;
     }
+
+    const matchedMainIndex = this.selectedProducts.findIndex(
+        p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+    );
+
+    if (matchedMainIndex === -1) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Error',
+            message: 'ไม่พบสินค้าหลักสำหรับ Add-on นี้',
+            variant: 'error'
+        }));
+        return;
+    }
+
+    const matchedMain = this.selectedProducts[matchedMainIndex];
+    
+    // ✅ สร้าง ID เฉพาะสำหรับ Add-on
+    const addonId = matchedMain.id + '_addon_' + this.selectedValue;
+
+    const alreadyExists = this.selectedProducts.some(p => p.id === addonId);
+    if (alreadyExists) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Warning',
+            message: 'Add-on นี้ถูกเพิ่มไปแล้ว',
+            variant: 'warning'
+        }));
+        return;
+    }
+
+    const addonProduct = {
+        id: addonId, // ✅ ใช้ addonId ที่ unique
+        code: matchedMain.code,
+        productCode: matchedMain.code,
+        description: matchedMain.description,
+        unitPrice: 0,
+        salePrice: 0,
+        quantity: 1,
+        unit: matchedMain.unit,
+        total: 0,
+        nameBtn: this.getAddonLabel(this.selectedValue),
+        variant: 'base',
+        editableSalePrice: false,
+        hlItemNumber: matchedMain.hlItemNumber || matchedMain.code
+    };
+
+    // แทรก Add-on ใต้สินค้าหลัก
+    this.addAddonToProduct(addonProduct);
+
+    // ปิดปุ่ม Add-on บนสินค้าหลัก
+    this.selectedProducts[matchedMainIndex].addonDisabled = true;
+
+    this.dispatchEvent(new ShowToastEvent({
+        title: 'เพิ่ม Add-on สำเร็จ',
+        message: `คุณเลือกประเภท: ${this.getAddonLabel(this.selectedValue)}`,
+        variant: 'success'
+    }));
+
+    this.isPopupOpenFreeGood = false;
+    this.currentMaterialCodeForAddOn = '';
+    this.selectedValue = '';
+}
+
 
 
     handleRowAction(event) {
@@ -642,28 +681,54 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
     }
 
+    // handleSelectProduct(event) {
+    //     const selectedId = event.currentTarget.dataset.id;
+    //     const selected = this.productPriceBook.find(p => p.Id === selectedId);
+
+    //     const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
+    //     if (!isDuplicate && selected) {
+    //         const product = this.mapProduct(selected);
+    //         this.selectedProducts = [...this.selectedProducts, product];
+    //         console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
+            
+    //     } else if(isDuplicate){
+    //         this.dispatchEvent(
+    //             new ShowToastEvent({
+    //                 title: 'รายการซ้ำ',
+    //                 message: 'สินค้านี้มีอยู่ในตารางแล้ว',
+    //                 variant: 'warning',
+    //             })
+    //         )
+    //     }
+    //     this.searchProductTerm = '';
+    //     this.showProductDropdown = false;
+    // }
+
+
     handleSelectProduct(event) {
         const selectedId = event.currentTarget.dataset.id;
         const selected = this.productPriceBook.find(p => p.Id === selectedId);
 
         const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
         if (!isDuplicate && selected) {
-            const product = this.mapProduct(selected);
+            const hlItemNumber = selected.INID_Material_Code__c; // ใช้ code เป็น HL
+            const product = this.mapProduct(selected, [], hlItemNumber);
             this.selectedProducts = [...this.selectedProducts, product];
-            console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
-            
-        } else if(isDuplicate){
+
+            console.log('selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
+        } else if (isDuplicate) {
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'รายการซ้ำ',
                     message: 'สินค้านี้มีอยู่ในตารางแล้ว',
                     variant: 'warning',
                 })
-            )
+            );
         }
         this.searchProductTerm = '';
         this.showProductDropdown = false;
     }
+
 
     //Edid Fieled Rows
     @track draftValues = [];
@@ -1319,29 +1384,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     async handleSave() {
-        if (!this.recordId) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Error',
-                message: 'ไม่พบ Quote Id',
-                variant: 'error'
-            }));
-            return;
-        }
+        // if (!this.recordId) {
+        //     this.dispatchEvent(new ShowToastEvent({
+        //         title: 'Error',
+        //         message: 'ไม่พบ Quote Id',
+        //         variant: 'error'
+        //     }));
+        //     return;
+        // }
 
         const recordsToInsert = this.selectedProducts.map(prod => ({
             INID_Quantity__c: parseFloat(prod.quantity),
             INID_Sale_Price__c: parseFloat(prod.salePrice),
-
             INID_Product_Price_Book__c: prod.id,
             INID_Remark__c: prod.nameBtn,
+            INID_HL_Number__c: prod.hlItemNumber
         }));
 
         try {
-            await insertProductItem({ products: recordsToInsert });
-            this.handleSaveSuccess();
-            setTimeout(() => {
-                this.dispatchEvent(new CloseActionScreenEvent());
-            }, 500);
+            // await insertProductItem({ products: recordsToInsert });
+            // this.handleSaveSuccess();
+            // setTimeout(() => {
+            //     this.dispatchEvent(new CloseActionScreenEvent());
+            // }, 500);
+            alert(JSON.stringify(recordsToInsert, null, 2));
         } catch (error) {
             this.handleSaveError(error);
         }
