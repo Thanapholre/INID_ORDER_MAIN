@@ -12,6 +12,8 @@ import fetchDataShipto from '@salesforce/apex/INID_OrderTest.fetchDataShipto';
 import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderTest.fetchDataProductPriceBook'
 import fetchDataQuotation from '@salesforce/apex/INID_OrderTest.fetchDataQuotation'
 // import fetchDataProduct from '@salesforce/apex/Test'
+import insertProductItem from '@salesforce/apex/INID_OrderTest.insertProductItem';
+
 
 
 // import getRecord API
@@ -34,7 +36,6 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     @track billto = '';
     @track shipto = '';
 
-    @api recordId;
 
     //closeTab
     @wire(IsConsoleNavigation) isConsoleNavigation;
@@ -46,9 +47,9 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         const { tabId } = await getFocusedTabInfo();
         await closeTab(tabId);
     }
+    //End CloseTab
 
-    // Call Apex Method HERE
-    // fetch Customer
+    //fetch Customer
     @track accounts = [];
 
     @wire(fetchCustomers)
@@ -61,19 +62,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         }
     }
 
-    // Start Get Quotation
-    @track quotation = [];
-    
 
-    @wire(fetchDataQuotation)
-    wiredQuotation({ error, data }) {
-        if (data) {
-            // alert('Fetched accounts: ' + JSON.stringify(data, null, 2));
-            this.quotation = data;
-        } else if (error) {
-            console.error('Error fetching accounts:', error);
-        }
-    }
 
     handleInput(event) {
         const input = event.target.value;
@@ -110,6 +99,24 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         this.fetchShipto(selectedId);
     }
 
+    
+
+    // fetch Customer By Quote
+    @track quotation = [];
+    @track filteredQuotation = [];
+    @track showDropdownQuote = false;
+
+    @wire(fetchDataQuotation)
+    wiredQuotation({ error, data }) {
+        if (data) {
+            // alert('Fetched accounts: ' + JSON.stringify(data, null, 2));
+            this.quotation = data;
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+
     handleInputQuote(event) {
         const input = event.target.value;
         this.searchTermQuote = input;
@@ -125,73 +132,76 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             );
 
             // แสดง dropdown เฉพาะกรณีมีข้อมูล
-            this.showDropdown = this.filteredQuotation.length > 0;
+            this.showDropdownQuote = this.filteredQuotation.length > 0;
         } else {
             this.filteredQuotation = [];
-            this.showDropdown = false;
+            this.showDropdownQuote = false; 
         }
     }
 
-     handleSelectQuote(event) {
+    handleSelectQuote(event) {
         const quoteId = event.currentTarget.dataset.id;
-        const quoteNumber = event.currentTarget.dataset.code;
-        const quoteName = event.currentTarget.dataset.name;
 
-        this.searchTermQuote = `${quoteNumber} ${quoteName}`;
-        this.showDropdown = false;
+        const selectedQuote = this.quotation.find(q => q.Id === quoteId);
 
-        // optional: store selected quote
+        if (selectedQuote && selectedQuote.Account) {
+            this.customerId = selectedQuote.AccountId;
+            this.searchTerm = `${selectedQuote.Account.INID_Customer_Code__c} ${selectedQuote.Account.Name}`;
+            this.paymentTypeValue = selectedQuote.Account.Payment_type__c || '';
+            this.paymentTermValue = selectedQuote.Account.Payment_term__c || '';
+            this.organizationValue = selectedQuote.Account.INID_Organization__c || '';
+
+            // Fetch bill to / ship to
+            this.fetchBillTo(selectedQuote.AccountId);
+            this.fetchShipto(selectedQuote.AccountId);
+        }
+
+        this.searchTermQuote = `${selectedQuote.QuoteNumber} ${selectedQuote.Name}`;
+        this.showDropdownQuote = false;
+
         this.selectedQuote = {
-            id: quoteId,
-            number: quoteNumber,
-            name: quoteName
+            id: selectedQuote.Id,
+            number: selectedQuote.QuoteNumber,
+            name: selectedQuote.Name
         };
     }
 
     handleBlur() {
         setTimeout(() => {
-            this.showDropdown = false;
-        }, 200); // wait a bit to allow click
+            this.showDropdownQuote = false;
+            this.showDropdown = false; 
+        }, 200); 
     }
-
-
     //End Get Quotation
 
-     // fetch Auto Field Bill To
+
+    // fetch Auto Field Bill To
     @wire(fetchDataBillto)
     fetchBillTo(accountId) {
-        fetchDataBillto({ accountId: accountId })
+    fetchDataBillto({ accountId: accountId })
         .then(data => {
             if (data && data.length > 0) {
-                const record = data[0];
-                this.billto = `${record.Name} `;
-                // this.shipto = record.Name;
+                this.billto = data[0].Name;
             } else {
                 this.billto = '';
-                this.shipto = '';
             }
         })
         .catch(error => {
-            console.error('Error fetching BillTo/ShipTo:', error);
+            console.error('Error fetching Bill To:', error);
         });
-    }
-
-
+}
     // fetch Auto Field Ship To 
     @track shipto = ''; 
     @track shiptoOptions = []; 
 
-    @wire(fetchDataShipto)
-    fetchShipto(accountId) {
-        fetchDataShipto({ accountId: accountId })
+   fetchShipto(accountId) {
+    fetchDataShipto({ accountId: accountId })
         .then(data => {
-             if (data && data.length > 0) {
+            if (data && data.length > 0) {
                 this.shiptoOptions = data.map(addr => ({
                     label: addr.Name,
                     value: addr.Id
                 }));
-
-                // ตั้งค่า default เป็นตัวแรก
                 this.shipto = data[0].Id;
             } else {
                 this.shiptoOptions = [];
@@ -199,7 +209,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             }
         })
         .catch(error => {
-            console.error('Error fetching ShipTo options:', error);
+            console.error('Error fetching Ship To:', error);
         });
     }
 
@@ -1149,13 +1159,25 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     }
 
     openOrder() {
-         if (this.validateInputs()){
-            this.checkedAlertTypeOfOrder(this.typeOrderFirstValue,this.typeOrderSecondValue,this.searchQuoteValue);
-            this.isShowOrder = true ;
-            this.isShowAddProduct = false ;
-            this.isShowPickListType = false;
-         }
+        if (!this.validateInputs()) return;
+
+        if (this.typeOrderFirstValue === 'Create New Order') {
+            // Reset ฟิลด์เพื่อให้ผู้ใช้กรอกเอง
+            this.customerId = '';
+            this.searchTerm = '';
+            this.paymentTypeValue = '';
+            this.paymentTermValue = '';
+            this.organizationValue = '';
+            this.billto = '';
+            this.shipto = '';
+            this.shiptoOptions = [];
+        }
+
+        this.isShowOrder = true;
+        this.isShowAddProduct = false;
+        this.isShowPickListType = false;
     }
+
     isShowPickListType =true;
 
     backtoPicList() {
@@ -1258,7 +1280,6 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         }
     }
 
-
     validateInputs() {
         let isValid = true;
 
@@ -1284,8 +1305,63 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     }
 
 
+    // Start Handle Save
 
+      handleSaveSuccess() {
+        const evt = new ShowToastEvent({
+            title: 'รายการแจ้งเตือน',
+            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+            variant: 'success',
+        });
+        this.dispatchEvent(evt);
+        
+    }
 
+    async handleSave() {
+        if (!this.recordId) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Error',
+                message: 'ไม่พบ Quote Id',
+                variant: 'error'
+            }));
+            return;
+        }
 
+        const recordsToInsert = this.selectedProducts.map(prod => ({
+            INID_Quantity__c: parseFloat(prod.quantity),
+            INID_Sale_Price__c: parseFloat(prod.salePrice),
 
+            INID_Product_Price_Book__c: prod.id,
+            INID_Remark__c: prod.nameBtn,
+        }));
+
+        try {
+            await insertProductItem({ products: recordsToInsert });
+            this.handleSaveSuccess();
+            setTimeout(() => {
+                this.dispatchEvent(new CloseActionScreenEvent());
+            }, 500);
+        } catch (error) {
+            this.handleSaveError(error);
+        }
+    }
+
+    handleSaveError(error) {
+        console.error('Save Error:', JSON.stringify(error));
+        let msg = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล : ' + error ;
+
+        if (error && error.body && error.body.message) {
+            msg = error.body.message;
+        } else if (error && error.message) {
+            msg = error.message;
+        }
+
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Error saving data',
+            message: msg,
+            variant: 'error',
+        }));
+    }
+    //End Handle Save
+ 
 }

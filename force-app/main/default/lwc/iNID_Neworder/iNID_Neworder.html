@@ -1,4 +1,5 @@
 <template>
+    
     <!-- Start Select Piclist -->
         <template if:true={isShowPickListType}>
             <lightning-quick-action-panel header="Select Type Create Order" class="title_order" >
@@ -34,7 +35,7 @@
                                 <div class=" main " style="margin-top: 10px;" >
                                     <lightning-input
                                         name="search"
-                                        label="Search Quotation Id (Demo : 50000000 Auto Field Test) "
+                                        label="Search Quotation Id"
                                         type="search"
                                         value={searchTermQuote}
                                         onchange={handleInputQuote}
@@ -46,7 +47,7 @@
                             </template>
                             
                             <!-- Display the customer options in a dropdown -->
-                            <template if:true={showDropdown}>
+                            <template if:true={showDropdownQuote}>
                                 <div class="">
                                     <ul class="dropdown-list">
                                         <template for:each={filteredQuotation} for:item="q">
@@ -73,7 +74,6 @@
             </lightning-quick-action-panel>
         </template>
     <!-- End Select Piclist -->
-
 
 
     <!-- Start Order -->
@@ -106,7 +106,7 @@
                                                 data-name={cust.Name}
                                                 data-code={cust.INID_Customer_Code__c}
                                                 onmousedown={handleSelectCustomer}>
-                                                {cust.INID_Customer_Code__c} {cust.Name}
+                                                {cust.INID_Customer_Code__c } {cust.Name}
                                             </div>
                                         </template>
                                     </ul>     
@@ -190,7 +190,7 @@
                             <lightning-button variant="brand" label="Back" onclick={backtoPicList}></lightning-button>
                         </div>
                         <div class="btn_next">
-                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                            <lightning-button variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
                             <lightning-button variant="brand" label="Next" onclick={openAddProduct}></lightning-button>
                         </div>
                     </div>
@@ -322,12 +322,12 @@
                 </div>
             </lightning-card>   
             <!-- Start Footer Quick Action Panel -->
-                    <div slot="footer" class="btnProduct main_product" style="display: flex; justify-content: space-between;" >
-                        <div class="btn-back">
+                    <div slot="footer" class="main_product" style="display: flex; justify-content: space-between;" >
+                        <div class="">
                             <lightning-button variant="brand" label="Back" onclick={backtoOrder}></lightning-button>
                         </div>
                         <div class="btn_next">
-                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                            <lightning-button variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
                             <lightning-button variant="brand" label="Delete" disabled={isNextDisabled} onclick={handleDeleteSelected}></lightning-button>
                             <lightning-button variant="brand" label="Next" disabled={isNextDisabled} onclick={showApplyPromotion}></lightning-button>
                         </div>
@@ -488,7 +488,7 @@
                     <lightning-button variant="brand" label="Back" onclick={backToApply}></lightning-button>
                 </div>
                 <div class="btn_next">
-                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
                     <lightning-button variant="brand" label="Save" onclick={handleSaveSuccess}></lightning-button>
                 </div>
             </div>

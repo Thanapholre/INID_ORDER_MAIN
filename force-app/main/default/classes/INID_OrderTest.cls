@@ -28,11 +28,24 @@ public with sharing class INID_OrderTest {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<Quote> fetchDataQuotation() {
+        public static List<Quote> fetchDataQuotation() {
         return [
-            SELECT Id , QuoteNumber, Name FROM Quote WHERE Status = 'Approved'
+            SELECT Id, QuoteNumber, Name, AccountId, Account.Name, Account.INID_Customer_Code__c,
+                Account.Payment_type__c, Account.Payment_term__c, Account.INID_Organization__c
+            FROM Quote
+            WHERE Status = 'Approved' AND Account.INID_New__c = 'Activate'
         ];
     }
 
+    @AuraEnabled()
+    public static void insertProductItem(List<INID_Quote_Item__c> products) {
+        insert products;
+    }
+
+
+    // @AuraEnabled(cacheable=true)
+    // public static String getRecordId(Id orderId) {
+    //      return orderId;
+    // }
 
 }
