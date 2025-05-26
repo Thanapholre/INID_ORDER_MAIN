@@ -46,4 +46,11 @@ public with sharing class INID_OrderController {
     
 
 
+
+    @AuraEnabled(cacheable=true)
+    public static List<Account> fetchAccountByQuote() {
+        return []
+    }
+
+
 }

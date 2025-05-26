@@ -1241,7 +1241,7 @@ export default class INID_NewOrder extends NavigationMixin(LightningElement) {
             messageParts.push('Quote Id is: ' + searchQuoteValue);
             this.typeOfOrder = `Create New Order By Quotation`;
         } else if (secondType !== '') {
-            this.typeOfOrder = `Customer (${this.typeOrderSecondValue})`;
+            this.typeOfOrder = `Order (${this.typeOrderSecondValue})`;
             messageParts.push('Value is: ' + secondType);
         }
 
