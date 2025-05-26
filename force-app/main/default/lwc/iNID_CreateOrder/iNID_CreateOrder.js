@@ -2,16 +2,18 @@ import { LightningElement, track, wire , api} from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import LightningConfirm from 'lightning/confirm';
 import { NavigationMixin } from 'lightning/navigation';
-import { IsConsoleNavigation, getFocusedTabInfo, closeTab } from 'lightning/platformWorkspaceApi'
+import { IsConsoleNavigation, getFocusedTabInfo, closeTab } from 'lightning/platformWorkspaceApi';
 
 
 // import class
 import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers';
 import fetchDataBillto from '@salesforce/apex/INID_OrderController.fetchDataBillto';
 import fetchDataShipto from '@salesforce/apex/INID_OrderController.fetchDataShipto';
-import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderController.fetchDataProductPriceBook'
-import fetchDataQuotation from '@salesforce/apex/INID_OrderController.fetchDataQuotation'
+import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderController.fetchDataProductPriceBook';
+import fetchDataQuotation from '@salesforce/apex/INID_OrderController.fetchDataQuotation' ;
+import insertOrder from '@salesforce/apex/INID_OrderController.insertOrder' ;
 import insertProductItem from '@salesforce/apex/INID_OrderController.insertProductItem';
+
 
 
 
@@ -62,9 +64,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error fetching accounts:', error);
         }
     }
-
-
-
+    
     handleInput(event) {
         const input = event.target.value;
         this.searchTerm = input;
@@ -1052,16 +1052,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.isShowSummary = false;
         this.isShowApplyPromotion = true ;
     }
-
-    handleSaveSuccess() {
-        const evt = new ShowToastEvent({
-            title: 'Save Successfully',
-            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
-            variant: 'success',
-            mode: 'sticky'
-        });
-        this.dispatchEvent(evt);
-    }
     // ---------------------------------------------------------------------------
     // End Summary
     // ---------------------------------------------------------------------------
@@ -1383,6 +1373,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         
     }
 
+    
+
     async handleSave() {
         // if (!this.recordId) {
         //     this.dispatchEvent(new ShowToastEvent({
@@ -1393,28 +1385,58 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         //     return;
         // }
 
-        const recordsToInsert = this.selectedProducts.map(prod => ({
-            INID_Quantity__c: parseFloat(prod.quantity),
-            INID_Sale_Price__c: parseFloat(prod.salePrice),
-            INID_Product_Price_Book__c: prod.id,
-            INID_Remark__c: prod.nameBtn,
-            INID_HL_Number__c: prod.hlItemNumber
-        }));
+        const orderDetail = {
+            AccountId: this.recordId ,
+            Status: 'Draft' ,
+            Type:  'sales test' ,
+            EffectiveDate: new Date().toISOString()
+        } 
 
+        let orderId = '';
+
+        try{
+
+            orderId = await insertOrder({ order: orderDetail })
+            alert(orderId);
+        }catch (error) {
+            this.handleSaveError(error);
+        }
+
+
+
+        const recordsToInsert = this.selectedProducts.map(prod => {
+        // ถ้าเป็น Add-on (unitPrice == 0) ให้หา Product หลักจาก hlItemNumber
+        let productPriceBookId = prod.unitPrice === 0
+            ? this.selectedProducts.find(p => p.code === prod.hlItemNumber && p.unitPrice !== 0)?.id
+            : prod.id;
+
+            return {
+                  
+                INID_Quantity__c: parseFloat(prod.quantity),
+                INID_Sale_Price__c: parseFloat(prod.salePrice),
+                INID_Product_Price_Book__c: productPriceBookId,
+                INID_Remark__c: prod.nameBtn,
+                INID_HL_Item_Number__c: prod.code, 
+                INID_Type__c: 'Mock Main' , 
+                // INID_Order__c: this.recordId 
+                INID_Order__c: orderId  // INID_Order__c
+            };
+        });
+    
         try {
-            // await insertProductItem({ products: recordsToInsert });
-            // this.handleSaveSuccess();
-            // setTimeout(() => {
-            //     this.dispatchEvent(new CloseActionScreenEvent());
-            // }, 500);
-            alert(JSON.stringify(recordsToInsert, null, 2));
+            await insertProductItem({ products: recordsToInsert });
+            this.handleSaveSuccess();
+            setTimeout(() => {
+                this.dispatchEvent(new CloseActionScreenEvent());
+            }, 500);
+            // alert(JSON.stringify(recordsToInsert, null, 2));
         } catch (error) {
             this.handleSaveError(error);
         }
     }
 
     handleSaveError(error) {
-        console.error('Save Error:', JSON.stringify(error));
+        alert('Save Error:\n' + JSON.stringify(error, null, 2));
         let msg = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล : ' + error ;
 
         if (error && error.body && error.body.message) {
@@ -1430,5 +1452,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }));
     }
     //End Handle Save
+
+
+
  
 }

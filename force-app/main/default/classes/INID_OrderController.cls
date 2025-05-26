@@ -6,6 +6,9 @@ public with sharing class INID_OrderController {
 
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchDataBillto(Id accountId) {
+        // if (!Schema.sObjectType.Account.isAccessible()) {
+        //     throw new System.SecurityException('You do not have access to Account records.');
+        // }
         return [SELECT Id , Name , INID_Account__r.Id
             FROM INID_Account_Address__c  
             WHERE INID_Address_Type__c = 'bill to' AND  INID_Account__r.Id = :accountId];
@@ -24,7 +27,7 @@ public with sharing class INID_OrderController {
         return [
             SELECT Id , INID_Quantity__C, INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c
             FROM INID_Product_Price_Book__c LIMIT 20
-            ];
+        ];
     }
 
     @AuraEnabled(cacheable=true)
@@ -37,10 +40,27 @@ public with sharing class INID_OrderController {
         ];
     }
 
-    @AuraEnabled()
+    @AuraEnabled
+    public static Id insertOrder(Order order) {
+        insert order ;
+        return order.Id ;
+    }
+
+
+    @AuraEnabled
     public static void insertProductItem(List<INID_Product_Order_Item__c> products) {
         insert products;
     }
+
+
+    // public static List<Id> insertProductItemAndReturnIds(List<INID_Product_Order_Itemc> products) {
+    //     insert products; // insert records
+    //     List<Id> insertedIds = new List<Id>();
+    //     for(INID_Product_Order_Itemc p : products) {
+    //         insertedIds.add(p.Id);
+    //     }
+    //     return insertedIds; // return list ของ Id record ที่ถูก insert
+    // }
 
 
     // @AuraEnabled(cacheable=true)
