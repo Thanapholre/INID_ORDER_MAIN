@@ -21,7 +21,7 @@ import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
 
-export default class INID_NewOrder extends NavigationMixin(LightningElement) {
+export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
 
     @track filteredCustomerOptions = [];
     @track searchTerm = '';

@@ -1,4 +1,4 @@
-public with sharing class INID_OrderTest {
+public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<Account> fetchCustomers() {
         return [SELECT Id , INID_Customer_Code__c, Name , Payment_type__c , Payment_term__c FROM Account WHERE INID_New__c = 'Activate' ];
@@ -43,9 +43,7 @@ public with sharing class INID_OrderTest {
     }
 
 
-    // @AuraEnabled(cacheable=true)
-    // public static String getRecordId(Id orderId) {
-    //      return orderId;
-    // }
+    
+
 
 }
