@@ -46,21 +46,15 @@ public with sharing class INID_OrderController {
         return order.Id ;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static Id getQuoteId(Id quoteId) {
+        return quoteId ;
+    }
 
     @AuraEnabled
     public static void insertProductItem(List<INID_Product_Order_Item__c> products) {
         insert products;
     }
-
-    // @AuraEnabled 
-    // public static String fetchLastHLNumber() {
-    //     List<INID_Product_Order_Item__c> item = [
-    //         SELECT INID_HL_Item_Number__c 
-    //         FROM INID_Product_Order_Item__c 
-    //         WHERE INID_HL_Item_Number__c != null
-    //     ];
-    // }
-
 
     @AuraEnabled(cacheable=true)
     public static Integer fetchLastHLNumber() {
@@ -75,28 +69,8 @@ public with sharing class INID_OrderController {
 
             return Integer.valueOf(latestRecord) ;
         } catch (Exception e) {
-            // กรณีไม่มีข้อมูล หรือแปลงไม่สำเร็จ
             return 0;
         }
     }
-
-
-
-
-    // public static List<Id> insertProductItemAndReturnIds(List<INID_Product_Order_Itemc> products) {
-    //     insert products; // insert records
-    //     List<Id> insertedIds = new List<Id>();
-    //     for(INID_Product_Order_Itemc p : products) {
-    //         insertedIds.add(p.Id);
-    //     }
-    //     return insertedIds; // return list ของ Id record ที่ถูก insert
-    // }
-
-
-    // @AuraEnabled(cacheable=true)
-    // public static List<Account> fetchAccountByQuote() {
-    //     return []
-    // }
-
 
 }
