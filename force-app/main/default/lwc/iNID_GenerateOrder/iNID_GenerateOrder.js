@@ -3,6 +3,9 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import getQuoteId from '@salesforce/apex/INID_OrderController.getQuoteId';
 import fetchQuoteItemById from '@salesforce/apex/INID_OrderController.fetchQuoteItemById'
+import insertOrderItemByQuote from '@salesforce/apex/INID_OrderController.insertOrderItemByQuote'
+import insertOrder from '@salesforce/apex/INID_OrderController.insertOrder' ;
+import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote' ;
 
 export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     
@@ -13,15 +16,14 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     @track quoteId = '';
     @track quoteOrderItemValue = [] ;
     @track qouteNoRuner = 0;
+    @track orderId = '' ;
+    @track accountId = '' ;
     
     // get quote id 
     @wire(getQuoteId, { quoteId: '$recordId' })
     wireGetRecordId({error , data}) {
-        // alert('recordId Apex : ' + this.recordId );
         if(data) {
-            // console.log('data : ' + data) ;
             this.quoteId  = data ;
-            alert('quote id : ' + this.quoteId);
         } else {
             console.log(error) ;
         }
@@ -29,13 +31,9 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
     // get data by qoute id
     @wire(fetchQuoteItemById, {quoteId: '$recordId'})
-    getDataByQuoteId({err , data}) {
+    getDataByQuoteId({error , data}) {
         if(data) {
             this.quoteOrderItemValue = data ;
-
-            // alert(JSON.stringify(this.quoteOrderItemValue, null,2));
-            // console.log(this.quoteOrderItemValue);
-
             this.summaryProducts = this.quoteOrderItemValue.map((productItem) => {
                 return{
                     quoteNo: this.qouteNoRuner += 1  ,
@@ -48,14 +46,21 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
                     total: productItem.INID_Quantity__c * productItem.INID_Sale_Price__c ,
                     // remark: '-' ,
                     // netPrice: 
+                    productPriceBookId: productItem.INID_Product_Price_Book__c,
                 }
             })
-
         }else {
-            alert(JSON.stringify(err));
+            alert(JSON.stringify(error));
         }
     }
-    
+
+    @wire(fetchAccountIdByQuote , {quoteId: '$recordId' })
+    getAccountId({error, data}) {
+        if(data) {
+            this.accountId = data ;
+        }else {
+        }
+    }
 
     summaryColumns = [
         { label: 'Quote No.', fieldName: 'quoteNo', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 100 },
@@ -81,10 +86,79 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         this.template.appendChild(STYLE);
     }
 
-    // inser data in objects here !
+ // insert order
+    async insertOrderDetailFunction() {
+        const orderDetail = {
+            AccountId: this.accountId,
+            Status: 'Draft',
+            EffectiveDate: new Date().toISOString(),
+        };
+        try {
+            const orderId = await insertOrder({ order: orderDetail });
+            this.orderId = orderId;
+        } catch (error) {
+            this.handleSaveError(error);
+        }
+    }
 
+    async insertOrderItemListFunction() {
+        const orderItemList = this.summaryProducts.map((item) => ({
+            INID_Quantity__c: item.quantity,
+            INID_Sale_Price__c: item.salePrice,
+            INID_Total__c: item.total,
+            INID_Product_Price_Book__c: item.productPriceBookId,	
+            INID_Type__c: 'Order Item',
+            INID_Order__c: this.orderId,
+        }));
 
-   async closeTab() {
+        try {
+            await insertOrderItemByQuote({ OrderList: orderItemList });
+            this.handleSaveSuccess();
+            setTimeout(() => {
+                this.dispatchEvent(new CloseActionScreenEvent());
+            }, 500);
+        } catch (error) {
+            this.handleSaveError(error);
+        }
+    }
+
+    // insert data in objects 
+    async handleSave(){
+        if (!this.accountId) {
+            this.handleSaveError({ message: 'AccountId is missing, please wait or reload.' });
+            return;
+        }
+        await this.insertOrderDetailFunction(); 
+        await this.insertOrderItemListFunction(); 
+    }
+    
+    handleSaveSuccess() {
+        const evt = new ShowToastEvent({
+            title: 'บันทึกสำเร็จ',
+            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว แต่ยังไม่มีข้อมูลนะ หยอกเฉยๆ',
+            variant: 'success',
+        });
+        this.dispatchEvent(evt);
+    }
+
+    handleSaveError(error) {
+        alert('Save Error: ' + JSON.stringify(error, null, 2));
+        let msg = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล : ' + error ;
+
+        if (error && error.body && error.body.message) {
+            msg = error.body.message;
+        } else if (error && error.message) {
+            msg = error.message;
+        }
+
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Error saving data',
+            message: msg,
+            variant: 'error',
+        }));
+    }
+
+    async closeTab() {
         if (!this.isConsoleNavigation) {
             return;
         }
@@ -92,13 +166,4 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         await closeTab(tabId);
     }
 
-    handleSaveSuccess() {
-        const evt = new ShowToastEvent({
-            title: 'บันทึกสำเร็จ',
-            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว แต่ยังไม่มีข้อมูลนะ หยอกเฉยๆ',
-            variant: 'success',
-            mode: 'sticky'
-        });
-        this.dispatchEvent(evt);
-    }
 }

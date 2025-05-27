@@ -79,10 +79,26 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Quote_Item__c> fetchQuoteItemById(Id quoteId) {
         return [
-            SELECT INID_Material_Code__c , INID_SKU_Description__c , INID_Quantity__c , INID_Sale_Price__c
-            FROM INID_Quote_Item__c
+            SELECT INID_Material_Code__c , INID_SKU_Description__c , INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__c
+            FROM INID_Quote_Item__c                                                                          
             WHERE INID_Quote__c = :quoteId 
         ];
     }
 
+    @AuraEnabled
+    public static void insertOrderItemByQuote(List<INID_Product_Order_Item__c> OrderList){
+        insert OrderList ;
+    }
+
+
+    @AuraEnabled(cacheable=true)
+    public static Id fetchAccountIdByQuote(Id quoteId) {
+        Quote accountId = [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1];
+        return accountId.AccountId;
+    }   
+
+    // @AuraEnabled
+    // public static Id fetchAccountIdByQuote(Id quoteId) {
+    //     return [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1].AccountId;
+    // }
 }
