@@ -13,6 +13,7 @@ import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderController.fet
 import fetchDataQuotation from '@salesforce/apex/INID_OrderController.fetchDataQuotation' ;
 import insertOrder from '@salesforce/apex/INID_OrderController.insertOrder' ;
 import insertProductItem from '@salesforce/apex/INID_OrderController.insertProductItem';
+import fetchLastHLNumber from '@salesforce/apex/INID_OrderController.fetchLastHLNumber';
 
 
 
@@ -391,6 +392,14 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.purchaseOrderNumber = event.detail.value;
     }
 
+    noteAgentHandleChange(event) {
+        this.noteAgent = event.detail.value ;
+    }
+
+    noteInternalHandleChange(event) {
+        this.noteInternal = event.detail.value;
+    }
+
     shiptoHandleChange(event) {
         this.shipto = event.detail.value;
     }
@@ -486,40 +495,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     ];
 
-    // mapProduct(source, addedAddons = []) {
-    //     const isMainProduct = source.INID_Unit_Price__c > 0;
-    //     const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
-
-    //     // const quantity = 1;
-
-    //     const salePrice = source.INID_Unit_Price__c || 0;
-    //     const quantity = 1;
-    //     const total = salePrice * quantity;
-
-    //     return {
-    //         id: source.Id,
-    //         code: source.INID_Material_Code__c,
-    //         description: source.INID_SKU_Description__c,
-    //         unitPrice: source.INID_Unit_Price__c || 0,
-    //         quantity: 1,
-    //         salePrice: source.INID_Unit_Price__c || 0,
-    //         unit: source.INID_Unit__c || '',
-    //         total: total,
-
-    //         addOnButton: isMainProduct ? 'Add On' : null,
-    //         addOnText: !isMainProduct ? 'Add-On Item' : null ,
-    //         addOn: isMainProduct ? 'true' : 'false' ,
-    //         // isAddOn: !isMainProduct ,
-
-    //         nameBtn: isMainProduct ? '+' : 'Add-On Item' ,
-    //         variant: 'brand' ,
-    //         editableSalePrice : true,
-
-    //         addonDisabled: isMainProduct && hasAddon
-    //     };
-    // }
-
-
     mapProduct(source, addedAddons = [], hlItemNumber = null) {
         const isMainProduct = source.INID_Unit_Price__c > 0;
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
@@ -547,7 +522,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             addonDisabled: isMainProduct && hasAddon,
 
-            // ✅ ใส่ HL Item Number
+            // ใส่ HL Item Number
             hlItemNumber: isMainProduct ? source.INID_Material_Code__c : hlItemNumber
         };
     }
@@ -578,7 +553,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     const matchedMain = this.selectedProducts[matchedMainIndex];
     
-    // ✅ สร้าง ID เฉพาะสำหรับ Add-on
+    // สร้าง ID เฉพาะสำหรับ Add-on
     const addonId = matchedMain.id + '_addon_' + this.selectedValue;
 
     const alreadyExists = this.selectedProducts.some(p => p.id === addonId);
@@ -680,30 +655,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             return nameStr.includes(term) || codeStr.includes(term);
         });
     }
-
-    // handleSelectProduct(event) {
-    //     const selectedId = event.currentTarget.dataset.id;
-    //     const selected = this.productPriceBook.find(p => p.Id === selectedId);
-
-    //     const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
-    //     if (!isDuplicate && selected) {
-    //         const product = this.mapProduct(selected);
-    //         this.selectedProducts = [...this.selectedProducts, product];
-    //         console.log('selectedProducts:', JSON.stringify(this.selectedProducts));
-            
-    //     } else if(isDuplicate){
-    //         this.dispatchEvent(
-    //             new ShowToastEvent({
-    //                 title: 'รายการซ้ำ',
-    //                 message: 'สินค้านี้มีอยู่ในตารางแล้ว',
-    //                 variant: 'warning',
-    //             })
-    //         )
-    //     }
-    //     this.searchProductTerm = '';
-    //     this.showProductDropdown = false;
-    // }
-
 
     handleSelectProduct(event) {
         const selectedId = event.currentTarget.dataset.id;
@@ -1373,10 +1324,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         
     }
 
-    
-
-    async handleSave() {
-        // if (!this.recordId) {
+            // if (!this.recordId) {
         //     this.dispatchEvent(new ShowToastEvent({
         //         title: 'Error',
         //         message: 'ไม่พบ Quote Id',
@@ -1385,24 +1333,50 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         //     return;
         // }
 
-        const orderDetail = {
-            AccountId: this.recordId ,
-            Status: 'Draft' ,
-            Type:  'sales test' ,
-            EffectiveDate: new Date().toISOString()
-        } 
+    async handleSave() {
 
         let orderId = '';
 
+        const orderDetail = {
+            AccountId: this.recordId ,
+            Status: 'Draft' ,
+            Type: this.typeOrderSecondValue ,
+            EffectiveDate: new Date().toISOString(),
+            INID_PaymentType__c: this.paymentTypeValue,
+            INID_PaymentTerm__c: this.paymentTermValue,
+            INID_Bill_To_Code__c: this.billto,	
+            INID_Ship_To_Code__c: this.shipto,
+            INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
+            INID_Organization__c: this.organizationValue	,
+            INID_NoteInternal__c: this.noteInternal,
+            INID_ExcVAT__c: this.radioButtonOrderLabel2,
+            INID_IncVAT__c: this.radioButtonOrderLabel1,
+            INID_NoteAgent__c : this.noteAgent ,
+        } 
+        
+        // Save Order Detail
         try{
-
             orderId = await insertOrder({ order: orderDetail })
             alert(orderId);
         }catch (error) {
             this.handleSaveError(error);
-        }
+        }   
+        
+        let hlCounter = await fetchLastHLNumber();
+        // alert('Befor : ' + hlCounter + ' After: ' + (hlCounter+1) + 'typeof: ' + typeof(hlCounter) );
+        const hlMap = new Map();
 
-
+        this.selectedProducts.forEach(product => {
+             if (product.unitPrice > 0) { // สินค้าหลัก
+                const hasAddon = this.selectedProducts.some(
+                    p => p.productCode === product.code && p.unitPrice === 0
+                );
+               if (hasAddon) {
+                    const hlNumber = (hlCounter++).toString();  
+                    hlMap.set(product.id, hlNumber);
+                }
+            }
+        });
 
         const recordsToInsert = this.selectedProducts.map(prod => {
         // ถ้าเป็น Add-on (unitPrice == 0) ให้หา Product หลักจาก hlItemNumber
@@ -1410,17 +1384,25 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             ? this.selectedProducts.find(p => p.code === prod.hlItemNumber && p.unitPrice !== 0)?.id
             : prod.id;
 
+            console.log('prod.id : ' + prod.id + ' id: ' + id);
+
             return {
-                  
+                
                 INID_Quantity__c: parseFloat(prod.quantity),
                 INID_Sale_Price__c: parseFloat(prod.salePrice),
                 INID_Product_Price_Book__c: productPriceBookId,
-                INID_Remark__c: prod.nameBtn,
-                INID_HL_Item_Number__c: prod.code, 
-                INID_Type__c: 'Mock Main' , 
-                // INID_Order__c: this.recordId 
-                INID_Order__c: orderId  // INID_Order__c
-            };
+                INID_Remark__c: prod.nameBtn === '+' ? '' : prod.nameBtn,
+                
+                INID_HL_Item_Number__c: prod.unitPrice === 0
+                    ? hlMap.get(this.selectedProducts
+                        .find(p => p.code === prod.code && p.unitPrice !== 0)?.id) ?? null
+                    : hlMap.get(prod.id) ?? null,
+
+                INID_Type__c: prod.unitPrice === 0 ? 'Add On' : 'Main',
+
+                INID_Order__c: orderId , // INID_Order__c
+                INID_Tatal__c: prod.total,
+                };
         });
     
         try {

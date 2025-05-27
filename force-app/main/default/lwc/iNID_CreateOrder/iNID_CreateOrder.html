@@ -156,8 +156,8 @@
                             </lightning-combobox>
 
                             <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} ></lightning-input>
-                            <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent}></lightning-textarea>
-                            <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal}></lightning-textarea>
+                            <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent} onchange={noteAgentHandleChange} ></lightning-textarea>
+                            <lightning-textarea class="main" name="input1" label="Note Internal" value={noteInternal} onchange={noteInternalHandleChange} ></lightning-textarea>
                 
                             <!-- Check_box -->
                             <div class="Checkbox slds-m-around_medium">
