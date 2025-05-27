@@ -46,10 +46,6 @@ public with sharing class INID_OrderController {
         return order.Id ;
     }
 
-    @AuraEnabled(cacheable=true)
-    public static Id getQuoteId(Id quoteId) {
-        return quoteId ;
-    }
 
     @AuraEnabled
     public static void insertProductItem(List<INID_Product_Order_Item__c> products) {
@@ -71,6 +67,22 @@ public with sharing class INID_OrderController {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+
+
+    @AuraEnabled(cacheable=true)
+    public static Id getQuoteId(Id quoteId) {
+        return quoteId ;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Quote_Item__c> fetchQuoteItemById(Id quoteId) {
+        return [
+            SELECT INID_Material_Code__c , INID_SKU_Description__c , INID_Quantity__c , INID_Sale_Price__c
+            FROM INID_Quote_Item__c
+            WHERE INID_Quote__c = :quoteId 
+        ];
     }
 
 }
