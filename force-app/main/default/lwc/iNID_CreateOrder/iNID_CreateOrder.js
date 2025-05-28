@@ -191,7 +191,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         .catch(error => {
             console.error('Error fetching Bill To:', error);
         });
-}
+    }
     // fetch Auto Field Ship To 
     @track shipto = ''; 
     @track shiptoOptions = []; 
@@ -1433,9 +1433,5 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             variant: 'error',
         }));
     }
-    //End Handle Save
-
-
-
- 
+    //End Handle Save 
 }

@@ -5,75 +5,39 @@ import getQuoteId from '@salesforce/apex/INID_OrderController.getQuoteId';
 import fetchQuoteItemById from '@salesforce/apex/INID_OrderController.fetchQuoteItemById'
 import insertOrderItemByQuote from '@salesforce/apex/INID_OrderController.insertOrderItemByQuote'
 import insertOrder from '@salesforce/apex/INID_OrderController.insertOrder' ;
-import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote' ;
+import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote' 
 
 export default class INID_Ordertest extends NavigationMixin(LightningElement) {
     
     @api recordId;
     @track summaryProducts = [];
-    isShowSummary = false ;
-    @track isLoaded = false;
     @track quoteId = '';
     @track quoteOrderItemValue = [] ;
     @track qouteNoRuner = 0;
     @track orderId = '' ;
     @track accountId = '' ;
-    
-    // get quote id 
-    @wire(getQuoteId, { quoteId: '$recordId' })
-    wireGetRecordId({error , data}) {
-        if(data) {
-            this.quoteId  = data ;
-        } else {
-            console.log(error) ;
-        }
-    } 
-
-    // get data by qoute id
-    @wire(fetchQuoteItemById, {quoteId: '$recordId'})
-    getDataByQuoteId({error , data}) {
-        if(data) {
-            this.quoteOrderItemValue = data ;
-            this.summaryProducts = this.quoteOrderItemValue.map((productItem) => {
-                return{
-                    quoteNo: this.qouteNoRuner += 1  ,
-                    materialCode: productItem.INID_Material_Code__c ,
-                    skuDescription: productItem.INID_SKU_Description__c ,
-                    // unitPrice: 0 ,
-                    quantity: productItem.INID_Quantity__c ,
-                    salePrice: productItem.INID_Sale_Price__c ,
-                    // unit: productItem.INID_Unit__c ,
-                    total: productItem.INID_Quantity__c * productItem.INID_Sale_Price__c ,
-                    // remark: '-' ,
-                    // netPrice: 
-                    productPriceBookId: productItem.INID_Product_Price_Book__c,
-                }
-            })
-        }else {
-            alert(JSON.stringify(error));
-        }
-    }
-
-    @wire(fetchAccountIdByQuote , {quoteId: '$recordId' })
-    getAccountId({error, data}) {
-        if(data) {
-            this.accountId = data ;
-        }else {
-        }
-    }
+    @track lastHLNumber ;
 
     summaryColumns = [
         { label: 'Quote No.', fieldName: 'quoteNo', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 100 },
         { label: 'Material Code', fieldName: 'materialCode', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
         { label: 'SKU Description', fieldName: 'skuDescription', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
-        // { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 115 },
         { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' } , initialWidth: 130},
-        // { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' } , hideDefaultActions: true  , initialWidth: 100 },
         { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 120},
-        // { label: 'Remark', fieldName: 'addOnText', type: 'text', cellAttributes: { alignment: 'right' } , initialWidth: 150 , hideDefaultActions: true },
-        // { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 110 }
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 110 }
     ];
+
+    handleNavToOrderPage() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.orderId,
+                objectApiName: 'Order',
+                actionName: 'view'
+            }
+        });
+    }
 
     renderedCallback() {
         if(this.isLoaded) return;
@@ -85,8 +49,49 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         }`; 
         this.template.appendChild(STYLE);
     }
+    
+    // get quote id 
+    @wire(getQuoteId, )
+    wireGetRecordId({error , data}) {
+        if(data) {
+            this.quoteId  = data ;
+        } else {
+            console.log(error) ;
+        }
+    } 
+    
+    // get data by qoute id
+    @wire(fetchQuoteItemById, {quoteId: '$recordId'})
+    getDataByQuoteId({error , data}) {
+        if(data) {
+            this.quoteOrderItemValue = data ;
+            this.summaryProducts = this.quoteOrderItemValue.map((productItem) => {
+                return{
+                    quoteNo: this.qouteNoRuner += 1  ,
+                    materialCode: productItem.INID_Material_Code__c ,
+                    skuDescription: productItem.INID_SKU_Description__c ,
+                    quantity: productItem.INID_Quantity__c ,
+                    salePrice: productItem.INID_Sale_Price__c ,
+                    total: productItem.INID_Quantity__c * productItem.INID_Sale_Price__c ,
+                    netPrice: (productItem.INID_Quantity__c * productItem.INID_Sale_Price__c) / (productItem.INID_Quantity__c) ,
+                    productPriceBookId: productItem.INID_Product_Price_Book__c,
+                }
+            })
+        }else {
+            console.log(error);
+        }
+    }
 
- // insert order
+    @wire(fetchAccountIdByQuote , {quoteId: '$recordId' })
+    getAccountId({error, data}) {
+        if(data) {
+            this.accountId = data ;
+        }else {
+            console.log(error);
+        }
+    }
+    
+    // insert order
     async insertOrderDetailFunction() {
         const orderDetail = {
             AccountId: this.accountId,
@@ -96,21 +101,27 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         try {
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
+            await this.insertOrderItemListFunction(this.orderId); 
         } catch (error) {
             this.handleSaveError(error);
         }
     }
 
-    async insertOrderItemListFunction() {
-        const orderItemList = this.summaryProducts.map((item) => ({
-            INID_Quantity__c: item.quantity,
-            INID_Sale_Price__c: item.salePrice,
-            INID_Total__c: item.total,
-            INID_Product_Price_Book__c: item.productPriceBookId,	
-            INID_Type__c: 'Order Item',
-            INID_Order__c: this.orderId,
-        }));
-
+    async insertOrderItemListFunction(orderId) {
+        let currentHLNumber = 0;
+        
+        const orderItemList = this.summaryProducts.map((item) => {
+            currentHLNumber++;
+            return {
+                INID_Quantity__c: item.quantity,
+                INID_Sale_Price__c: item.salePrice,
+                INID_Product_Price_Book__c: item.productPriceBookId,
+                INID_Type__c: 'Main',
+                INID_Order__c: orderId,
+                INID_HL_Number__c: currentHLNumber
+            };
+        });
+        console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
         try {
             await insertOrderItemByQuote({ OrderList: orderItemList });
             this.handleSaveSuccess();
@@ -127,22 +138,24 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         if (!this.accountId) {
             this.handleSaveError({ message: 'AccountId is missing, please wait or reload.' });
             return;
-        }
-        await this.insertOrderDetailFunction(); 
-        await this.insertOrderItemListFunction(); 
+        } 
+        await this.insertOrderDetailFunction();   
     }
     
     handleSaveSuccess() {
         const evt = new ShowToastEvent({
             title: 'บันทึกสำเร็จ',
-            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว แต่ยังไม่มีข้อมูลนะ หยอกเฉยๆ',
+            message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
             variant: 'success',
         });
         this.dispatchEvent(evt);
+        setTimeout(() => {
+            this.handleNavToOrderPage();
+        }, 1000);
     }
 
     handleSaveError(error) {
-        alert('Save Error: ' + JSON.stringify(error, null, 2));
+        console.log('Save Error: ' + JSON.stringify(error, null, 2));
         let msg = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล : ' + error ;
 
         if (error && error.body && error.body.message) {
@@ -165,5 +178,4 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         const { tabId } = await getFocusedTabInfo();
         await closeTab(tabId);
     }
-
 }

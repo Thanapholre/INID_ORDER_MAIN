@@ -6,9 +6,6 @@ public with sharing class INID_OrderController {
 
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchDataBillto(Id accountId) {
-        // if (!Schema.sObjectType.Account.isAccessible()) {
-        //     throw new System.SecurityException('You do not have access to Account records.');
-        // }
         return [SELECT Id , Name , INID_Account__r.Id
             FROM INID_Account_Address__c  
             WHERE INID_Address_Type__c = 'bill to' AND  INID_Account__r.Id = :accountId];
@@ -53,25 +50,6 @@ public with sharing class INID_OrderController {
     }
 
     @AuraEnabled(cacheable=true)
-    public static Integer fetchLastHLNumber() {
-        try {
-            INID_Product_Order_Item__c latestRecord = [
-                SELECT INID_HL_Item_Number__c 
-                FROM INID_Product_Order_Item__c 
-                WHERE INID_HL_Item_Number__c != null
-                ORDER BY INID_HL_Item_Number__c DESC 
-                LIMIT 1
-            ];
-
-            return Integer.valueOf(latestRecord) ;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-
-
-    @AuraEnabled(cacheable=true)
     public static Id getQuoteId(Id quoteId) {
         return quoteId ;
     }
@@ -96,9 +74,4 @@ public with sharing class INID_OrderController {
         Quote accountId = [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1];
         return accountId.AccountId;
     }   
-
-    // @AuraEnabled
-    // public static Id fetchAccountIdByQuote(Id quoteId) {
-    //     return [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1].AccountId;
-    // }
 }
