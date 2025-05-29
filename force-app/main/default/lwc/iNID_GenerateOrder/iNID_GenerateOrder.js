@@ -68,6 +68,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
             this.summaryProducts = this.quoteOrderItemValue.map((productItem) => {
                 return{
                     quoteNo: this.qouteNoRuner += 1  ,
+                    itemNumber: productItem.INID_Item_Number__c ,
                     materialCode: productItem.INID_Material_Code__c ,
                     skuDescription: productItem.INID_SKU_Description__c ,
                     quantity: productItem.INID_Quantity__c ,
@@ -107,9 +108,9 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         }
     }
 
+    
     async insertOrderItemListFunction(orderId) {
         let currentHLNumber = 0;
-        
         const orderItemList = this.summaryProducts.map((item) => {
             currentHLNumber++;
             return {
@@ -118,7 +119,8 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
                 INID_Product_Price_Book__c: item.productPriceBookId,
                 INID_Type__c: 'Main',
                 INID_Order__c: orderId,
-                INID_HL_Number__c: currentHLNumber
+                INID_HL_Number__c: currentHLNumber,
+                INID_Item_Number__c: item.itemNumber,
             };
         });
         console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
