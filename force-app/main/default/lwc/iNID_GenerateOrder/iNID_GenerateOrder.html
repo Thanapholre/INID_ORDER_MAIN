@@ -1,6 +1,6 @@
 <template>
     <!-- Start Summary Promotion Component -->
-    <lightning-quick-action-panel header="Summary Product" class="title_product">
+    <lightning-quick-action-panel header="Generate Order" class="title_product">
         <!-- Summa</lightning-card>ry Product Table -->
         <lightning-card>
             <div class="datatable-container slds-m-top_medium main_product" >
@@ -17,10 +17,9 @@
         <!-- Footer -->
         <div slot="footer" class="main_product" style="display: flex; justify-content: space-between;">
             <div>
-                <lightning-button variant="brand" label="Back" onclick={backToApply}></lightning-button>
+                <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
             </div>
             <div class="btn_next">
-                <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
                 <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
             </div>
         </div>

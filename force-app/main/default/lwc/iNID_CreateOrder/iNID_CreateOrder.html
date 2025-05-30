@@ -4,7 +4,7 @@
             <lightning-quick-action-panel header="Select Type Create Order" class="title_order" >
                 <form onsubmit={handleSubmit}  style="height:300px" >
                     <lightning-card class="slds-m-around_medium main_order" >
-                        <div style="width: 100vw; height: auto">
+                        <div style="width: 90vw; height: auto">
                             <lightning-combobox
                                 name="createOrder"
                                 placeholder=""
@@ -80,7 +80,7 @@
             <lightning-quick-action-panel header={typeOfOrder} class="title_order" >
                 <form onsubmit={handleSubmit}>
                     <lightning-card class="slds-m-around_medium main_order ">
-                        <div style="width: 100vw; height: auto; ">
+                        <div style="width: 90vw; height: auto; ">
                             <div class=" main ">
                                 <lightning-input
                                     name="search"
@@ -162,9 +162,9 @@
                             <div class="Checkbox slds-m-around_medium">
                                     <lightning-input 
                                         type="radio" 
-                                        label={radioButtonOrderLabel2} 
+                                        label={radioButtonOrderLabel1} 
                                         name="exampleRadio" 
-                                        value="option2" 
+                                        value="option1" 
                                         onchange={handleChangeRadioButton}
                                         class="checkbox-spacing"
                                         checked>
@@ -172,9 +172,9 @@
 
                                     <lightning-input 
                                         type="radio" 
-                                        label={radioButtonOrderLabel1} 
+                                        label={radioButtonOrderLabel2} 
                                         name="exampleRadio" 
-                                        value="option1" 
+                                        value="option2" 
                                         onchange={handleChangeRadioButton}
                                         class="checkbox-spacing"
                                          >
@@ -206,7 +206,7 @@
         <lightning-quick-action-panel header="Add Product" class="title_product">
             <!-- Start Section การ Search Product -->
             <lightning-card>
-                <div style="width: 100vw; height: auto">
+                <div style="width: 90vw; height: auto">
                     <div class="slds-m-around_medium product main_product">
                         <div>
                             <lightning-input
@@ -267,7 +267,7 @@
                             <lightning-datatable
                                 style="text-align: center;"
                                 class="custom-datatable"
-                                key-field="id"
+                                key-field="rowKey"
                                 data={selectedProducts}
                                 columns={columns}
                                 onsave={handleSaveEditedRows}
@@ -348,7 +348,7 @@
 
     <template if:true={isShowApplyPromotion} >
         <lightning-quick-action-panel header="Apply Promotion" class="title_product">
-            <div style="width: 100vw; height: 200px" >
+            <div style="width: 90vw; height: 200px" >
                 <!--Table Apply Promotion -->
                 <div class="datatable-container slds-m-top_medium main_product">
                     <lightning-datatable
@@ -388,7 +388,7 @@
     <!-- Start Summary Promotion Component -->
     <template if:true={isShowSummary}>
         <lightning-quick-action-panel header="Summary Product" class="title_product">
-            <div  style="width: 100vw; height: auto" >
+            <div  style="width: 90vw; height: auto" >
                 <!-- Summary Product Table -->
                 <div class="datatable-container slds-m-top_medium main_product">
                     <lightning-datatable

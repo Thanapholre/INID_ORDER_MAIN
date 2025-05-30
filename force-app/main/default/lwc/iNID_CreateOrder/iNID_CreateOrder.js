@@ -8,12 +8,15 @@ import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers
 import fetchDataBillto from '@salesforce/apex/INID_OrderController.fetchDataBillto';
 import fetchDataShipto from '@salesforce/apex/INID_OrderController.fetchDataShipto';
 import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderController.fetchDataProductPriceBook';
+import fetchQuoteItemById from '@salesforce/apex/INID_OrderController.fetchQuoteItemById'
 import fetchDataQuotation from '@salesforce/apex/INID_OrderController.fetchDataQuotation' ;
 import insertOrder from '@salesforce/apex/INID_OrderController.insertOrder' ;
 import insertProductItem from '@salesforce/apex/INID_OrderController.insertProductItem';
+import deleteQuoteItems from '@salesforce/apex/INID_OrderController.deleteQuoteItems'
 import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
+import { refreshApex } from '@salesforce/apex';
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
     
@@ -59,12 +62,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track textareaValue = '';
     @track isShowAddfromText = false ;
     @track hlNumber = 0 ;
+    @track radioButtonOrderLabel1 ='Exclude Vat'
+    @track radioButtonOrderLabel2 ='Include Vat'
+    @track isShowAddProduct = false ;
+    @track globalQuoteId ;
+    @track quoteItemValue = [] ;
   
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 120},
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 230}, 
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }}, 
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', } , initialWidth: 110},
-        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100 }, 
+        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 150 }, 
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'center'} , initialWidth: 175},
         { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 70},
         { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 140},
@@ -95,6 +103,35 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const { tabId } = await getFocusedTabInfo();
         await closeTab(tabId);
     }
+
+    //fetchQuoteItemById
+    @wire(fetchQuoteItemById , { quoteId: '$globalQuoteId' })
+    wiredQuoteItemById({ error, data }) {
+    alert('recordId:' + this.globalQuoteId)
+         if(data) {
+            this.quoteItemValue = data ;
+            this.selectedProducts = this.quoteItemValue.map((productItem) => {
+                return{
+                    rowKey: productItem.Id,
+                    // recordId: productItem.Id,
+                    id: productItem.INID_Product_Price_Book__r.Id,
+                    code: productItem.INID_Material_Code__c ,
+                    description: productItem.INID_SKU_Description__c ,
+                    unitPrice: productItem.INID_Product_Price_Book__r.INID_Unit_Price__c ,
+                    quantity: productItem.INID_Quantity__c ,
+                    salePrice: productItem.INID_Sale_Price__c ,
+                    unit: productItem.INID_Product_Price_Book__r.INID_Unit__c ,
+                    total: productItem.INID_Total__c ,
+                    nameBtn: '+' ,
+                    variant: 'brand' ,
+                    editableSalePrice : true 
+                }
+            })
+        }else {
+            console.log(error);
+        }
+    }
+
 
     //fetch Customer
     @wire(fetchCustomers)
@@ -297,6 +334,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     handleSelectQuote(event) {
         const quoteId = event.currentTarget.dataset.id;
+        this.globalQuoteId = quoteId ;
+        alert('globalQuote : ' + this.globalQuoteId); 
         const selectedQuote = this.quotation.find(q => q.Id === quoteId);
 
         if (selectedQuote && selectedQuote.Account) {
@@ -447,6 +486,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.hlNumber = hlNumber ;
 
         return {
+            rowKey: productItem.Id,
             id: source.Id,
             code: source.INID_Material_Code__c,
             description: source.INID_SKU_Description__c,
@@ -463,7 +503,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             editableSalePrice: true,
             addonDisabled: isMainProduct && hasAddon,
             // hlItemNumber: isMainProduct ? source.INID_Material_Code__c : hlItemNumber
-            hlItemNumber: this.hlNumber
+            hlItemNumber: this.hlNumber,
+
         };
     }
 
@@ -481,15 +522,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
         );
 
-        // if (matchedMainIndex === -1) {
-        //     this.dispatchEvent(new ShowToastEvent({
-        //         title: 'Error',
-        //         message: 'ไม่พบสินค้าหลักสำหรับ Add-on นี้',
-        //         variant: 'error'
-        //     }));
-        //     return;
-        // }
-
         const matchedMain = this.selectedProducts[matchedMainIndex];
         const addonId = matchedMain.id + '_addon_' + this.selectedValue;
         const alreadyExists = this.selectedProducts.some(p => p.id === addonId);
@@ -503,6 +535,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
 
         const addonProduct = {
+            rowKey: addonId,
             id: addonId, 
             code: matchedMain.code,
             productCode: matchedMain.code,
@@ -515,7 +548,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             nameBtn: this.getAddonLabel(this.selectedValue),
             variant: 'base',
             editableSalePrice: false,
-            hlItemNumber: matchedMain.hlItemNumber || matchedMain.code
+            hlItemNumber: matchedMain.hlItemNumber || matchedMain.code,
+            
         };
 
         // แทรก Add-on ใต้สินค้าหลัก
@@ -558,6 +592,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (index === -1) return;
         addonProduct.id = `${this.currentMaterialCodeForAddOn}_${Date.now()}`;
         addonProduct.isAddOn = true; 
+        // addonProduct.recordId = this.recordId
         // addonProduct.buttonLabel = ''; 
         addonProduct.addOnText = addonProduct.displaylabel; 
         const newData = [...this.selectedProducts];
@@ -611,78 +646,113 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         selectedRows.forEach(row => {
             const isMain = row.unitPrice !== 0;
+            newSelectedIds.push(row.rowKey || row.id);
 
             if (isMain) {
                 const relatedAddons = this.selectedProducts.filter(
                     p => p.productCode === row.code && p.unitPrice === 0
                 );
-                newSelectedIds.push(row.id);
                 relatedAddons.forEach(addon => {
-                    newSelectedIds.push(addon.id);
+                    newSelectedIds.push(addon.rowKey || addon.id);
                 });
-            } else {
-                newSelectedIds.push(row.id);
             }
         });
         this.selectedRowIds = [...new Set(newSelectedIds)];
     }
 
     async handleDeleteSelected() {
-        if (!Array.isArray(this.selectedRowIds) || this.selectedRowIds.length === 0) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'ไม่มีรายการถูกเลือกเลย',
-                message: 'กรุณาเลือกอย่างน้อย 1 รายการ',
-                variant: 'warning'
-            }));
+        if (this.selectedRowIds.length === 0) {
+            this.showToast('ไม่มีรายการถูกเลือกเลย', 'กรุณาเลือกอย่างน้อย 1 รายการ', 'warning');
             return;
         }
 
-        const selectedIdsSet = new Set(this.selectedRowIds);
-        const selectedMainCodes = this.selectedProducts
-            .filter(p => selectedIdsSet.has(p.id) && p.unitPrice !== 0)
-            .map(p => p.code);
+        const selectedSet = new Set(this.selectedRowIds);
 
-        const toBeDeleted = this.selectedProducts.filter(product => {
-            const isSelected = selectedIdsSet.has(product.id);
-            const isAddonOfDeletedMain = selectedMainCodes.includes(product.productCode);
-            return isSelected || isAddonOfDeletedMain;
-        });
+        // หารายการที่ถูกเลือก
+        const mainItemsToDelete = this.selectedProducts.filter(
+            p => selectedSet.has(p.rowKey) && p.unitPrice !== 0
+        );
 
-        const result = await LightningConfirm.open({
-            message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${toBeDeleted.length} รายการ`,
+        // หา Add-on ที่ผูกกับ Product ที่ถูกเลือก
+        const addonItemsToDelete = this.selectedProducts.filter(
+            p => mainItemsToDelete.some(main => main.code === p.productCode && p.unitPrice === 0)
+        );
+
+        // รวมทั้งหมดที่จะลบ
+        const allToBeDeleted = [...mainItemsToDelete, ...addonItemsToDelete];
+
+        const confirmed = await LightningConfirm.open({
+            message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${allToBeDeleted.length} รายการ`,
             variant: 'header',
             label: 'ยืนยันการลบ',
             theme: 'warning'
         });
-        if (!result) {
-            return; 
-        }
 
-        // ดำเนินการลบรายการที่เลือก
-        const deletedAddonProductCodes = toBeDeleted
-            .filter(p => p.unitPrice === 0)
-            .map(p => p.productCode);
+        if (!confirmed) return;
 
-        this.selectedProducts = this.selectedProducts
-            .filter(product => !toBeDeleted.includes(product))
-            .map(product => {
-                if (product.unitPrice !== 0 && deletedAddonProductCodes.includes(product.code)) {
-                    return {
-                        ...product,
-                        addonDisabled: false
-                    };
-                }
-                return product;
+        // ดึง recordId ที่มีจริง (สำหรับลบใน DB เท่านั้น)
+        const listDelQuoteItem = allToBeDeleted
+            .filter(p => p.recordId)
+            .map(p => p.recordId.toString());
+
+        try {
+            if (listDelQuoteItem.length > 0) {
+                await deleteQuoteItems({ quoteItemId: listDelQuoteItem });
+            }
+
+            // ลบทั้ง Product และ Add-on ออกจาก UI
+            this.selectedProducts = this.selectedProducts.filter(p => {
+                return !allToBeDeleted.includes(p);
             });
 
-        this.selectedRowIds = [];
+            this.selectedProducts = [...this.selectedProducts]; // force re-render
+            this.selectedRowIds = [];
 
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'ลบสำเร็จ',
-            message: `ลบรายการทั้งหมด ${toBeDeleted.length} รายการเรียบร้อยแล้ว`,
-            variant: 'success'
-        }));
+            await refreshApex(this.quoteItemData);
+            this.showToast('ลบข้อมูลแล้ว', 'ลบรายการจากระบบสำเร็จ', 'success');
+
+        } catch (error) {
+            alert('Error deleting quote items: ' + JSON.stringify(error));
+        }
     }
+
+
+    // async handleDeleteSelected() {
+    //     if(this.selectedRowIds.length === 0) {
+    //         this.showToast('ไม่มีรายการถูกเลือกเลย', 'กรุณาเลือกอย่างน้อย 1 รายการ', 'warning');
+    //         return;
+    //     }
+
+    //     const selectedSet = new Set(this.selectedRowIds);
+    //     const quoteItemLists = this.selectedProducts.filter(p => selectedSet.has(p.rowKey));
+    //     alert(JSON.stringify(quoteItemLists, null, 2));
+
+    //     this.selectedProducts = [...this.selectedProducts];
+        
+    //      const confirmed = await LightningConfirm.open({
+    //         message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${quoteItemLists.length} รายการ`,
+    //         variant: 'header',
+    //         label: 'ยืนยันการลบ',
+    //         theme: 'warning'
+    //     });
+
+    //     if (!confirmed) return;
+    //     const listDelQuoteItem =  quoteItemLists.map(p => p.rowKey);
+    //     try {
+    //         if(listDelQuoteItem.length > 0) {
+    //             await deleteQuoteItems({ quoteItemId: listDelQuoteItem });
+    //         }
+
+    //         this.selectedProducts = this.selectedProducts.filter(p => !selectedSet.has(p.rowKey));
+    //         this.selectedProducts = [...this.selectedProducts]; 
+    //         this.selectedRowIds = [];                
+    //         await refreshApex(this.quoteItemData);
+    //         this.showToast('ลบข้อมูลแล้ว', 'ลบรายการจากระบบสำเร็จ', 'success');
+
+    //     } catch (error) {
+    //         alert('Error deleting quote items: ' + JSON.stringify(error));   
+    //     }
+    // }
 
     showProductCode() {
         this.isShowAddfromText = !this.isShowAddfromText;
@@ -713,7 +783,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 message: 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ',
                 variant: 'error'
             }));
-            return; // ❗ หยุดทำงานทันที
+            return; // หยุดทำงานทันที
         }
 
         const addedProducts = [];
@@ -870,7 +940,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     summaryColumns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 115 },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 300 },
         { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' } , initialWidth: 130},
         { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' } , hideDefaultActions: true  , initialWidth: 100 },

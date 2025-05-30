@@ -3,7 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import getQuoteId from '@salesforce/apex/INID_OrderController.getQuoteId';
 import fetchQuoteItemById from '@salesforce/apex/INID_OrderController.fetchQuoteItemById'
-import insertOrderItemByQuote from '@salesforce/apex/INID_OrderController.insertOrderItemByQuote'
+import insertOrderItem from '@salesforce/apex/INID_OrderController.insertOrderItem'
 import insertOrder from '@salesforce/apex/INID_OrderController.insertOrder' ;
 import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote' 
 
@@ -22,10 +22,10 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         { label: 'Quote No.', fieldName: 'quoteNo', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 100 },
         { label: 'Material Code', fieldName: 'materialCode', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
         { label: 'SKU Description', fieldName: 'skuDescription', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
-        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' } , initialWidth: 130},
-        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 120},
-        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 110 }
+        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 150} ,
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' }},
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }},
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true }
     ];
 
     handleNavToOrderPage() {
@@ -125,7 +125,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
         });
         console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
         try {
-            await insertOrderItemByQuote({ OrderList: orderItemList });
+            await insertOrderItem({ orderList: orderItemList });
             this.handleSaveSuccess();
             setTimeout(() => {
                 this.dispatchEvent(new CloseActionScreenEvent());
