@@ -107,7 +107,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //fetchQuoteItemById
     @wire(fetchQuoteItemById , { quoteId: '$globalQuoteId' })
     wiredQuoteItemById({ error, data }) {
-    alert('recordId:' + this.globalQuoteId)
+    // alert('recordId:' + this.globalQuoteId)
          if(data) {
             this.quoteItemValue = data ;
             this.selectedProducts = this.quoteItemValue.map((productItem) => {
@@ -335,7 +335,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     handleSelectQuote(event) {
         const quoteId = event.currentTarget.dataset.id;
         this.globalQuoteId = quoteId ;
-        alert('globalQuote : ' + this.globalQuoteId); 
+        // alert('globalQuote : ' + this.globalQuoteId); 
         const selectedQuote = this.quotation.find(q => q.Id === quoteId);
 
         if (selectedQuote && selectedQuote.Account) {
@@ -716,6 +716,21 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+
+    async handleDeleteSelected() {
+        if(this.selectedRowIds.length === 0) {
+            alert('ไม่ได้เลือกสักรายการ') ;
+            return ;
+        }
+        
+        const seletedRows = new Set(this.selectedRowIds);
+        const quoteItemLists = this.selectedProducts.filter(p => seletedRows.has(p.rowKey));
+        alert(this.selectedRowIds.length) ;
+        alert(JSON.stringify(quoteItemLists, null, 2));
+        alert('alert.rowKey : ' + quoteItemLists.rowKey);
+        deleteQuoteItems();
+
+    }
 
     // async handleDeleteSelected() {
     //     if(this.selectedRowIds.length === 0) {
