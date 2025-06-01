@@ -113,4 +113,22 @@ public with sharing class INID_OrderController {
             throw new AuraHandledException('เกิดข้อผิดพลาดในการลบข้อมูล: ' + e.getMessage());
         }
     }
+
+    @AuraEnabled
+    public static void replaceProductItems(Id orderId, List<INID_Product_Order_Item__c> products) {
+        // 🔥 ลบข้อมูลเก่า
+        List<INID_Product_Order_Item__c> oldItems = [
+            SELECT Id FROM INID_Product_Order_Item__c
+            WHERE INID_Order__c = :orderId
+        ];
+
+        if (!oldItems.isEmpty()) {
+            delete oldItems;
+        }
+
+        // ➕ เพิ่มข้อมูลใหม่
+        if (!products.isEmpty()) {
+            insert products;
+        }
+    }
 }
