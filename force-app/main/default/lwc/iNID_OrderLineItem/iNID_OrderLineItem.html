@@ -98,6 +98,36 @@
                 </div>
                 
             </div>
+
+            <template if:true={isPopupOpenFreeGood}>
+                <section role="dialog" class="slds-modal slds-fade-in-open main_product">
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <h2 class="slds-text-heading_medium">Add on ..</h2>
+                        </header>
+
+                        <!-- Add On Free Good Menu -->
+                        <div class="slds-modal__content slds-p-around_medium">
+                            <lightning-combobox
+                                name="freeGoods"
+                                label="Free goods"
+                                placeholder="Please select..."
+                                options={options}
+                                value={selectedValue}
+                                onchange={handleChangeFreeGoods}>
+                            </lightning-combobox>
+                            <span data-id="error-combobox" class="error-message slds-text-color_error"></span>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <footer class="slds-modal__footer">
+                            <lightning-button label="Cancel" onclick={closePopupFreeGood}></lightning-button>
+                            <lightning-button label="Save" onclick={handleSaveAddon} variant="brand"></lightning-button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </template>
             <!-- End Footer Quick Action Panel -->
         </lightning-quick-action-panel>
     <!-- End Add Product -->

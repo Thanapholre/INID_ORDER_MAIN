@@ -222,7 +222,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             const isValidOrganization = this.organizationOption.some(opt => opt.value === fetchedOrganization);
             this.organizationValue = isValidOrganization ? fetchedOrganization : '';
 
-            alert("account Id : " + fetchAccountId) ;
+            // alert("account Id : " + fetchAccountId) ;
         } else {
             console.log(error);
         }
@@ -552,6 +552,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             productPriceBookId: matchedMain.productPriceBookId
         };
 
+        alert('nameBtn is a : ' + JSON.stringify(addonProduct.nameBtn , null , 2)) ;
+
         // แทรก Add-on ใต้สินค้าหลัก
         this.addAddonToProduct(addonProduct);
 
@@ -817,6 +819,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const code = event.currentTarget.dataset.id;
         this.selectedProducts = this.selectedProducts.filter(p => p.materialCode !== code);
     }
+    
     handleChangeFreeGoods(event) {
         this.selectedValue = event.detail.value;
         this.selectedLabel = event.detail.label;
@@ -919,7 +922,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             relatedAddons.forEach(addon => {
                 this.summaryProducts.push({
                     ...addon,
-                    addOnText: addon.nameBtn || 'Add-On Item'
+                    addOnText: addon.nameBtn
                 });
             });
         });
@@ -1136,6 +1139,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         try {
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
+            alert('this order id : ' + this.orderId)
             await this.insertOrderItemListFunction(this.orderId); 
         } catch (error) {
             this.handleSaveError(error);

@@ -22,6 +22,11 @@ export default class INID_OrderLine extends LightningElement {
     @track productOrderItemValue = [];
     @track itemNumberFormat = 0;
     @track orderId;
+    @track isPopupOpenFreeGood = false ;
+    @track addonRemark = '' ;
+    @track variantBtn = '' ;
+    @track selectedValue ;
+    @track selectedLabel;
     @api recordId;
     isShowAddfromText = false;
     isLoaded = false;
@@ -29,33 +34,61 @@ export default class INID_OrderLine extends LightningElement {
 
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 267.5 },
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 160 },
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 200 },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 140 },
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 100 },
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', editable: true, typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 175 },
         { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 100 },
-        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 140 },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }},
+        { 
+            label: 'Add On', 
+            type: 'button',
+            typeAttributes: {
+                label: { fieldName: 'nameBtn' },
+                name: 'btnAddOn',
+                title: 'Add On',
+                variant: {fieldName: 'variant'},
+                disabled: { fieldName: 'addonDisabled' } 
+            },
+            cellAttributes: {
+                alignment: 'center',
+                class: 'slds-text-align_center'
+            } ,
+        }
     ];
 
     renderedCallback() {
         if (this.isLoaded) return; 
-            const STYLE = document.createElement('style');
-            STYLE.innerText = `
-                .uiModal .modal-container {
-                    width: 80vw !important;
-                    max-width: 95vw;
-                    min-width: 60vw;
-                    max-height: 100vh;
-                    min-height: 55.56vh;
-                }
-            `;
-            const card = this.template.querySelector('lightning-card');
-            if (card) card.appendChild(STYLE);
-            this.isLoaded = true;
-            if (this.quoteItemData) {
-                refreshApex(this.quoteItemData); 
+        const STYLE = document.createElement('style');
+        STYLE.innerText = `
+            .uiModal .modal-container {
+                width: 80vw !important;
+                max-width: 95vw;
+                min-width: 60vw;
+                max-height: 100vh;
+                min-height: 55.56vh;
             }
+        `;
+        const card = this.template.querySelector('lightning-card');
+        if (card) card.appendChild(STYLE);
+        this.isLoaded = true;
+        if (this.quoteItemData) {
+            refreshApex(this.quoteItemData); 
         }
+    }
+
+    
+    get options(){
+        return [
+            { label: 'ของแถม', value: '1' },
+            { label: 'ของแถมนอกบิล (FOC)', value: '2' },
+            { label: 'ตัวอย่าง', value: '3' },
+            { label: 'บริจาค', value: '4' },
+            { label: 'ชดเชย', value: '5' },
+            { label: 'สมนาคุณ', value: '6' },
+
+        ];
+    }
       
     //Apex wire: get record id
     @wire(getRecordId, { orderId: '$recordId' })
@@ -80,26 +113,58 @@ export default class INID_OrderLine extends LightningElement {
 
     //get data by qoute id
     @wire(fetchProductOrderItem, {orderId: '$recordId'})
-    getDataProductOrderItem({error, data} ) {
-        if(data) {
-            this.productOrderItemValue = data ;
-            this.selectedProducts = this.productOrderItemValue.map((productItem) => {
-                return{
+    getDataProductOrderItem({ error, data }) {
+        if (data) {
+            this.productOrderItemValue = data;
+
+            const addonMap = new Map();
+
+            data.forEach(item => {
+                if (item.INID_Remark__c !== null && item.INID_Remark__c !== undefined) {
+                    const materialCode = item.INID_Material_Code__c;
+                    addonMap.set(materialCode, true);
+                }
+            });
+
+            this.selectedProducts = data.map(productItem => {
+                const isAddon = productItem.INID_Remark__c !== null && productItem.INID_Remark__c !== undefined;
+                const materialCode = productItem.INID_Material_Code__c;
+                const hasAddon = addonMap.has(materialCode);
+
+                return {
                     rowKey: productItem.Id,
                     productOrderItemId: productItem.Id,
                     id: productItem.INID_Product_Price_Book__r.Id,
-                    code: productItem.INID_Material_Code__c ,
-                    description: productItem.INID_SKU_Decription__c ,
-                    unitPrice: productItem.INID_Product_Price_Book__r.INID_Unit_Price__c ,
-                    quantity: productItem.INID_Quantity__c ,
-                    salePrice: productItem.INID_Sale_Price__c ,
-                    unit: productItem.INID_Product_Price_Book__r.INID_Unit__c ,
-                    total: productItem.INID_Quantity__c * productItem.INID_Sale_Price__c ,
-                }
-            })
-        }else {
+                    code: materialCode,
+                    description: productItem.INID_SKU_Decription__c,
+                    unitPrice: productItem.INID_Product_Price_Book__r.INID_Unit_Price__c,
+                    quantity: productItem.INID_Quantity__c,
+                    salePrice: productItem.INID_Sale_Price__c,
+                    unit: productItem.INID_Product_Price_Book__r.INID_Unit__c,
+                    total: productItem.INID_Quantity__c * productItem.INID_Sale_Price__c,
+                    nameBtn: isAddon ? productItem.INID_Remark__c : '+',
+                    variant: isAddon ? 'base' : 'brand',
+                    addonDisabled: !isAddon && hasAddon 
+                };
+            });
+        } else {
             console.log(error);
         }
+    }
+
+
+
+    handleRowAction(event) {
+        const addonAction = event.detail.action.name ;
+        const rowAction = event.detail.row ;
+        
+        if(rowAction.nameBtn === '+') {
+            // alert('this action is : ' + addonAction) ;
+            // alert('this row is :' + JSON.stringify(rowAction , null ,2)) ;
+            this.isPopupOpenFreeGood = true ;
+            
+        } 
+
     }
 
     //Product search input handler
@@ -180,6 +245,9 @@ export default class INID_OrderLine extends LightningElement {
         const added = [];
         const duplicates = [];
         const invalid = [];
+        const isAddon = productItem.INID_Remark__c !== null && productItem.INID_Remark__c !== undefined;
+        const materialCode = productItem.INID_Material_Code__c;
+        const hasAddon = addonMap.has(materialCode);
 
         this.enteredProductCodes.forEach(code => {
             const match = this.productPriceBook.find(p => p.INID_Material_Code__c === code);
@@ -203,7 +271,10 @@ export default class INID_OrderLine extends LightningElement {
                         unit: match.INID_Unit__c,
                         unitPrice,
                         total: unitPrice * quantity,
-                        editableSalePrice: true
+                        editableSalePrice: true ,
+                        // nameBtn: isAddon ? productItem.INID_Remark__c : '+',
+                        // variant: isAddon ? 'base' : 'brand',
+                        // addonDisabled: !isAddon && hasAddon 
                     });
                 }
             }
@@ -363,5 +434,80 @@ export default class INID_OrderLine extends LightningElement {
 
     get checkDataEnable() {
         return this.selectedProducts.length === 0;
+    }
+
+    handleChangeFreeGoods(event) {
+        this.selectedValue = event.detail.value;
+        this.selectedLabel = event.detail.label;
+    }
+
+    closePopupFreeGood() {
+        this.isPopupOpenFreeGood = false;
+        this.selectedValue = '';
+        this.selectedLabel = ''; 
+        this.searchProductTermAddOn = '';   
+    }
+
+    handleSaveAddon() {
+        if (!this.selectedValue) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Error',
+                message: 'กรุณาเลือกประเภทของแถม',
+                variant: 'error'
+            }));
+            return;
+        }
+
+        const matchedMainIndex = this.selectedProducts.findIndex(
+            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+        );
+
+        const matchedMain = this.selectedProducts[matchedMainIndex];
+        const addonId = matchedMain.id + '_addon_' + this.selectedValue;
+        const alreadyExists = this.selectedProducts.some(p => p.id === addonId);
+        if (alreadyExists) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Warning',
+                message: 'Add-on นี้ถูกเพิ่มไปแล้ว',
+                variant: 'warning'
+            }));
+            return;
+        }
+
+        const addonProduct = {
+            rowKey: addonId,
+            id: addonId, 
+            code: matchedMain.code,
+            productCode: matchedMain.code,
+            description: matchedMain.description,
+            unitPrice: 0,
+            salePrice: 0,
+            quantity: 1,
+            unit: matchedMain.unit,
+            total: 0,
+            nameBtn: this.getAddonLabel(this.selectedValue),
+            variant: 'base',
+            editableSalePrice: false,
+            hlItemNumber: matchedMain.hlItemNumber || matchedMain.code,
+            productPriceBookId: matchedMain.productPriceBookId
+        };
+
+        alert('nameBtn is a : ' + JSON.stringify(addonProduct.nameBtn , null , 2)) ;
+
+        // แทรก Add-on ใต้สินค้าหลัก
+        this.addAddonToProduct(addonProduct);
+
+        // ปิดปุ่ม Add-on บนสินค้าหลัก
+        this.selectedProducts[matchedMainIndex].addonDisabled = true;
+
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'เพิ่ม Add-on สำเร็จ',
+            message: `คุณเลือกประเภท: ${this.getAddonLabel(this.selectedValue)}`,
+            variant: 'success'
+        }));
+
+        this.isPopupOpenFreeGood = false;
+        // this.currentMaterialCodeForAddOn = '';
+        this.selectedValue = '';
     }
 }
