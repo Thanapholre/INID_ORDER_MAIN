@@ -630,6 +630,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 const price = Number(updated.salePrice ?? product.salePrice);
                 return {
                     ...product,
+                    ...updated,
                     quantity: qty,
                     salePrice: price,
                     total: qty * price
@@ -702,6 +703,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     enterProductOnchange(event){
         const textareaValue = event.target.value || '';
+        this.textareaValue = textareaValue;
         const uniqueCodes = new Set();
 
         this.enteredProductCodes = textareaValue
@@ -741,6 +743,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     const total = salePrice * quantity;
 
                     const product = {
+                        rowKey: matched.Id,
                         id: matched.Id,
                         code: matched.INID_Material_Code__c,
                         productPriceBookId: matched.Id, 

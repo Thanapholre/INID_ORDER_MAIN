@@ -344,12 +344,28 @@ export default class INID_OrderLine extends LightningElement {
 
         const idsToDeleteInDB = toBeDeleted.map(p => p.productOrderItemId);
 
+        const parentProductCodes = new Set(
+            toBeDeleted
+                .filter(item => item.unitPrice === 0 && item.productCode)
+                .map(item => item.productCode)
+        );
+
         try {
             if (idsToDeleteInDB.length > 0) {
                 await deleteProductItems({ productOrderItemId: idsToDeleteInDB });
             }
 
             this.selectedProducts = this.selectedProducts.filter(p => !selectedSet.has(p.rowKey));
+            this.selectedProducts = this.selectedProducts.map(p => {
+                if (parentProductCodes.has(p.code) && p.unitPrice !== 0) {
+                    return {
+                        ...p,
+                        canAddAddon: true // หรือใช้ชื่อ flag ที่คุณใช้จริง
+                    };
+                }
+                return p;
+            });
+
             this.selectedProducts = [...this.selectedProducts]; // force UI update
             this.selectedRowIds = [];
                 
