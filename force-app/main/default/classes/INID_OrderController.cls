@@ -53,7 +53,7 @@ public with sharing class INID_OrderController {
 
     @AuraEnabled
     public static void insertOrderItem(List<INID_Product_Order_Item__c> orderList){
-        upsert orderList ;
+        insert orderList ;
     }
 
     @AuraEnabled(cacheable=true)
