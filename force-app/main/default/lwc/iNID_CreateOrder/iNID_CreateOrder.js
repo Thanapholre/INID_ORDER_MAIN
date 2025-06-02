@@ -14,7 +14,8 @@ import insertOrderItem from '@salesforce/apex/INID_OrderController.insertOrderIt
 import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
-import ACCOUNT_ID from '@salesforce/schema/Account.Id';;
+import ACCOUNT_ID from '@salesforce/schema/Account.Id';
+
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
     
@@ -112,7 +113,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.selectedProducts = this.quoteItemValue.map((productItem) => {
                 return{
                     rowKey: productItem.Id,
-                    // recordId: productItem.Id,
+                    // recordId: productItem.Id,a
                     id: productItem.INID_Product_Price_Book__r.Id,
                     code: productItem.INID_Material_Code__c ,
                     description: productItem.INID_SKU_Description__c ,
@@ -136,11 +137,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //fetch Customer
     @wire(fetchCustomers)
     wiredAccounts({ error, data }) {
-        alert('record Id is : ' + this.recordId);
+        // alert('record Id is : ' + this.recordId);
         if (data) {
-            // this.recordId = data.Id
             this.accounts = data;
-            // alert('data : ' + JSON.stringify(data[0].Id , null ,2));
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -312,6 +311,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const selectedName = event.currentTarget.dataset.name;
         const selectedCode = event.currentTarget.dataset.code; 
         this.customerId = selectedId;
+        this.accountId = selectedId;
         this.searchTerm = `${selectedCode} ${selectedName}`;
         this.showDropdown = false;
         this.recordId = selectedId;
@@ -456,6 +456,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const selected = this.productPriceBook.find(p => p.Id === selectedId);
         const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
 
+        if (!this.accountId && this.customerId) {
+            this.accountId = this.customerId;
+        }
+
         if (isDuplicate) {
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -552,7 +556,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             productPriceBookId: matchedMain.productPriceBookId
         };
 
-        alert('nameBtn is a : ' + JSON.stringify(addonProduct.nameBtn , null , 2)) ;
+        // alert('nameBtn is a : ' + JSON.stringify(addonProduct.nameBtn , null , 2)) ;
 
         // แทรก Add-on ใต้สินค้าหลัก
         this.addAddonToProduct(addonProduct);
@@ -647,7 +651,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             })
         );
     }
-
+    
     // Handle Row Selection
     handleRowSelection(event) {
         const selectedRows = event.detail.selectedRows;
@@ -1008,8 +1012,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     openOrder() {
         if (!this.validateInputs()) return;
 
-        if (this.typeOrderFirstValue === 'Create New Order') {
-            // Reset ฟิลด์เพื่อให้ผู้ใช้กรอกเอง
+        if (this.typeOrderFirstValue === 'Create New Order' && this.typeOrderSecondValue !== 'One Time Order') {
             this.customerId = '';
             this.searchTerm = '';
             this.paymentTypeValue = '';
@@ -1020,10 +1023,28 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.shiptoOptions = [];
         }
 
+        if (this.typeOrderSecondValue === 'One Time Order' && this.accounts.length > 0) {
+            const oneTimeCustomerId = '0018500000RB6YvAAL';
+            const matchedCustomer = this.accounts.find(c => c.Id === oneTimeCustomerId);
+            if (matchedCustomer) {
+                this.customerId = oneTimeCustomerId;
+                this.accountId = oneTimeCustomerId;
+                this.searchTerm = `${matchedCustomer.INID_Customer_Code__c} ${matchedCustomer.Name}`;
+                this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
+                this.paymentTermValue = matchedCustomer.Payment_term__c || '';
+                this.organizationValue = matchedCustomer.INID_Organization__c || '';
+                this.fetchBillTo(oneTimeCustomerId);
+                this.fetchShipto(oneTimeCustomerId);
+            }
+        }
+
+        this.checkedAlertTypeOfOrder(this.typeOrderFirstValue, this.typeOrderSecondValue, this.searchQuoteValue);
+
         this.isShowOrder = true;
         this.isShowAddProduct = false;
         this.isShowPickListType = false;
     }
+
 
     isShowPickListType =true;
 
@@ -1040,13 +1061,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track quoteId = [] ;
     @track typeOfOrder = 'Create Order'
 
-
+    //Check Type Quote
     get typeOrderFirstOption() {
         return [
             {value: 'Create New Order' , label: 'Create New Order'}, 
             {value: 'Create New Order By Quote' , label: 'Create New Order By Quote'}
         ]
     }
+
+    //Check One Time 
+    get isOneTime() {
+        return this.typeOrderSecondValue === 'One Time Order';
+    }
+
 
     typeOrderFirstHandleChange(event) {
         this.typeOrderFirstValue = event.detail.value;
@@ -1065,6 +1092,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         return [
             { value: 'Sales Order', label: 'Sales Order' },
             { value: 'Borrow Order', label: 'Borrow Order' },
+            { value: 'One Time Order', label: 'One Time Order' },
         ]
     } 
 
@@ -1081,8 +1109,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         if (searchQuoteValue !== '') {
             messageParts.push('Quote Id is: ' + searchQuoteValue);
-            this.typeOfOrder = `Create New Order By Quotation`;
-        } else if (secondType !== '') {
+            this.typeOfOrder = 'Create New Order By Quotation';
+        } 
+        else if (secondType !== '') {
             this.typeOfOrder = `Customer (${this.typeOrderSecondValue})`;
             messageParts.push('Value is: ' + secondType);
         }
@@ -1092,6 +1121,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    
     validateInputs() {
         let isValid = true;
         const inputs = this.template.querySelectorAll(
@@ -1151,18 +1181,34 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     async insertOrderItemListFunction(orderId) {
         let currentHLNumber = 0;
+        let hlItemNumber = 0;
+
         const orderItemList = this.summaryProducts.map((item) => {
-            currentHLNumber++;
-            return {
-                INID_Quantity__c: item.quantity,
-                INID_Sale_Price__c: item.salePrice,
-                INID_Product_Price_Book__c: item.productPriceBookId,
-                INID_Type__c: 'Main',
-                INID_Order__c: orderId,
-                INID_HL_Number__c: currentHLNumber,
-                INID_Item_Number__c: item.itemNumber,
-                INID_Remark__c: item.addOnText || '',
-            };
+            if (item.isAddOn){
+                    return {
+                    INID_Quantity__c: item.quantity,
+                    INID_Sale_Price__c: item.salePrice,
+                    INID_Product_Price_Book__c: item.productPriceBookId,
+                    INID_Type__c: 'Add-on',
+                    INID_Order__c: orderId,
+                    INID_HL_Number__c: hlItemNumber,
+                    INID_Item_Number__c: item.itemNumber,
+                    INID_Remark__c: item.addOnText || '',
+                };
+            } else {
+                currentHLNumber++;
+                hlItemNumber = currentHLNumber;
+                return {
+                    INID_Quantity__c: item.quantity,
+                    INID_Sale_Price__c: item.salePrice,
+                    INID_Product_Price_Book__c: item.productPriceBookId,
+                    INID_Type__c: 'Main',
+                    INID_Order__c: orderId,
+                    INID_HL_Number__c: currentHLNumber,
+                    INID_Item_Number__c: item.itemNumber,
+                    INID_Remark__c: item.addOnText || '',
+                };
+            }
         });
         console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
         try {

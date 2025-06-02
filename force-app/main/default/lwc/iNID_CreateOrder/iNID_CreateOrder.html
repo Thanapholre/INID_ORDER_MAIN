@@ -82,17 +82,32 @@
                     <lightning-card class="slds-m-around_medium main_order ">
                         <div style="width: 90vw; height: auto; ">
                             <div class=" main ">
-                                <lightning-input
-                                    name="search"
-                                    label="Customer"
-                                    type="search"
-                                    value={searchTerm}
-                                    onchange={handleInput}
-                                    onblur={handleBlur}
-                                    onkeydown={keyDownDisplayCustomer}
-                                    required
-                                    >
-                                </lightning-input>
+                                <template if:true={isOneTime}>
+                                    <!-- Check One Time  -->
+                                    <lightning-input
+                                        name="readonlyCustomer"
+                                        label="Customer"
+                                        type="text"
+                                        value={searchTerm}
+                                        class="readonly-style"
+                                        disabled
+                                        required>
+                                    </lightning-input>
+                                </template>
+
+                                <!-- ถ้าไม่ใช่ One Time ให้แสดงตัวนี้ -->
+                                <template if:false={isOneTime}>
+                                    <lightning-input
+                                        name="search"
+                                        label="Customer"
+                                        type="search"
+                                        value={searchTerm}
+                                        onchange={handleInput}
+                                        onblur={handleBlur}
+                                        onkeydown={keyDownDisplayCustomer}
+                                        required>
+                                    </lightning-input>
+                                </template>
                             </div>
                             <!-- Display the customer options in a dropdown -->
                             <template if:true={showDropdown}>
@@ -111,17 +126,30 @@
                                     </ul>     
                                 </div>
                             </template>
-                            <lightning-input class="main" label="Bill To" value={billto} type="text" onchange={billtoHandleChange} disabled required></lightning-input>
+
+                            <!-- Check One Time -->
+                            <template if:true={isOneTime}>
+                                <lightning-textarea class="main" label="Bill To" value={billto} onchange={billtoHandleChange}></lightning-textarea>
+                            </template>
+                            <template if:false={isOneTime}>
+                                <lightning-input class="main" label="Bill To" value={billto} onchange={billtoHandleChange} disabled required></lightning-input>
+                            </template>
                         
-                            <lightning-combobox
-                                placeholder=""
-                                class="main" 
-                                label="Ship To"
-                                value={shipto}
-                                options={shiptoOptions}
-                                onchange={handleShiptoChange}
-                                required>
-                            </lightning-combobox>
+                            <template if:true={isOneTime}>
+                                <lightning-textarea class="main" label="Ship To" value={shipto} onchange={handleShiptoChange}></lightning-textarea>
+                            </template>
+                            <template if:false={isOneTime}>
+                                <lightning-combobox
+                                    class="main"
+                                    label="Ship To"
+                                    value={shipto}
+                                    options={shiptoOptions}
+                                    onchange={handleShiptoChange}
+                                    required>
+                                </lightning-combobox>
+                            </template>
+                            <!-- End Check One Time -->
+
                             <lightning-combobox 
                                 class="configure_placeholder main" 
                                 name="Organization"

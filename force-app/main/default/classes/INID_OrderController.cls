@@ -1,7 +1,7 @@
 public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<Account> fetchCustomers() {
-        return [SELECT Id , INID_Customer_Code__c, Name , Payment_type__c , Payment_term__c FROM Account WHERE INID_New__c = 'Activate' ];
+        return [SELECT Id , INID_Customer_Code__c, Name , Payment_type__c , Payment_term__c FROM Account WHERE INID_Status__c = 'Activate' ];
     }
 
     @AuraEnabled(cacheable=true)
@@ -33,7 +33,7 @@ public with sharing class INID_OrderController {
             SELECT Id, QuoteNumber, Name, AccountId, Account.Name, Account.INID_Customer_Code__c,
                 Account.Payment_type__c, Account.Payment_term__c, Account.INID_Organization__c
             FROM Quote
-            WHERE Status = 'Approved' AND Account.INID_New__c = 'Activate'
+            WHERE Status = 'Approved' AND Account.INID_Status__c = 'Activate'
         ];
     }    
     
@@ -90,6 +90,7 @@ public with sharing class INID_OrderController {
         return orderId;
     }   
 
+
     @AuraEnabled
     public static void deleteProductItems(List<Id> productOrderItemId) {
         try {
@@ -116,7 +117,6 @@ public with sharing class INID_OrderController {
 
     @AuraEnabled
     public static void replaceProductItems(Id orderId, List<INID_Product_Order_Item__c> products) {
-        // 🔥 ลบข้อมูลเก่า
         List<INID_Product_Order_Item__c> oldItems = [
             SELECT Id FROM INID_Product_Order_Item__c
             WHERE INID_Order__c = :orderId
@@ -126,7 +126,6 @@ public with sharing class INID_OrderController {
             delete oldItems;
         }
 
-        // ➕ เพิ่มข้อมูลใหม่
         if (!products.isEmpty()) {
             insert products;
         }

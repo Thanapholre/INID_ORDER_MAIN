@@ -10,6 +10,7 @@ import deleteProductItems from '@salesforce/apex/INID_OrderController.deleteProd
 import { refreshApex } from '@salesforce/apex';
 import insertProductItem from '@salesforce/apex/INID_OrderController.insertProductItem';
 import replaceProductItems from '@salesforce/apex/INID_OrderController.replaceProductItems';
+import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
 
 
 export default class INID_OrderLine extends LightningElement {
@@ -139,6 +140,7 @@ export default class INID_OrderLine extends LightningElement {
                     productOrderItemId: productItem.Id,
                     id: productItem.INID_Product_Price_Book__r.Id,
                     code: materialCode,
+                    productCode: productItem.INID_Material_Code__c || '',
                     description: productItem.INID_SKU_Decription__c,
                     unitPrice: productItem.INID_Product_Price_Book__r.INID_Unit_Price__c,
                     quantity: productItem.INID_Quantity__c,
@@ -156,14 +158,13 @@ export default class INID_OrderLine extends LightningElement {
     }
 
 
-
     handleRowAction(event) {
         const addonAction = event.detail.action.name;
         const rowAction = event.detail.row;
 
         if (rowAction.nameBtn === '+') {
             this.isPopupOpenFreeGood = true;
-            this.currentMaterialCodeForAddOn = rowAction.code; // ✅ สำคัญ
+            this.currentMaterialCodeForAddOn = rowAction.code; 
         }
     }
 
@@ -220,7 +221,7 @@ export default class INID_OrderLine extends LightningElement {
             total: unitPrice * quantity,
             nameBtn: '+',
             variant: 'brand',
-            addonDisabled: false  // ✅ ให้คลิก Add-on ได้
+            addonDisabled: false  
         };
     }
 
@@ -280,9 +281,9 @@ export default class INID_OrderLine extends LightningElement {
                         unitPrice,
                         total: unitPrice * quantity,
                         editableSalePrice: true,
-                        nameBtn: '+',              // ✅ default ค่า Add-on
-                        variant: 'brand',          // ✅ ปุ่ม Add-on สีหลัก
-                        addonDisabled: false       // ✅ เปิดปุ่ม + ได้
+                        nameBtn: '+',             
+                        variant: 'brand',          
+                        addonDisabled: false       
                     });
                 }
             }
@@ -311,7 +312,7 @@ export default class INID_OrderLine extends LightningElement {
     handleSaveEditedRows(event) {
         const updatedValues = event.detail.draftValues;
         this.selectedProducts = this.selectedProducts.map(product => {
-            const updated = updatedValues.find(d => d.rowKey === product.rowKey);
+            const updated = updatedValues.find(d => d.rowKey === product.rowKey || d.rowKey === product.id);
             if (updated) {
                 const qty = Number(updated.quantity ?? product.quantity);
                 const price = Number(updated.salePrice ?? product.salePrice);
@@ -325,34 +326,27 @@ export default class INID_OrderLine extends LightningElement {
 
     // Row selection handler
     handleRowSelection(event) {
-        const selectedRowKeys = new Set(event.detail.selectedRows.map(row => row.rowKey));
-        const newSelectedRowKeys = new Set();
+        const selectedRows = event.detail.selectedRows;
+        let newSelectedIds = [];
 
-        // Step 1: ติ๊กตัวที่เลือกจริงจาก checkbox
-        selectedRowKeys.forEach(rowKey => {
-            const selectedRow = this.selectedProducts.find(row => row.rowKey === rowKey);
-            if (!selectedRow) return;
-
-            const isMain = selectedRow.unitPrice !== 0;
+        selectedRows.forEach(row => {
+            const isMain = row.unitPrice !== 0;
+            newSelectedIds.push(row.rowKey || row.id);
 
             if (isMain) {
-                // ✅ ถ้าเป็นสินค้าหลัก → เลือกตัวเอง + Add-on ทั้งหมดที่ผูกกับ code เดียวกัน
-                newSelectedRowKeys.add(rowKey);
-                this.selectedProducts.forEach(row => {
-                    if (row.unitPrice === 0 && row.code === selectedRow.code) {
-                        newSelectedRowKeys.add(row.rowKey);
-                    }
+               const relatedAddons = this.selectedProducts.filter(
+                    p => p.unitPrice === 0 && p.productCode === row.code
+                );
+
+                relatedAddons.forEach(addon => {
+                    newSelectedIds.push(addon.rowKey || addon.id);
                 });
-            } else {
-                // ✅ ถ้าเป็น Add-on → เลือกแค่ตัวนั้น
-                newSelectedRowKeys.add(rowKey);
             }
         });
 
-        // บันทึกการเลือกใหม่
-        this.selectedRowIds = Array.from(newSelectedRowKeys);
+        this.selectedRowIds = [...new Set(newSelectedIds)];
 
-        // Force UI refresh
+        // บังคับให้ datatable แสดง selection
         const datatable = this.template.querySelector('lightning-datatable');
         if (datatable) {
             datatable.selectedRows = this.selectedRowIds;
@@ -360,6 +354,17 @@ export default class INID_OrderLine extends LightningElement {
     }
 
 
+    handletest (){
+        getPromotion({ orderId: this.recordId })
+            .then(result => {
+                console.log('Promotion Data:', result);
+                this.showToast('ข้อมูลโปรโมชั่น', JSON.stringify(result), 'info');
+            })
+            .catch(error => {
+                console.error('Error fetching promotion data:', error);
+                this.showToast('Error', 'ไม่สามารถดึงข้อมูลโปรโมชั่นได้', 'error');
+            });
+    }
 
     handleCancel() {
         this.dispatchEvent(new CloseActionScreenEvent());
@@ -367,40 +372,31 @@ export default class INID_OrderLine extends LightningElement {
 
     // Delete selected rows
     async handleDeleteSelected() {
-        if (!Array.isArray(this.selectedRowIds) || this.selectedRowIds.length === 0) {
-            this.showToast('ไม่มีรายการถูกเลือกเลย', 'กรุณาเลือกอย่างน้อย 1 รายการ', 'warning');
+        if (this.selectedRowIds.length === 0) {
+            alert('ไม่ได้เลือกสักรายการ');
             return;
         }
-        const selectedSet = new Set(this.selectedRowIds);
-        const toBeDeleted = this.selectedProducts.filter(p => selectedSet.has(p.rowKey));
-        this.selectedProducts = [...this.selectedProducts];
 
-        const confirmed = await LightningConfirm.open({
-            message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${toBeDeleted.length} รายการ`,
-            variant: 'header',
-            label: 'ยืนยันการลบ',
-            theme: 'warning'
+        const selectedSet = new Set(this.selectedRowIds);
+        const addonsToDelete = this.selectedProducts.filter(p => 
+            selectedSet.has(p.rowKey || p.id) && p.unitPrice === 0
+        );
+
+        addonsToDelete.forEach(addon => {
+            const mainIndex = this.selectedProducts.findIndex(main =>
+                main.code === addon.productCode && main.unitPrice !== 0
+            );
+            if (mainIndex !== -1) {
+                this.selectedProducts[mainIndex].addonDisabled = false;
+            }
         });
 
-        if (!confirmed) return;
+        this.selectedProducts = this.selectedProducts.filter(p => 
+            !selectedSet.has(p.rowKey || p.id)
+        );
 
-        const idsToDeleteInDB = toBeDeleted.map(p => p.productOrderItemId);
-
-        try {
-            if (idsToDeleteInDB.length > 0) {
-                await deleteProductItems({ productOrderItemId: idsToDeleteInDB });
-            }
-
-            this.selectedProducts = this.selectedProducts.filter(p => !selectedSet.has(p.rowKey));
-            this.selectedProducts = [...this.selectedProducts]; // force UI update
-            this.selectedRowIds = [];
-                
-            await refreshApex(this.quoteItemData);
-            this.showToast('ลบข้อมูลแล้ว', 'ลบรายการจากระบบสำเร็จ', 'success');
-
-        } catch (error) {
-            this.handleSaveError(error);
-        }
+        this.selectedRowIds = [];
+        alert('ลบรายการจาก UI สำเร็จแล้ว');
     }
     
     async handleSaveSuccess() {
@@ -415,66 +411,6 @@ export default class INID_OrderLine extends LightningElement {
     get isNextDisabled() {
         return !(this.selectedProducts && this.selectedProducts.length > 0);
     }
-
-    // Save all selected products
-    async handleDeleteSelected() {
-        if (!Array.isArray(this.selectedRowIds) || this.selectedRowIds.length === 0) {
-            this.showToast('ไม่มีรายการถูกเลือกเลย', 'กรุณาเลือกอย่างน้อย 1 รายการ', 'warning');
-            return;
-        }
-
-        const selectedSet = new Set(this.selectedRowIds);
-        const toBeDeleted = this.selectedProducts.filter(p => selectedSet.has(p.rowKey));
-
-        const confirmed = await LightningConfirm.open({
-            message: `คุณแน่ใจหรือไม่ว่าต้องการลบทั้งหมด ${toBeDeleted.length} รายการ`,
-            variant: 'header',
-            label: 'ยืนยันการลบ',
-            theme: 'warning'
-        });
-
-        if (!confirmed) return;
-
-        const idsToDeleteInDB = toBeDeleted.map(p => p.productOrderItemId);
-
-        try {
-            if (idsToDeleteInDB.length > 0) {
-                await deleteProductItems({ productOrderItemId: idsToDeleteInDB });
-            }
-
-            // 🔥 ลบออกจาก selectedProducts
-            this.selectedProducts = this.selectedProducts.filter(p => !selectedSet.has(p.rowKey));
-
-            // ✅ หลังลบแล้ว รีเช็กปุ่ม + ของสินค้าหลัก
-            const materialCodesWithAddons = new Set(
-                this.selectedProducts
-                    .filter(p => p.unitPrice === 0) // เป็น Add-on
-                    .map(p => p.code) // ดึง material code
-            );
-
-            this.selectedProducts = this.selectedProducts.map(p => {
-                if (p.unitPrice !== 0) {
-                    // เป็นสินค้าหลัก
-                    return {
-                        ...p,
-                        addonDisabled: materialCodesWithAddons.has(p.code)
-                    };
-                }
-                return p; // Add-on ไม่เปลี่ยน
-            });
-
-            this.selectedProducts = [...this.selectedProducts]; // refresh UI
-            this.selectedRowIds = [];
-
-            await refreshApex(this.quoteItemData);
-            this.showToast('ลบข้อมูลแล้ว', 'ลบรายการจากระบบสำเร็จ', 'success');
-
-        } catch (error) {
-            this.handleSaveError(error);
-        }
-    }
-
-
 
     handleSaveError(error) {
         console.error('Save Error:', JSON.stringify(error));
@@ -547,7 +483,7 @@ export default class INID_OrderLine extends LightningElement {
             variant: 'base',
             editableSalePrice: false,
             hlItemNumber: matchedMain.hlItemNumber || matchedMain.code,
-            productPriceBookId: matchedMain.id // ใช้ id สินค้าหลัก
+            productPriceBookId: matchedMain.id 
         };
 
         this.addAddonToProduct(addonProduct);
@@ -567,7 +503,7 @@ export default class INID_OrderLine extends LightningElement {
         );
         if (mainIndex >= 0) {
             this.selectedProducts.splice(mainIndex + 1, 0, addonProduct);
-            this.selectedProducts = [...this.selectedProducts]; // refresh UI
+            this.selectedProducts = [...this.selectedProducts]; 
         }
     }
 
@@ -595,7 +531,7 @@ export default class INID_OrderLine extends LightningElement {
                 };
             });
 
-            // 🔁 ลบของเก่า + insert ใหม่ทั้งหมด
+            // ลบของเก่า + insert ใหม่ทั้งหมด
             await replaceProductItems({
                 orderId: this.orderId,
                 products: recordsToInsert
