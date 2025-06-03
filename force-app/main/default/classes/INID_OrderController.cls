@@ -79,7 +79,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_Order_Item__c> fetchProductOrderItem(Id orderId) {
         return [
-            SELECT Id , INID_Material_Code__c , INID_SKU_Decription__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__c , INID_Product_Price_Book__r.INID_Unit__c, INID_Total__c , INID_Order__c , INID_Remark__c
+            SELECT Id , INID_Material_Code__c , INID_SKU_Decription__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__c , INID_Product_Price_Book__r.INID_Unit__c, INID_Total__c , INID_Order__c , INID_Remark__c , INID_HL_Item_Number__c
             FROM INID_Product_Order_Item__c                                                                          
             WHERE INID_Order__c = :orderId 
         ];
