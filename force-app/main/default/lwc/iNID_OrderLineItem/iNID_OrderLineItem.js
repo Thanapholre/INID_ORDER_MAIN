@@ -371,38 +371,7 @@ export default class INID_OrderLine extends LightningElement {
         this.showToast('เปลี่ยนแปลงข้อมูล', 'เปลี่ยนแปลงข้อมูลสำเร็จ', 'success');
     }
 
-    handleRowSelection(event) {
-        const selectedRows = event.detail.selectedRows;
-        let newSelectedIds = [];
-
-        selectedRows.forEach(row => {
-            const isMain = row.salePrice !== 0;
-            newSelectedIds.push(row.rowKey || row.id);
-
-            if (isMain) {
-                const mainItem = this.selectedProducts.find(p =>
-                    p.rowKey === row.rowKey || p.id === row.id
-                );
-
-                if (mainItem?.code) {
-                    const relatedAddons = this.selectedProducts.filter(p =>
-                        p.salePrice === 0 && p.code === mainItem.code
-                    );
-                    relatedAddons.forEach(addon => {
-                        newSelectedIds.push(addon.rowKey || addon.id);
-                    });
-                }
-            }
-        });
-
-        this.selectedRowIds = [...new Set(newSelectedIds)];
-
-        const datatable = this.template.querySelector('lightning-datatable');
-        if (datatable) {
-            datatable.selectedRows = this.selectedRowIds;
-        }
-    }
-
+    
     handletest (){
         getPromotion({ orderId: this.recordId })
             .then(result => {
@@ -420,40 +389,160 @@ export default class INID_OrderLine extends LightningElement {
     }
  
 
-    async handleDeleteSelected() {
-        if (this.selectedRowIds.length === 0) {
+    // async handleDeleteSelected() {
+    //     if (this.selectedRowIds.length === 0) {
+    //         alert('ยังไม่เลือกสักรายการ');
+    //         return;
+    //     }
+
+    //     const selectedSet = new Set(this.selectedRowIds);
+
+    //     // กรองรายการที่จะลบ
+    //     const toDelete = this.selectedProducts.filter(p =>
+    //         selectedSet.has(p.rowKey || p.id)
+    //     );
+
+    //     // ลบจาก selectedProducts
+    //     this.selectedProducts = this.selectedProducts.filter(p =>
+    //         !selectedSet.has(p.rowKey || p.id)
+    //     );
+
+    //     // อัปเดตปุ่ม Add-on ของ Main ทุกตัว
+    //     this.selectedProducts = this.selectedProducts.map(main => {
+    //         if (main.unitPrice !== 0) {
+    //             const hasAddon = this.selectedProducts.some(addon =>
+    //                 addon.unitPrice === 0 &&
+    //                 addon.productPriceBookId === main.id // แยกเฉพาะ addon ที่ผูกกับ main ตัวนี้จริง ๆ
+    //             );
+    //             return { ...main, addonDisabled: hasAddon };
+    //         }
+    //         return main;
+    //     });
+
+
+    //     this.selectedRowIds = [];
+    //     alert('ลบรายการจาก UI สำเร็จแล้ว');
+    // }
+
+    handleRowSelection(event) {
+        const selectedRows = event.detail.selectedRows;
+        let newSelectedIds = [];
+        let selectedDetailItems = [];
+
+        selectedRows.forEach(row => {
+            const isMain = row.salePrice !== 0;
+            const type = isMain ? 'Main' : 'Add-On';
+
+            newSelectedIds.push(row.rowKey);
+
+            selectedDetailItems.push({
+                rowKey: row.rowKey,
+                code: row.code,
+                type: type
+            });
+
+            // ✅ แจ้งเมื่อเลือก Main
+            if (isMain) {
+                alert(`✅ เลือกสินค้า MAIN แล้ว:\n- รหัสวัตถุดิบ: ${row.code}\n- รหัสแถว: ${row.rowKey}`);
+
+                const mainItem = this.selectedProducts.find(p =>
+                    p.rowKey === row.rowKey
+                );
+
+                if (mainItem) {
+                    const addOnItems = this.selectedProducts.filter(p =>
+                        p.salePrice === 0 && p.code === mainItem.code
+                    );
+
+                    if (addOnItems.length > 0) {
+                        const addonList = addOnItems.map(a => `• ${a.rowKey}`).join('\n');
+                        alert(`📎 Add-On ที่เชื่อมกับ Main นี้:\n${addonList}`);
+                    } else {
+                        alert(`ℹ️ ไม่มี Add-On ที่เชื่อมกับ Main code: ${mainItem.code}`);
+                    }
+
+                    addOnItems.forEach(addon => {
+                        if (!newSelectedIds.includes(addon.rowKey)) {
+                            newSelectedIds.push(addon.rowKey);
+                            selectedDetailItems.push({
+                                rowKey: addon.rowKey,
+                                code: addon.code,
+                                type: 'Add-On'
+                            });
+                        }
+                    });
+                }
+
+            } else {
+                // ✅ แจ้งเมื่อเลือก Add-On
+                const relatedMain = this.selectedProducts.find(p =>
+                    p.salePrice !== 0 && p.code === row.code
+                );
+
+                if (relatedMain) {
+                    alert(`🟦 เลือกสินค้า ADD-ON:\n- รหัสวัตถุดิบ: ${row.code}\n- รหัสแถว: ${row.rowKey}\n👉 เชื่อมกับ Main: ${relatedMain.rowKey}`);
+                } else {
+                    alert(`⚠️ เลือก Add-On ที่มีรหัส ${row.code} แต่ไม่พบ Main ที่เกี่ยวข้อง`);
+                }
+            }
+        });
+
+        this.selectedRowIds = [...new Set(newSelectedIds)];
+        this.selectedDetailItems = selectedDetailItems;
+
+        const datatable = this.template.querySelector('lightning-datatable');
+        if (datatable) {
+            datatable.selectedRows = this.selectedRowIds;
+        }
+
+        // ✅ แสดงรายการที่เลือกทั้งหมดใน console
+        console.log('📝 รายการที่เลือกทั้งหมด:', JSON.stringify(this.selectedDetailItems, null, 2));
+    }
+
+
+
+
+    handleDeleteSelected() {
+        if (!this.selectedDetailItems || this.selectedDetailItems.length === 0) {
             alert('ยังไม่เลือกสักรายการ');
             return;
         }
 
-        const selectedSet = new Set(this.selectedRowIds);
+        const deleteKeys = new Set(this.selectedDetailItems.map(item => item.rowKey));
 
-        // กรองรายการที่จะลบ
-        const toDelete = this.selectedProducts.filter(p =>
-            selectedSet.has(p.rowKey || p.id)
-        );
+        // ✅ แยกรายการที่จะลบตามประเภท
+        const mainItems = this.selectedDetailItems.filter(item => item.type === 'Main');
+        const addOnItems = this.selectedDetailItems.filter(item => item.type === 'Add-On');
 
-        // ลบจาก selectedProducts
-        this.selectedProducts = this.selectedProducts.filter(p =>
-            !selectedSet.has(p.rowKey || p.id)
-        );
+        // ✅ แสดงรายการที่จะลบ
+        if (mainItems.length > 0) {
+            const mainCodes = mainItems.map(m => `• ${m.code} (rowKey: ${m.rowKey})`).join('\n');
+            alert(`🟥 กำลังลบรายการ MAIN ดังนี้:\n${mainCodes}`);
+        }
 
-        // อัปเดตปุ่ม Add-on ของ Main ทุกตัว
-        this.selectedProducts = this.selectedProducts.map(main => {
-            if (main.unitPrice !== 0) {
-                const hasAddon = this.selectedProducts.some(addon =>
-                    addon.unitPrice === 0 &&
-                    addon.productPriceBookId === main.id // แยกเฉพาะ addon ที่ผูกกับ main ตัวนี้จริง ๆ
-                );
-                return { ...main, addonDisabled: hasAddon };
-            }
-            return main;
-        });
+        if (addOnItems.length > 0) {
+            const addonCodes = addOnItems.map(a => `• ${a.code} (rowKey: ${a.rowKey})`).join('\n');
+            alert(`🟦 กำลังลบรายการ ADD-ON ดังนี้:\n${addonCodes}`);
+        }
 
+        // ✅ ลบออกจากข้อมูลหลัก
+        this.selectedProducts = this.selectedProducts.filter(p => !deleteKeys.has(p.rowKey));
 
+        // ✅ ล้าง selection
         this.selectedRowIds = [];
-        alert('ลบรายการจาก UI สำเร็จแล้ว');
+        this.selectedDetailItems = [];
+
+        // ✅ เคลียร์ UI datatable
+        const datatable = this.template.querySelector('lightning-datatable');
+        if (datatable) {
+            datatable.selectedRows = [];
+        }
+
+        alert('✅ ลบรายการที่เลือกเรียบร้อยแล้ว');
     }
+
+
+
 
 
 
