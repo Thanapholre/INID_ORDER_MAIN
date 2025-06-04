@@ -270,6 +270,10 @@ th , td {
     font-size: 14px;
 }
 
+.hide-button .slds-button {
+    display: none;
+}
+
 /* End CSS Table */
 
 

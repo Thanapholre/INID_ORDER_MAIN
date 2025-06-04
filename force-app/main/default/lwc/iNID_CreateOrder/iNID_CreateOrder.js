@@ -15,6 +15,9 @@ import PAYMENT_TYPE_FIELD from '@salesforce/schema/Account.Payment_type__c';
 import PAYMENT_TERM_FIELD from '@salesforce/schema/Account.Payment_term__c';
 import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__c';
 import ACCOUNT_ID from '@salesforce/schema/Account.Id';
+import LightningConfirm from 'lightning/confirm';
+import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
+
 
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
@@ -67,6 +70,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track globalQuoteId ;
     @track quoteItemValue = [] ;
     @track accountId;
+    @track orderId ;
   
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
@@ -133,11 +137,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-
     //fetch Customer
     @wire(fetchCustomers)
     wiredAccounts({ error, data }) {
-        // alert('record Id is : ' + this.recordId);
         if (data) {
             this.accounts = data;
         } else if (error) {
@@ -340,7 +342,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     handleSelectQuote(event) {
         const quoteId = event.currentTarget.dataset.id;
         this.globalQuoteId = quoteId ;
-        // alert('globalQuote : ' + this.globalQuoteId); 
         const selectedQuote = this.quotation.find(q => q.Id === quoteId);
 
         if (selectedQuote && selectedQuote.Account) {
@@ -359,7 +360,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     handleBlurQuote() {
         setTimeout(() => {
             this.showDropdownQuote = false;
-            // this.showDropdown = false; 
         }, 200); 
     }
 
@@ -469,10 +469,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 })
             );
         } else if (selected) {
-            // const hlItemNumber = selected.INID_Material_Code__c;
             const product = this.mapProduct(selected, [] , this.hlNumber);
             this.selectedProducts = [...this.selectedProducts, product];
-
             console.log('selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
         }
 
@@ -556,12 +554,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             productPriceBookId: matchedMain.productPriceBookId
         };
 
-        // alert('nameBtn is a : ' + JSON.stringify(addonProduct.nameBtn , null , 2)) ;
-
-        // แทรก Add-on ใต้สินค้าหลัก
         this.addAddonToProduct(addonProduct);
-
-        // ปิดปุ่ม Add-on บนสินค้าหลัก
         this.selectedProducts[matchedMainIndex].addonDisabled = true;
 
         this.dispatchEvent(new ShowToastEvent({
@@ -571,7 +564,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }));
 
         this.isPopupOpenFreeGood = false;
-        // this.currentMaterialCodeForAddOn = '';
         this.selectedValue = '';
     }
 
@@ -598,8 +590,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (index === -1) return;
         addonProduct.id = `${this.currentMaterialCodeForAddOn}_${Date.now()}`;
         addonProduct.isAddOn = true; 
-        // addonProduct.recordId = this.recordId
-        // addonProduct.buttonLabel = ''; 
         addonProduct.addOnText = addonProduct.displaylabel; 
         const newData = [...this.selectedProducts];
         newData.splice(index + 1, 0, addonProduct);
@@ -620,16 +610,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     handleSaveEditedRows(event) {
         const updatedValues = event.detail.draftValues;
-        // alert(JSON.stringify(updatedValues, null, 2));
-
-
         this.selectedProducts = this.selectedProducts.map(product => {
-            const updated = updatedValues.find(d => d.rowKey === product.rowKey);
-            // alert(JSON.stringify(updated, null, 2));
-
-            
+            const updated = updatedValues.find(d => d.rowKey === product.rowKey);            
             if (updated) {
-                // alert('update this data successfully');
                 const qty = Number(updated.quantity ?? product.quantity);
                 const price = Number(updated.salePrice ?? product.salePrice);
                 return {
@@ -675,9 +658,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     async handleDeleteSelected() {
         if (this.selectedRowIds.length === 0) {
-            alert('ไม่ได้เลือกสักรายการ');
+             this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'แจ้งเตือน',
+                    message: 'กรุณาเลือกรายการอย่างน้อย 1 รายการ',
+                    variant: 'warning'
+                })
+            );
             return;
         }
+
+         const result = await LightningConfirm.open({
+            message: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก?',
+            label: 'ยืนยันการลบรายการ',
+            variant: 'destructive' 
+        });
+
+        if (!result) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'ยกเลิกการลบ',
+                message: 'ระบบไม่ได้ลบรายการใด ๆ',
+                variant: 'info'
+            }));
+            return;
+        }   
 
         const selectedSet = new Set(this.selectedRowIds);
         const addonsToDelete = this.selectedProducts.filter(p => 
@@ -698,7 +702,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         );
 
         this.selectedRowIds = [];
-        alert('ลบรายการจาก UI สำเร็จแล้ว');
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'สำเร็จ',
+                message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
+                variant: 'success',
+            })
+        );
     }
 
     showProductCode() {
@@ -876,10 +886,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //Apply Promotion
     // ---------------------------------------------------------------------------
 
-    applypromotionColumns = [
-        { label: 'Promotion' , fieldName: 'promotion', type: 'text'},
-        { label: 'Description' , fieldName: 'description', type: 'text'},
-    ]
+
 
     // ---------------------------------------------------------------------------
     // Start: Sumary
@@ -986,12 +993,64 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }, 50); // wait for DOM to be visible
     }
 
+    @track promotionData = [];
+
+    applypromotionColumns = [
+        { label: 'ชื่อโปรโมชั่น', fieldName: 'INID_Promotion_Name__c', type: 'text' },
+        { label: 'ส่วนลด (%)', fieldName: 'INID_Discount__c', type: 'number' },
+        { label: 'ส่วนลดเงินสด (บาท)', fieldName: 'INID_Discount_Amount__c', type: 'number' }
+    ];
+
 
     showApplyPromotion() {
         this.isShowApplyPromotion = true ;
         this.isShowAddProduct = false ;
         this.isShowOrder = false ;
+
+        const mockPromotionData = {
+            filterPromotion: [
+                "a0T1x000001ABC"
+            ],
+            filterBenefit: [
+                {
+                    Id: "a0X1x000002B001",
+                    INID_Promotion_Name__c: "Test Promotion",
+                    INID_Discount_Amount__c: 1000000,
+                    INID_Discount__c: 1 ,
+                    INID_Type__c: 'Main'
+                },
+                {
+                    Id: "a0X1x000002B002",
+                    INID_Promotion_Name__c: "โปรลับแจกหนัก",
+                    INID_Discount_Amount__c: 100,
+                    INID_Discount__c: 10 ,
+                    INID_Type__c: 'Add On'
+                }
+            ]
+        };
+
+
+        alert('filter promotion : ' + mockPromotionData.filterPromotion) ;
+
+        // this.applypromotion = mockPromotionData;
+        this.promotionList = mockPromotionData.filterPromotion;
+
+        if (mockPromotionData.filterBenefit) {
+            this.applypromotion = mockPromotionData.filterBenefit.filter(item => item.INID_Type__c === 'Main');
+        }
+
         
+        // alert('กำลังโหลดโปรโมชั่นของ Order Id: ' + this.orderId);
+        // getPromotion({ orderId: this.orderId })
+        //     .then(result => {
+        //         alert('Promotion Result: ' + JSON.stringify(result));
+        //         this.promotionData = result;
+        //         alert('Stored promotionData: ' + JSON.stringify(this.promotionData));
+        // })
+        //     .catch(error => {
+        //         console.error('Error fetching promotion data:', error);
+        //         alert('โหลดโปรโมชั่นล้มเหลว: ' + JSON.stringify(error));
+        // });
     }
 
     get hasSelectedProducts() {
@@ -1172,7 +1231,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         try {
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
-            alert('this order id : ' + this.orderId)
             await this.insertOrderItemListFunction(this.orderId); 
         } catch (error) {
             this.handleSaveError(error);
@@ -1212,7 +1270,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
         console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
         try {
-            await insertOrderItem({ orderList: orderItemList });
+            await insertOrderItem({ orderList: orderItemList, accountId: this.accountId });
             this.handleSaveSuccess();
             setTimeout(() => {
                 this.dispatchEvent(new CloseActionScreenEvent());
@@ -1227,7 +1285,21 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.handleSaveError({ message: 'AccountId is missing, please wait or reload.' });
             return;
         } 
-        await this.insertOrderDetailFunction();   
+        const result = await LightningConfirm.open({
+            message: 'คุณต้องการบันทึกคำสั่งซื้อนี้ใช่หรือไม่?',
+            label: 'ยืนยันการบันทึก',
+            variant: 'header', 
+        });
+
+        if (result) {
+            await this.insertOrderDetailFunction();
+        } else {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'ยกเลิกการบันทึก',
+                message: 'ระบบไม่ได้ทำการบันทึกข้อมูล',
+                variant: 'info'
+            }));
+        }   
     }
 
     handleSaveError(error) {
