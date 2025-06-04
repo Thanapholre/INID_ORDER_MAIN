@@ -375,17 +375,36 @@
     <!-- Start Apply Promotion -->
 
     <template if:true={isShowApplyPromotion} >
-        <lightning-quick-action-panel header="Apply Promotion" class="title_product">
-            <div style="width: 90vw; height: 200px" >
+        <lightning-quick-action-panel header="Apply Promotions" class="title_product">
+            <div style="width: 90vw; height: auto" class="main_order" >
                 <!--Table Apply Promotion -->
-                <div class="datatable-container slds-m-top_medium main_product">
-                    <lightning-datatable
-                        key-field="id"
-                        data={applypromotion}
-                        columns={applypromotionColumns}
-                        class="slds-m-top_medium main_product">
-                    </lightning-datatable>
-                </div>
+                <lightning-card>
+                    <div class="slds-p-around_medium">
+                        <template for:each={comboGroups} for:item="group">
+                            <div key={group.promotionId} class="slds-m-bottom_medium" style="border: 1px solid black; margin-bottom: 20px; border-radius: 12px; background-color: white;" >
+                                <!-- Promotion Header -->
+                                <div class={group.className} onclick={handleTogglePromotion} data-promoid={group.promotionId}>
+                                    <span>{group.promotionName}</span>
+                                    <span class="arrow">{group.arrowSymbol}</span>
+                                </div>
+
+                                <!-- Benefits -->
+                                <template if:true={group.isSelected}>
+                                    <template for:each={group.benefits} for:item="benefit">
+                                        <div key={benefit.Id} class={benefit.className}
+                                            onclick={handleToggleBenefit}
+                                            data-promoid={group.promotionId}
+                                            data-benefitid={benefit.Id}
+                                            style="margin: 20px;" >
+                                            {benefit.Name}
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </lightning-card>
+
                 <!-- Table Apply Promotion -->
             </div>
 
@@ -402,8 +421,8 @@
                     
             </div>
             <!-- End Footer -->
-            <div class="heighter" ></div>
         </lightning-quick-action-panel>
+        <div class="heighter" ></div>
     </template>
     
      <!-- End Apply Promotion -->

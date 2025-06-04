@@ -121,7 +121,7 @@ export default class INID_OrderLine extends LightningElement {
             const addonProducts = [];
 
             data.forEach(item => {
-                const isAddon = item.INID_Remark__c !== null && item.INID_Remark__c !== undefined;
+                const isAddon = item.INID_Sale_Price__c === 0;
 
                 const productObj = {
                     rowKey: item.Id,
@@ -138,7 +138,8 @@ export default class INID_OrderLine extends LightningElement {
                     nameBtn: isAddon ? item.INID_Remark__c : '+',
                     variant: isAddon ? 'base' : 'brand',
                     addonDisabled: false,
-                    isAddOn: isAddon
+                    isAddOn: isAddon ,
+                    productPriceBookId: item.INID_Product_Price_Book__r.Id,
                 };
 
                 if (isAddon) {
@@ -439,6 +440,17 @@ export default class INID_OrderLine extends LightningElement {
 
         // ลบออกจากข้อมูลหลัก
         this.selectedProducts = this.selectedProducts.filter(p => !deleteKeys.has(p.rowKey));
+        addOnItems.forEach(deletedAddon => {
+            const relatedMain = this.selectedProducts.find(main =>
+                main.unitPrice !== 0 && main.code === deletedAddon.code
+            );
+            if (relatedMain) {
+                const hasOtherAddon = this.selectedProducts.some(item =>
+                    item.unitPrice === 0 && item.code === relatedMain.code
+                );
+                relatedMain.addonDisabled = hasOtherAddon;
+            }
+        });
 
         // ล้าง selection
         this.selectedRowIds = [];
@@ -452,11 +464,6 @@ export default class INID_OrderLine extends LightningElement {
 
         alert(' ลบรายการที่เลือกเรียบร้อยแล้ว');
     }
-
-
-
-
-
 
     async handleSaveSuccess() {
         this.showToast('รายการแจ้งเตือน', 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว', 'success');
@@ -565,66 +572,27 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
-    // async handleSave() {
-    //     if (!this.recordId || !this.orderId) {
-    //         this.showToast('Error', 'ไม่พบ Order หรือ Quote Id', 'error');
-    //         return;
-    //     }
-
-    //     try {
-    //         const recordsToInsert = this.selectedProducts.map((prod, index) => {
-    //             const isAddon = prod.unitPrice === 0;
-    //             const formattedNumber = ((index + 1) * 10).toString().padStart(6, '0');
-
-    //             return {
-    //                 INID_Quantity__c: parseFloat(prod.quantity),
-    //                 INID_Sale_Price__c: parseFloat(prod.salePrice),
-    //                 INID_Quote__c: this.recordId,
-    //                 INID_Order__c: this.orderId,
-    //                 INID_Product_Price_Book__c: isAddon ? prod.productPriceBookId : prod.id,
-    //                 INID_Type__c: isAddon ? 'AddOn' : 'Main',
-    //                 INID_Remark__c: isAddon ? prod.nameBtn : null,
-    //                 INID_HL_Number__c: index + 1,
-    //                 INID_Item_Number__c: formattedNumber
-    //             };
-    //         });
-
-    //         // ลบของเก่า + insert ใหม่ทั้งหมด
-    //         await replaceProductItems({
-    //             orderId: this.orderId,
-    //             products: recordsToInsert
-    //         });
-
-    //         this.showToast('สำเร็จ', 'ลบของเก่าและบันทึกข้อมูลใหม่เรียบร้อยแล้ว', 'success');
-    //         this.selectedProducts = [];
-
-    //         setTimeout(() => {
-    //             window.location.reload();
-    //         }, 1000);
-
-    //     } catch (error) {
-    //         console.error('Save Error:', JSON.stringify(error));
-    //         this.showToast('เกิดข้อผิดพลาด', error.body?.message || error.message, 'error');
-    //     }
-    // }
-
     async handleSave() {
-        if (!this.recordId || !this.orderId) {
-            this.showToast('Error', 'ไม่พบ Order หรือ Quote Id', 'error');
-            return;
-        }
-
         try {
+            const confirmed = await LightningConfirm.open({
+                message: 'คุณแน่ใจหรือไม่ว่าต้องการบันทึกรายการ?',
+                variant: 'header', 
+                label: 'ยืนยันการบันทึก',
+            });
+
+            if (!confirmed) {
+                return;
+            }
+
             let hlNumber = 1;
             let recordsToInsert = [];
             let itemIndex = 1;
 
-            this.selectedProducts.forEach((prod, index) => {
-                const isAddon = prod.unitPrice === 0;
+            this.selectedProducts.forEach((prod) => {
+                const isAddon = prod.salePrice === 0;
 
-                // ถ้าเป็น Main จะเริ่ม HL ใหม่
                 if (!isAddon) {
-                    hlNumber = recordsToInsert.length + 1; // หรือจะใช้ตัวแปร counter hl ก็ได้
+                    hlNumber = recordsToInsert.length + 1;
                 }
 
                 const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
@@ -635,10 +603,10 @@ export default class INID_OrderLine extends LightningElement {
                     INID_Quote__c: this.recordId,
                     INID_Order__c: this.orderId,
                     INID_Product_Price_Book__c: isAddon ? prod.productPriceBookId : prod.id,
-                    INID_Type__c: isAddon ? 'AddOn' : 'Main',
+                    INID_Type__c: isAddon ? 'Add On' : 'Main',
                     INID_Remark__c: isAddon ? prod.nameBtn : null,
                     INID_HL_Number__c: hlNumber,
-                    INID_Item_Number__c: formattedNumber
+                    INID_Item_Number__c: formattedNumber,
                 });
 
                 itemIndex++;
@@ -658,7 +626,8 @@ export default class INID_OrderLine extends LightningElement {
 
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error));
-            this.showToast('เกิดข้อผิดพลาด', error.body?.message || error.message, 'error');
+            // this.showToast('เกิดข้อผิดพลาด', error.body?.message || error.message, 'error');
+            alert('error : ' + JSON.stringify(error, null , 2)) ;
         }
     }
 

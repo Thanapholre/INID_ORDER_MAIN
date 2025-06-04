@@ -912,6 +912,22 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.isShowSummary = true;
         this.isShowApplyPromotion = false;
         this.summaryProducts = [];
+
+        // สร้างข้อความสรุปโปรโมชั่นที่เลือกไว้
+        let summaryText = 'คุณเลือกโปรโมชั่นดังนี้:\n';
+
+        const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
+
+        selectedPromotions.forEach(group => {
+            const selectedBenefits = group.benefits.filter(b => b.selected);
+            const benefitNames = selectedBenefits.map(b => `- ${b.Name}`).join('\n') || '- (ยังไม่เลือก Benefit)';
+            summaryText += `\n📌 ${group.promotionName}:\n${benefitNames}\n`;
+        });
+
+        // ✅ แสดงผลผ่าน alert
+        alert(summaryText);
+
+        // ⚙️ สรุปรายการสินค้า
         const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
 
         mainProducts.forEach(main => {
@@ -942,6 +958,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
     }
 
+
     backtoProduct(){
         this.isShowAddProduct = true;
         this.isShowApplyPromotion = false ;
@@ -962,96 +979,115 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     // ---------------------------------------------------------------------------
 
     //Plain Text
-   
-
     openAddProduct() {
         if(!this.validateOrder()){
             return;
         }
-
         this.isShowAddProduct = true;
         this.isShowOrder = false;
-    
-        setTimeout(() => {
-            const table = this.template.querySelector('.product-table');
-            if (!this.dataTableInstanceAddProduct && table) {
-                Promise.all([
-                    loadScript(this, jquery + '/jquery.min.js'),
-                    loadScript(this, datatables + '/jquery.dataTables.min.js'),
-                    loadStyle(this, datatables + '/jquery.dataTables.min.css')
-                ])
-                .then(() => {
-                    this.initializeDataTable();
-                    this.dataTableInstanceAddProduct = true;
-                    this.updateDataTable();
-                })
-                .catch(error => console.error('DataTables Load Error:', error));
-            } else if (this.dataTableInstance) {
-                // this.dataTableInstanceAddProduct.clear().draw();
-                this.updateDataTable();
-            }
-        }, 50); // wait for DOM to be visible
     }
 
-    @track promotionData = [];
 
-    applypromotionColumns = [
-        { label: 'ชื่อโปรโมชั่น', fieldName: 'INID_Promotion_Name__c', type: 'text' },
-        { label: 'ส่วนลด (%)', fieldName: 'INID_Discount__c', type: 'number' },
-        { label: 'ส่วนลดเงินสด (บาท)', fieldName: 'INID_Discount_Amount__c', type: 'number' }
-    ];
-
+    @track promotionOptions = [];
+    @track benefitOptions = [];
+    @track selectedPromotionId = null;
+    @track selectedBenefitId = null;
+    @track comboGroups = [];
 
     showApplyPromotion() {
         this.isShowApplyPromotion = true ;
         this.isShowAddProduct = false ;
         this.isShowOrder = false ;
-
+        
         const mockPromotionData = {
-            filterPromotion: [
-                "a0T1x000001ABC"
-            ],
-            filterBenefit: [
+            promotions: [
                 {
-                    Id: "a0X1x000002B001",
-                    INID_Promotion_Name__c: "Test Promotion",
-                    INID_Discount_Amount__c: 1000000,
-                    INID_Discount__c: 1 ,
-                    INID_Type__c: 'Main'
+                    id: "a0G85000000xavVEAQ",
+                    name: "Promotion 1",
+                    benefits: [
+                        { Id: "b1", Name: "Discount Amount" },
+                        { Id: "b2", Name: "Discount Percent" },
+                        { Id: "b3", Name: "Free Product (Ratio)" },
+                        { Id: "b4", Name: "Free Product (Fix Quantity)" },
+                        { Id: "b5", Name: "Set Price" }
+                    ]
                 },
                 {
-                    Id: "a0X1x000002B002",
-                    INID_Promotion_Name__c: "โปรลับแจกหนัก",
-                    INID_Discount_Amount__c: 100,
-                    INID_Discount__c: 10 ,
-                    INID_Type__c: 'Add On'
-                }
+                    id: "a0G85000000xavWEAR",
+                    name: "Promotion 2",
+                    benefits: [
+                        { Id: "b6", Name: "Buy 1 Get 1,000,000" },
+                        { Id: "b7", Name: "Buy 1 Get 1" },
+                        { Id: "b8", Name: "Buy 9 Get 1" }
+                    ]
+                },
+                {
+                    id: "a0G85000000xavVEAQM",
+                    name: "Promotion 3",
+                    benefits: [
+                        { Id: "b9", Name: "Discount Amount" },
+                        { Id: "b10", Name: "Discount Percent" },
+                        { Id: "b11", Name: "Free Product (Ratio)" },
+                        { Id: "b12", Name: "Free Product (Fix Quantity)" },
+                        { Id: "b13", Name: "Set Price" }
+                    ]
+                },
             ]
         };
 
-
-        alert('filter promotion : ' + mockPromotionData.filterPromotion) ;
-
-        // this.applypromotion = mockPromotionData;
-        this.promotionList = mockPromotionData.filterPromotion;
-
-        if (mockPromotionData.filterBenefit) {
-            this.applypromotion = mockPromotionData.filterBenefit.filter(item => item.INID_Type__c === 'Main');
-        }
-
-        
-        // alert('กำลังโหลดโปรโมชั่นของ Order Id: ' + this.orderId);
-        // getPromotion({ orderId: this.orderId })
-        //     .then(result => {
-        //         alert('Promotion Result: ' + JSON.stringify(result));
-        //         this.promotionData = result;
-        //         alert('Stored promotionData: ' + JSON.stringify(this.promotionData));
-        // })
-        //     .catch(error => {
-        //         console.error('Error fetching promotion data:', error);
-        //         alert('โหลดโปรโมชั่นล้มเหลว: ' + JSON.stringify(error));
-        // });
+        this.comboGroups = mockPromotionData.promotions.map(promo => ({
+            promotionId: promo.id,
+            promotionName: promo.name,
+            isSelected: false,
+            arrowSymbol: '▾',
+            className: 'promotion-box',
+            benefits: promo.benefits.map(b => ({
+                ...b,
+                selected: false,
+                className: 'benefit-box'
+            }))
+        }));
     }
+
+    handleTogglePromotion(event) {
+        const promoId = event.currentTarget.dataset.promoid;
+        this.comboGroups = this.comboGroups.map(group => {
+            if (group.promotionId === promoId) {
+                const updated = {
+                    ...group,
+                    isSelected: !group.isSelected
+                };
+                updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
+                updated.arrowSymbol = updated.isSelected ? '▴' : '▾';
+                return updated;
+            }
+            return group;
+        });
+    }
+
+    handleToggleBenefit(event) {
+        const promoId = event.currentTarget.dataset.promoid;
+        const benefitId = event.currentTarget.dataset.benefitid;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            if (group.promotionId === promoId) {
+                const updatedBenefits = group.benefits.map(b => {
+                    return {
+                        ...b,
+                        selected: b.Id === benefitId, 
+                        className: b.Id === benefitId ? 'benefit-box selected' : 'benefit-box'
+                    };
+                });
+
+                return {
+                    ...group,
+                    benefits: updatedBenefits
+                };
+            }
+            return group;
+        });
+    }
+
 
     get hasSelectedProducts() {
         return this.selectedProducts && this.selectedProducts.length > 0;

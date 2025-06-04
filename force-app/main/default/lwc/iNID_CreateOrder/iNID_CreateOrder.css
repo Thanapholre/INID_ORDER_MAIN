@@ -366,6 +366,49 @@ th , td {
 }
 
 
+.promotion-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.promotion-box {
+    border: 1px solid #000;
+    border-radius: 10px;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #f9f9f9;
+}
+
+.promotion-box.selected {
+    border-color: #0070d2;
+    background-color: #e6f4ff;
+}
+
+.benefit-box {
+    border: 2px solid #aaa;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 6px 0 0px 24px;
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.benefit-box.selected {
+    border-color: #2e8540;
+    background-color: #e6ffe6;
+}
+
+.arrow {
+    font-size: 18px;
+}
+
+
+
 
 
 /* ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒ */
