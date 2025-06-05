@@ -75,13 +75,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track orderId ;
   
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }},
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }}, 
-        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', } , initialWidth: 110},
-        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 150 }, 
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 120},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }, initialWidth: 200}, 
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', }, initialWidth: 140},
+        { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100}, 
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'center'} , initialWidth: 175},
-        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 70},
-        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 140},
+        { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } , initialWidth: 100 },
+        { label: 'Total', fieldName: 'total', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true ,  cellAttributes: { alignment: 'right' } },
         { 
             label: 'Add On', 
             type: 'button',
@@ -95,8 +95,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             cellAttributes: {
                 alignment: 'center',
                 class: 'slds-text-align_center'
-            } ,
-            initialWidth: 170
+            }
         }
     ];
 
@@ -927,13 +926,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         selectedPromotions.forEach(group => {
             const selectedBenefits = group.benefits.filter(b => b.selected);
             const benefitNames = selectedBenefits.map(b => `- ${b.Name}`).join('\n') || '- (ยังไม่เลือก Benefit)';
-            summaryText += `\n📌 ${group.promotionName}:\n${benefitNames}\n`;
+            summaryText += `\n ${group.promotionName}:\n${benefitNames}\n`;
         });
 
-        // ✅ แสดงผลผ่าน alert
+        // แสดงผลผ่าน alert
         alert(summaryText);
 
-        // ⚙️ สรุปรายการสินค้า
+        // สรุปรายการสินค้า
         const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
 
         mainProducts.forEach(main => {
@@ -963,7 +962,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             });
         });
     }
-
 
     backtoProduct(){
         this.isShowAddProduct = true;
@@ -1035,7 +1033,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 promotionId: promo.id,
                 promotionName: promo.name,
                 isSelected: false,
-                arrowSymbol: '▾',
+                arrowSymbol: 'fa-solid fa-circle-chevron-down',
                 className: 'promotion-box',
                 benefits: promo.benefits.map(b => ({
                     ...b,
@@ -1057,9 +1055,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     isSelected: !group.isSelected
                 };
                 updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
-                 updated.arrowSymbol = updated.isSelected
-                    ? '<i class="fa-solid fa-circle-chevron-up"></i>'
-                    : '<i class="fa-solid fa-circle-chevron-down"></i>';
+                updated.arrowIconClass = updated.isSelected
+                    ? 'fa-solid fa-circle-chevron-up'
+                    : 'fa-solid fa-circle-chevron-down';
+
                 return updated;
             }
             return group;
@@ -1356,4 +1355,60 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }));
     }
     //End Handle Save 
+
+
+
+
+
+    // test
+    @track selectedPromotion = true;
+
+    columnstest= [
+        { label: 'Promotion Name', fieldName: 'name' },
+        { label: 'Description', fieldName: 'description' },
+        {
+            type: 'action',
+            typeAttributes: {
+                rowActions: [{ label: 'View Details', name: 'view_details' }]
+            }
+        }
+    ];
+
+    subColumns = [
+        { label: 'Material Code', fieldName: 'materialCode' },
+        { label: 'SKU Description', fieldName: 'description' },
+        { label: 'Quantity', fieldName: 'quantity' },
+        { label: 'Unit', fieldName: 'unit' },
+        { label: 'Sale Price', fieldName: 'salePrice' },
+        { label: 'Remark', fieldName: 'remark' }
+    ];
+
+    mainTableData = [
+        {
+            id: 'p1',
+            name: 'ซื้อสินค้ากลุ่ม XXXX ครบ 2,500 บาท',
+            description: 'แถมฟรี xxxxxx 1 ชิ้น (EXP 13/05/2026)',
+            products: [
+                {
+                    materialCode: '1000000xxxx',
+                    description: 'xxxxxxx',
+                    quantity: 1,
+                    unit: 'Box',
+                    salePrice: '0.00',
+                    remark: 'EXP 13/05/2026'
+                }
+            ]
+        }
+        // เพิ่มได้อีกหลายโปร
+    ];
+
+    handleRowActiontest(event) {
+        const actionName = event.detail.action.name;
+        const row = event.detail.row;
+
+        if (actionName === 'view_details') {
+            this.selectedPromotion = row;
+        }
+    }
+
 }

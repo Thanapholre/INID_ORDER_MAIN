@@ -119,35 +119,38 @@ export default class INID_OrderLine extends LightningElement {
         if (data) {
             const mainProducts = [];
             const addonProducts = [];
+           
+            data.forEach(row => {
+            const isAddon = row.INID_Sale_Price__c === 0;
+            const quantity = Number(row.INID_Quantity__c) || 0;
+            const salePrice = Number(row.INID_Sale_Price__c) || 0;
+            const total = parseFloat((quantity * salePrice).toFixed(2));
 
-            data.forEach(item => {
-                const isAddon = item.INID_Sale_Price__c === 0;
+            const productObj = {
+                rowKey: row.Id,
+                code: row.INID_Material_Code__c,
+                hlItemNumber: row.INID_HL_Item_Number__c,
+                id: row.INID_Product_Price_Book__r?.Id,
+                productCode: row.INID_Material_Code__c || '',
+                description: row.INID_SKU_Decription__c,
+                unitPrice: row.INID_Product_Price_Book__r?.INID_Unit_Price__c || 0,
+                quantity,
+                salePrice,
+                unit: row.INID_Product_Price_Book__r?.INID_Unit__c || '',
+                total,
+                nameBtn: isAddon ? row.INID_Remark__c : '+',
+                variant: isAddon ? 'base' : 'brand',
+                addonDisabled: false,
+                isAddOn: isAddon,
+                productPriceBookId: row.INID_Product_Price_Book__r?.Id
+            };
 
-                const productObj = {
-                    rowKey: item.Id,
-                    code: item.INID_Material_Code__c,
-                    hlItemNumber: item.INID_HL_Item_Number__c,
-                    id: item.INID_Product_Price_Book__r.Id,
-                    productCode: item.INID_Material_Code__c || '',
-                    description: item.INID_SKU_Decription__c,
-                    unitPrice: item.INID_Product_Price_Book__r.INID_Unit_Price__c,
-                    quantity: item.INID_Quantity__c,
-                    salePrice: item.INID_Sale_Price__c,
-                    unit: item.INID_Product_Price_Book__r.INID_Unit__c,
-                    total: item.INID_Quantity__c * item.INID_Sale_Price__c,
-                    nameBtn: isAddon ? item.INID_Remark__c : '+',
-                    variant: isAddon ? 'base' : 'brand',
-                    addonDisabled: false,
-                    isAddOn: isAddon ,
-                    productPriceBookId: item.INID_Product_Price_Book__r.Id,
-                };
-
-                if (isAddon) {
-                    addonProducts.push(productObj);
-                } else {
-                    mainProducts.push(productObj);
-                }
-            });
+            if (isAddon) {
+                addonProducts.push(productObj);
+            } else {
+                mainProducts.push(productObj);
+            }
+        });
 
             // ปิดปุ่ม Add-on ของ Main ถ้ามี Add-on แล้ว
             mainProducts.forEach(main => {
@@ -326,17 +329,41 @@ export default class INID_OrderLine extends LightningElement {
     // Save edited rows
     handleSaveEditedRows(event) {
         const updatedValues = event.detail.draftValues;
+
         this.selectedProducts = this.selectedProducts.map(product => {
-            const updated = updatedValues.find(d => d.rowKey === product.rowKey || d.rowKey === product.id);
+            const updated = updatedValues.find(d => d.rowKey === product.rowKey);            
             if (updated) {
                 const qty = Number(updated.quantity ?? product.quantity);
-                const price = Number(updated.salePrice ?? product.salePrice);
-                return { ...product, quantity: qty, salePrice: price, total: qty * price };
+
+                let rawPrice = updated.salePrice ?? product.salePrice;
+
+                // ✅ ล้างสัญลักษณ์ ฿ และ comma
+                if (typeof rawPrice === 'string') {
+                    rawPrice = rawPrice.replace(/[฿,]/g, '');
+                }
+
+                const price = Number(parseFloat(rawPrice).toFixed(2));
+                const total = Number((qty * price).toFixed(2));
+
+                return {
+                    ...product,
+                    ...updated,
+                    quantity: qty,
+                    salePrice: price,
+                    total: total  
+                };
             }
-            return product;
+            return product; 
         });
-        this.draftValues = [];
-        this.showToast('เปลี่ยนแปลงข้อมูล', 'เปลี่ยนแปลงข้อมูลสำเร็จ', 'success');
+
+        this.draftValues = []; 
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: 'Edit field successfully',
+                variant: 'success'
+            })
+        );
     }
 
     
@@ -385,9 +412,7 @@ export default class INID_OrderLine extends LightningElement {
 
                     if (addOnItems.length > 0) {
                         const addonList = addOnItems.map(a => `• ${a.rowKey}`).join('\n');
-                    } else {
-                        alert(`ไม่มี Add-On ที่เชื่อมกับ Main code: ${mainItem.code}`);
-                    }
+                    } 
 
                     addOnItems.forEach(addon => {
                         if (!newSelectedIds.includes(addon.rowKey)) {
@@ -417,7 +442,7 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
-    handleDeleteSelected() {
+    async handleDeleteSelected() {
         if (!this.selectedDetailItems || this.selectedDetailItems.length === 0) {
             alert('ยังไม่เลือกสักรายการ');
             return;
@@ -436,6 +461,16 @@ export default class INID_OrderLine extends LightningElement {
 
         if (addOnItems.length > 0) {
             const addonCodes = addOnItems.map(a => `• ${a.code} (rowKey: ${a.rowKey})`).join('\n');
+        }
+
+        const confirmed = await LightningConfirm.open({
+            message: `คุณแน่ใจหรือไม่ว่าต้องการลบรายการต่อไปนี้?`,
+            variant: 'destructive',
+            label: 'ยืนยันการลบ',
+        });
+
+        if (!confirmed) {
+            return;
         }
 
         // ลบออกจากข้อมูลหลัก
@@ -462,7 +497,15 @@ export default class INID_OrderLine extends LightningElement {
             datatable.selectedRows = [];
         }
 
-        alert(' ลบรายการที่เลือกเรียบร้อยแล้ว');
+        
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'สำเร็จ',
+                message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
+                variant: 'success'
+            })
+        );
+
     }
 
     async handleSaveSuccess() {
