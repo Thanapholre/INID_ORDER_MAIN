@@ -1,64 +1,66 @@
 <template>
     <!-- Start Add Product -->
+    <template if:true={isShowOrderLineItem}>
         <lightning-quick-action-panel header="Order Line Item" class="title_product">
             <!-- Start Section การ Search Product -->
-            <lightning-card>
-                <div class="slds-m-around_medium product main_product">
-                    <div>
-                        <lightning-input
-                            label="Product Code"
-                            placeholder="Search..."
-                            type="search"
-                            value={searchProductTerm}
-                            onchange={handleInputProduct}
-                            onfocus={handleInputProduct}>
-                        </lightning-input>
-                    </div>
-                    
-                    <!-- Dropdown Product -->
-                    <template if:true={showProductDropdown}>
-                        <ul class="dropdown-list">
-                            <template for:each={filteredProductOptions} for:item="prod">
-                                <li key={prod.Id}
-                                    data-id={prod.Id}
-                                    data-name={prod.INID_SKU_Description__c}
-                                    onclick={handleSelectProduct}>
-                                    {prod.INID_Material_Code__c} {prod.INID_SKU_Description__c}
-                                </li>
-                            </template>
-                        </ul>
-                    </template> 
-                    
-                    <div style="margin-top:25px">
-                        <lightning-button variant="neutral" label="+ Add Product Code from Text" onclick={showProductCode}></lightning-button>
-                    </div>      
-                </div>
-
-
-                <!-- Text Area From Text-->
-                <template if:true={isShowAddfromText}>
-                    <div class="slds-m-top_medium">
-                        <div style="font-size: 14px; max-width: 500px;">
-                            <lightning-textarea
-                                value={textareaValue}
-                                style="min-height: 100px; width: 100%; margin-bottom: 16px;"
-                                name="input3"
-                                label="Enter Product Code (1 Id per line)"
-                                placeholder="SelectProductCode here..."
-                                onchange={enterProductOnchange}
-                            ></lightning-textarea>
-
-                            <lightning-button
-                                variant="brand"
-                                label="Add Product Codes"
-                                onclick={addProductToTable}
-                                class="slds-m-top_small"
-                            ></lightning-button>
+            <template if:true={isShowOrderLineItem} >
+                <lightning-card>
+                    <div class="slds-m-around_medium product main_product">
+                        <div>
+                            <lightning-input
+                                label="Product Code"
+                                placeholder="Search..."
+                                type="search"
+                                value={searchProductTerm}
+                                onchange={handleInputProduct}
+                                onfocus={handleInputProduct}>
+                            </lightning-input>
                         </div>
+                        
+                        <!-- Dropdown Product -->
+                        <template if:true={showProductDropdown}>
+                            <ul class="dropdown-list">
+                                <template for:each={filteredProductOptions} for:item="prod">
+                                    <li key={prod.Id}
+                                        data-id={prod.Id}
+                                        data-name={prod.INID_SKU_Description__c}
+                                        onclick={handleSelectProduct}>
+                                        {prod.INID_Material_Code__c} {prod.INID_SKU_Description__c}
+                                    </li>
+                                </template>
+                            </ul>
+                        </template> 
+                        
+                        <div style="margin-top:25px">
+                            <lightning-button variant="neutral" label="+ Add Product Code from Text" onclick={showProductCode}></lightning-button>
+                        </div>      
                     </div>
-                </template>
-            </lightning-card>
-    
+
+
+                    <!-- Text Area From Text-->
+                    <template if:true={isShowAddfromText}>
+                        <div class="slds-m-top_medium">
+                            <div style="font-size: 14px; max-width: 500px;">
+                                <lightning-textarea
+                                    value={textareaValue}
+                                    style="min-height: 100px; width: 100%; margin-bottom: 16px;"
+                                    name="input3"
+                                    label="Enter Product Code (1 Id per line)"
+                                    placeholder="SelectProductCode here..."
+                                    onchange={enterProductOnchange}
+                                ></lightning-textarea>
+
+                                <lightning-button
+                                    variant="brand"
+                                    label="Add Product Codes"
+                                    onclick={addProductToTable}
+                                    class="slds-m-top_small"
+                                ></lightning-button>
+                            </div>
+                        </div>
+                    </template>
+                </lightning-card>
+            </template>
             <!-- End Section การ Search Product -->
     
     
@@ -90,12 +92,13 @@
             <!-- Start Footer Quick Action Panel -->
             <div slot="footer" class="main_product" style="display: flex; justify-content: space-between;" >
                 <div>
-                     <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
                 </div>
                 <div class="btn_next">
-                    <lightning-button label="Test" onclick={handletest}></lightning-button>
+                    <!-- <lightning-button label="Test" onclick={handletest}></lightning-button> -->
+                    <!-- <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button> -->
                     <lightning-button variant="brand" label="Delete"  disabled={checkDataEnable}  onclick={handleDeleteSelected}></lightning-button>
-                    <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+                    <lightning-button variant="brand" label="Next" onclick={handleNext}></lightning-button>
                 </div>
                 
             </div>
@@ -131,5 +134,169 @@
             </template>
             <!-- End Footer Quick Action Panel -->
         </lightning-quick-action-panel>
+    </template>
+        
     <!-- End Add Product -->
+
+
+    <template if:true={isShowApplyPromotion} >
+        <lightning-quick-action-panel header="Apply Promotions" class="title_product">
+            <div style="height: auto" class="main_order" >
+                <!--Table Apply Promotion -->
+                <lightning-card>
+                    <div class="slds-p-around_medium">
+                        <template for:each={comboGroups} for:item="group">
+                            <div key={group.promotionId} class="slds-m-bottom_medium" style="background-color: #fff; border: 1px solid rgb(118, 118, 118); margin-bottom: 20px; border-radius: 12px; " >
+                                <!-- Promotion Header -->
+                                <div class={group.className}  onclick={handleTogglePromotion} data-promoid={group.promotionId}>
+                                    <span>{group.promotionName}</span>
+                                    <i class={group.arrowIconClass} style="margin-left: 10px; color: #933B06"></i>
+                                </div>
+
+                                <!-- Benefits -->
+                                <template if:true={group.isSelected}>
+                                    <template for:each={group.benefits} for:item="benefit">
+                                        <div key={benefit.Id} class={benefit.className}
+                                            onclick={handleToggleBenefit}
+                                            data-promoid={group.promotionId}
+                                            data-benefitid={benefit.Id}
+                                            style="margin: 20px;" >
+                                            {benefit.name}
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </lightning-card>
+
+                <!-- Table Apply Promotion -->
+            </div>
+
+            <!-- Footer -->
+            <div slot="footer" class="main_product " style="display: flex; justify-content: space-between;">
+                <div>
+                    <lightning-button variant="brand" label="Back" onclick={handleBack}></lightning-button>
+                </div>
+                <div class="btn_next">
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="brand" label="Delete"  disabled={isNextDisabled} onclick={handleDeleteSelected}></lightning-button>
+                    <lightning-button variant="brand" label="Next" onclick={showSummary}></lightning-button>
+                </div>
+                    
+            </div>
+            <!-- End Footer -->
+        </lightning-quick-action-panel>
+        <div class="heighter" ></div>
+    </template>
+    <!-- End Apply Promotion Page -->
+
+    <template if:true={isShowSummary}>
+        <lightning-quick-action-panel header="Summary Product" class="title_product">
+            <div  style="height: auto" class="main_order" >
+                <!-- Summary Product Table -->
+                <div class="datatable-container slds-m-top_medium main_product">
+                    <lightning-datatable
+                        key-field="id"
+                        data={summaryProducts}
+                        columns={summaryColumns}
+                        hide-checkbox-column
+                        class="slds-m-top_medium main_product">
+                    </lightning-datatable>
+                </div>
+                <!--  Promotion Section -->
+                <div style="margin-top: 50px;" >
+                    <lightning-card class="slds-m-top_medium">
+                        <h1 style="text-align: center; margin-bottom: 10px; color: #00101e; " >Summary Apply Promotion</h1>
+                        <div style="background-color: #f4f6f9; padding: 1rem; border-radius: 8px;">
+                            <!-- Promotion Block 1 -->
+                            <table class="display product-table product cell-border">
+                                <thead>
+                                    <tr>
+                                        <th colspan="3" style="text-align: center;">Promotion</th>
+                                        <th colspan="3" style="text-align: center;">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 2,500 บาท</td>
+                                        <td colspan="3">แถมฟรี xxxxxx 1ชิ้น (EXP 13/05/2026)</td>
+                                    </tr>
+                                </tbody>
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: center;">Material Code</th>
+                                        <th style="text-align: center;">SKU Description</th>
+                                        <th style="text-align: center;">Quantity</th>
+                                        <th style="text-align: center;">Unit</th>
+                                        <th style="text-align: center;">Sale Price</th>
+                                        <th style="text-align: center;">Remark</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="text-align: left;">1000000xxxx</td>
+                                        <td style="text-align: left;">xxxxxxx</td>
+                                        <td style="text-align: center;">1</td>
+                                        <td style="text-align: right;">Box</td>
+                                        <td style="text-align: right;">0.00</td>
+                                        <td style="text-align: right;">EXP 13/05/2026</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Promotion Block 2 -->
+                            <table class="display product-table product cell-border slds-m-top_medium">
+                                <thead>
+                                    <tr>
+                                        <th colspan="3" style="text-align: center;">Promotion</th>
+                                        <th colspan="3" style="text-align: center;">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 10,000 บาท</td>
+                                        <td colspan="3">ส่วนลดราคาพิเศษ Buy 1-50 get 95.00 THB each</td>
+                                    </tr>
+                                </tbody>
+                                <thead>
+                                    <tr>
+                                        <th style="text-align: center;">Material Code</th>
+                                        <th style="text-align: center;">SKU Description</th>
+                                        <th style="text-align: center;">Quantity</th>
+                                        <th style="text-align: center;">Unit</th>
+                                        <th style="text-align: center;">Sale Price</th>
+                                        <th style="text-align: center;">Remark</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="text-align: left;">1000000xxxx</td>
+                                        <td style="text-align: left;">xxxxxxx</td>
+                                        <td style="text-align: center;">1</td>
+                                        <td style="text-align: right;">Box</td>
+                                        <td style="text-align: right;">95.00</td>
+                                        <td style="text-align: right;"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </lightning-card>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div slot="footer" class="main_product" style="display: flex; justify-content: space-between;">
+                <div class="">
+                    <lightning-button variant="brand" label="Back" onclick={backToApply}></lightning-button>
+                </div>
+                <div class="btn_next">
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+                </div>
+            </div>
+        </lightning-quick-action-panel>
+        <div class="heighter" ></div>
+    </template>
 </template>

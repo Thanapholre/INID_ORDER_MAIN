@@ -278,3 +278,47 @@ th , td {
 
 
 /* End Add Product */
+.promotion-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.promotion-box {
+    border: 1px solid #733B1A;  
+    color: #933B06;  
+    border-radius: 10px;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: white;
+}
+
+.promotion-box.selected {
+    border-color: #0070d2;
+    background-color: #e6f4ff;
+}
+
+.benefit-box {
+    border: 1px solid #733B1A;   
+    border-radius: 8px;             
+    padding: 6px 24px;              
+    margin: 6px 0 0 24px;            
+    background-color: #fff;    
+    color: #933B06;          
+    font-weight: 600;       
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.benefit-box.selected {
+    background-color: #933B06;
+    color: white;
+}
+
+.arrow {
+    font-size: 18px;
+}

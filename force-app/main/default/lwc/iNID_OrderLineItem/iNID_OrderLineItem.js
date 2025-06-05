@@ -11,6 +11,12 @@ import { refreshApex } from '@salesforce/apex';
 import insertProductItem from '@salesforce/apex/INID_OrderController.insertProductItem';
 import replaceProductItems from '@salesforce/apex/INID_OrderController.replaceProductItems';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
+import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers';
+// import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote'
+import insertOrderSalePromotion from '@salesforce/apex/INID_OrderController.insertOrderSalePromotion'
+import getAccountId from '@salesforce/apex/INID_OrderController.getAccountId' ;
+import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
+import { loadStyle } from 'lightning/platformResourceLoader';
 
 
 export default class INID_OrderLine extends LightningElement {
@@ -31,10 +37,17 @@ export default class INID_OrderLine extends LightningElement {
     @track selectedValue ;
     @track selectedLabel;
     @track currentMaterialCodeForAddOn = '';
+    @track isShowOrderLineItem = true ;
+    @track isShowApplyPromotion = false ;
+    @track accountId ;
     @api recordId;
     isShowAddfromText = false;
+    isShowSummary = false ;
     isLoaded = false;
     hasAlerted = false;
+    @track comboGroups = [];
+    @track selectedPromotion = [] ;
+    @track promotionData = [] ;
 
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
@@ -73,7 +86,7 @@ export default class INID_OrderLine extends LightningElement {
                 min-height: 55.56vh;
             }
         `;
-        const card = this.template.querySelector('lightning-card');
+        const card = this.template.querySelector('lightning-quick-action-panel');
         if (card) card.appendChild(STYLE);
         this.isLoaded = true;
         if (this.quoteItemData) {
@@ -81,6 +94,9 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+    connectedCallback() {
+        loadStyle(this, FONT_AWESOME + '/css/all.min.css');
+    }
     
     get options(){
         return [
@@ -103,6 +119,16 @@ export default class INID_OrderLine extends LightningElement {
             console.log(error);
         }
     }
+
+     @wire(getAccountId,{ orderId: '$recordId' })
+     wiredAccountIdByQuote({error, data}){
+        if (data) {
+            this.accountId = data;
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+     }
+    
 
     //Apex wire: fetch product price book
     @wire(fetchDataProductPriceBook)
@@ -230,6 +256,7 @@ export default class INID_OrderLine extends LightningElement {
         return {
             rowKey: source.Id,
             id: source.Id,
+            productPriceBookId: source.Id, 
             code: source.INID_Material_Code__c,
             description: source.INID_SKU_Description__c,
             unitPrice,
@@ -290,6 +317,7 @@ export default class INID_OrderLine extends LightningElement {
                     added.push({
                         rowKey: match.Id,
                         id: match.Id,
+                        productPriceBookId: match.Id,
                         code: match.INID_Material_Code__c,
                         Name: match.Name,
                         description: match.INID_SKU_Description__c,
@@ -444,7 +472,14 @@ export default class INID_OrderLine extends LightningElement {
 
     async handleDeleteSelected() {
         if (!this.selectedDetailItems || this.selectedDetailItems.length === 0) {
-            alert('ยังไม่เลือกสักรายการ');
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'แจ้งเตือน',
+                    message: 'ยังไม่เลือกสักรายการ',
+                    variant: 'warning',
+                    mode: 'dismissable'
+                })
+            );
             return;
         }
 
@@ -615,6 +650,30 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+    async insertPromotion(orderId) {
+        const selectedBenefitItems = [];
+
+        this.comboGroups.forEach(group => {
+            const selectedBenefits = group.benefits.filter(b => b.selected);
+
+            selectedBenefits.forEach(benefit => {
+                selectedBenefitItems.push({
+                    INID_Order__c: orderId,
+                    INID_Sale_Promotion_Benefit_Product__c: benefit.Id
+                });
+            });
+        });
+
+        try {
+            console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
+            await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
+            console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
+           
+        } catch (error) {
+            this.handleSaveError(error);
+        }
+    }
+
     async handleSave() {
         try {
             const confirmed = await LightningConfirm.open({
@@ -654,13 +713,14 @@ export default class INID_OrderLine extends LightningElement {
 
                 itemIndex++;
             });
-
+            
+            await this.insertPromotion(this.orderId);
             await replaceProductItems({
                 orderId: this.orderId,
                 products: recordsToInsert
             });
 
-            this.showToast('สำเร็จ', 'ลบของเก่าและบันทึกข้อมูลใหม่เรียบร้อยแล้ว', 'success');
+            this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
 
             setTimeout(() => {
@@ -674,4 +734,186 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+    @track comboGroups = [];
+
+    async handleNext() {
+        this.isShowApplyPromotion = true;
+        this.isShowOrderLineItem = false;
+        this.isLoaded = false;
+
+        const orderItemList = this.selectedProducts.map((item) => {
+
+            return {
+                INID_Quantity__c: item.quantity,
+                INID_Sale_Price__c: item.salePrice,
+                INID_Product_Price_Book__c: item.productPriceBookId,
+                INID_Total__c: item.total,
+                };
+            });
+
+        try {
+            const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId });
+            console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
+    
+            if (!getPromotions || !getPromotions.promotions || getPromotions.promotions.length === 0) {
+                this.showToast('ไม่พบโปรโมชั่น', 'ไม่มีโปรโมชั่นที่ตรงกับเงื่อนไข', 'info');
+                return;
+            }
+
+            this.comboGroups = getPromotions.promotions.map(promo => ({
+                promotionId: promo.id,
+                promotionName: promo.name,
+                isSelected: false,
+                arrowIconClass: 'fa-solid fa-circle-chevron-down',
+                className: 'promotion-box',
+                benefits: (promo.benefits || []).map(b => ({
+                    Id: b.Id,
+                    name: b.Name,
+                    selected: false,
+                    className: 'benefit-box'
+                }))
+            }));
+
+            console.log('comboGroups:', JSON.stringify(this.comboGroups, null, 2));
+        } catch (error) {
+            console.error('Error fetching promotions:', error);
+            this.showToast('เกิดข้อผิดพลาด', error.body?.message || error.message, 'error');
+        }
+    }
+
+    handleTogglePromotion(event) {
+        const promoId = event.currentTarget.dataset.promoid;
+        this.comboGroups = this.comboGroups.map(group => {
+            if (group.promotionId === promoId) {
+                const updated = {
+                    ...group,
+                    isSelected: !group.isSelected
+                };
+                updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
+                updated.arrowIconClass = updated.isSelected
+                    ? 'fa-solid fa-circle-chevron-up'
+                    : 'fa-solid fa-circle-chevron-down';
+
+                return updated;
+            }
+            return group;
+        });
+    }
+
+    handleToggleBenefit(event) {
+        const promoId = event.currentTarget.dataset.promoid;
+        const benefitId = event.currentTarget.dataset.benefitid;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            if (group.promotionId === promoId) {
+                const updatedBenefits = group.benefits.map(b => {
+                    return {
+                        ...b,
+                        selected: b.Id === benefitId, 
+                        className: b.Id === benefitId ? 'benefit-box selected' : 'benefit-box'
+                    };
+                });
+
+                return {
+                    ...group,
+                    benefits: updatedBenefits
+                };
+            }
+            return group;
+        });
+    }
+    
+    handleBack() {
+        this.isShowApplyPromotion = false ;
+        this.isShowOrderLineItem = true ;
+        this.isLoaded = false ;
+    }
+
+    backToApply() {
+        this.isShowApplyPromotion = true;
+        this.isShowSummary = false;
+        this.isShowOrderLineItem = false;
+        this.isLoaded = false;
+    }
+
+
+    // start summary
+
+    summaryColumns = [
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
+        { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 300 },
+        { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' } , initialWidth: 130},
+        { label: 'Unit', fieldName: 'unit', type: 'text', cellAttributes: { alignment: 'right' } , hideDefaultActions: true  , initialWidth: 100 },
+        { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 120},
+        { label: 'Remark', fieldName: 'addOnText', type: 'text', cellAttributes: { alignment: 'right' } , initialWidth: 150 , hideDefaultActions: true },
+        { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 110 }
+    ];
+
+    showSummary() {
+        this.isShowOrder = false;
+        this.isShowSummary = true;
+        this.isShowApplyPromotion = false;
+        this.summaryProducts = [];
+        this.isLoaded = false;
+
+        // สร้างข้อความสรุปโปรโมชั่นที่เลือกไว้
+        let summaryText = 'คุณเลือกโปรโมชั่นดังนี้:\n';
+
+        const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
+
+        selectedPromotions.forEach(group => {
+            const selectedBenefits = group.benefits.filter(b => b.selected);
+            const benefitNames = selectedBenefits.map(b => `- ${b.Name}`).join('\n') || '- (ยังไม่เลือก Benefit)';
+            summaryText += `\n ${group.promotionName}:\n${benefitNames}\n`;
+
+            selectedBenefits.forEach(b => {
+                this.promotionData.push({
+                    id: b.Id, // หรือใช้ promotionId ก็ได้ถ้าจะ track กลับ
+                    name: group.promotionName,
+                    description: b.Name,
+                    products: b.products || []
+                });
+            });
+
+            console.log(JSON.stringify(this.promotionData , null , 2));
+        });
+
+        // สรุปรายการสินค้า
+        const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
+
+        mainProducts.forEach(main => {
+            const relatedAddons = this.selectedProducts.filter(
+                p => p.unitPrice === 0 && p.hlItemNumber === main.hlItemNumber
+            );
+
+            const mainQty = Number(main.quantity || 0);
+            const mainTotal = Number(main.total || (main.unitPrice * mainQty) || 0);
+            const addonQtySum = relatedAddons.reduce((sum, a) => sum + Number(a.quantity || 0), 0);
+            const addonTotalSum = relatedAddons.reduce((sum, a) => sum + Number(a.total || 0), 0);
+            const totalQty = mainQty + addonQtySum;
+            const totalSum = mainTotal + addonTotalSum;
+            const netPrice = totalQty > 0 ? (totalSum / totalQty).toFixed(2) : '0.00';
+
+            this.summaryProducts.push({
+                ...main,
+                netPrice: netPrice,
+                addOnText: null
+            });
+
+            if (!this.selectedPromotion.some(p => p.id === main.id && p.promotionId === p.promotionId )) {
+                this.selectedPromotion.push({
+                    ...main
+                });
+            }
+
+            relatedAddons.forEach(addon => {
+                this.summaryProducts.push({
+                    ...addon,
+                    addOnText: addon.nameBtn
+                  });
+            });
+        });
+    }
 }
