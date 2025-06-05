@@ -17,6 +17,8 @@ import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__
 import ACCOUNT_ID from '@salesforce/schema/Account.Id';
 import LightningConfirm from 'lightning/confirm';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
+import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
+import { loadStyle } from 'lightning/platformResourceLoader';
 
 
 
@@ -222,12 +224,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             const isValidOrganization = this.organizationOption.some(opt => opt.value === fetchedOrganization);
             this.organizationValue = isValidOrganization ? fetchedOrganization : '';
-
-            // alert("account Id : " + fetchAccountId) ;
         } else {
             console.log(error);
         }
     }
+
     
     get billToCodes() {
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
@@ -852,6 +853,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    connectedCallback() {
+        loadStyle(this, FONT_AWESOME + '/css/all.min.css');
+    }
+
+
     renderedCallback() {
         if (this.addonButtonBound) return;
         this.addonButtonBound = true;
@@ -994,59 +1000,52 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track selectedBenefitId = null;
     @track comboGroups = [];
 
-    showApplyPromotion() {
+    async showApplyPromotion() {
         this.isShowApplyPromotion = true ;
         this.isShowAddProduct = false ;
         this.isShowOrder = false ;
-        
-        const mockPromotionData = {
-            promotions: [
-                {
-                    id: "a0G85000000xavVEAQ",
-                    name: "Promotion 1",
-                    benefits: [
-                        { Id: "b1", Name: "Discount Amount" },
-                        { Id: "b2", Name: "Discount Percent" },
-                        { Id: "b3", Name: "Free Product (Ratio)" },
-                        { Id: "b4", Name: "Free Product (Fix Quantity)" },
-                        { Id: "b5", Name: "Set Price" }
-                    ]
-                },
-                {
-                    id: "a0G85000000xavWEAR",
-                    name: "Promotion 2",
-                    benefits: [
-                        { Id: "b6", Name: "Buy 1 Get 1,000,000" },
-                        { Id: "b7", Name: "Buy 1 Get 1" },
-                        { Id: "b8", Name: "Buy 9 Get 1" }
-                    ]
-                },
-                {
-                    id: "a0G85000000xavVEAQM",
-                    name: "Promotion 3",
-                    benefits: [
-                        { Id: "b9", Name: "Discount Amount" },
-                        { Id: "b10", Name: "Discount Percent" },
-                        { Id: "b11", Name: "Free Product (Ratio)" },
-                        { Id: "b12", Name: "Free Product (Fix Quantity)" },
-                        { Id: "b13", Name: "Set Price" }
-                    ]
-                },
-            ]
-        };
 
-        this.comboGroups = mockPromotionData.promotions.map(promo => ({
-            promotionId: promo.id,
-            promotionName: promo.name,
-            isSelected: false,
-            arrowSymbol: '▾',
-            className: 'promotion-box',
-            benefits: promo.benefits.map(b => ({
-                ...b,
-                selected: false,
-                className: 'benefit-box'
-            }))
-        }));
+        // let currentHLNumber = 0;
+        const orderItemList = this.selectedProducts.map((item) => {
+        
+            // currentHLNumber++;
+            // hlItemNumber = currentHLNumber;
+            return {
+                INID_Quantity__c: item.quantity,
+                INID_Sale_Price__c: item.salePrice,
+                INID_Product_Price_Book__c: item.productPriceBookId,
+                INID_Total__c: item.total,
+                // INID_Type__c: 'Main',
+                // INID_Order__c: orderId,
+                // INID_HL_Number__c: currentHLNumber,
+                // INID_Item_Number__c: item.itemNumber,
+                // INID_Remark__c: item.addOnText || '',
+                };
+            });
+
+        alert('order Item' +JSON.stringify(orderItemList,null,2));
+        alert('accountId' + this.accountId);
+
+        try {
+            const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
+            console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
+            alert('getPromotion'+ JSON.stringify(getPromotions,null,2));
+            
+            this.comboGroups = getPromotions.promotions.map(promo => ({
+                promotionId: promo.id,
+                promotionName: promo.name,
+                isSelected: false,
+                arrowSymbol: '▾',
+                className: 'promotion-box',
+                benefits: promo.benefits.map(b => ({
+                    ...b,
+                    selected: false,
+                    className: 'benefit-box'
+                }))
+            }));
+        } catch(error) {
+            alert('error\n'+ (error.body?.message || error.message || JSON.stringify(error)));
+        }   
     }
 
     handleTogglePromotion(event) {
@@ -1058,7 +1057,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     isSelected: !group.isSelected
                 };
                 updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
-                updated.arrowSymbol = updated.isSelected ? '▴' : '▾';
+                 updated.arrowSymbol = updated.isSelected
+                    ? '<i class="fa-solid fa-circle-chevron-up"></i>'
+                    : '<i class="fa-solid fa-circle-chevron-down"></i>';
                 return updated;
             }
             return group;
