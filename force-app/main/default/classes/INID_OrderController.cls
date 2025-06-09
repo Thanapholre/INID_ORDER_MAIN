@@ -142,4 +142,11 @@ public with sharing class INID_OrderController {
         Order o = [SELECT AccountId FROM Order WHERE Id = :orderId];
         return o.AccountId;
     }
+
+
+    @AuraEnabled
+    public static List<INID_Product_Price_Book__c> getProductPromotionByPID(Id productId) {
+        return [SELECT INID_Material_Code__c ,  INID_SKU_Description__c	 FROM INID_Product_Price_Book__c];
+    }
+
 }

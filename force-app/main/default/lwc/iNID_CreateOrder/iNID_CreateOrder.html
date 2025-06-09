@@ -433,7 +433,7 @@
 
 
     <!-- Start Summary Promotion Component -->
-    <!-- <template if:true={isShowSummary}>
+    <template if:true={isShowSummary}>
         <lightning-quick-action-panel header="Summary Product" class="title_product">
             <div  style="width: 90vw; height: auto" >
 
@@ -450,31 +450,29 @@
                 <div style="margin-top: 50px;" >
                     <lightning-card class="slds-m-top_medium">
                         <h1 style="text-align: center; margin-bottom: 10px; color: #00101e; " >Summary Apply Promotion</h1>
-                        <div style="background-color: #f4f6f9; padding: 1rem; border-radius: 8px;">
+                        <div>
                             <div class="datatable-container slds-m-top_medium main_product">
                             <template for:each={promotionData} for:item="promo">
                                 <div key={promo.id} class="slds-m-top_medium">
-                                
-                                    <lightning-datatable
-                                    key-field="id"
-                                    data={promotionData}
-                                    columns={columnPromotions}
-                                    hide-checkbox-column>
-                                </lightning-datatable>
 
-                                        <lightning-card>
-                                            <div class="slds-p-around_medium">
-                                                <h3 class="slds-text-heading_small slds-m-bottom_x-small">{promo.description}</h3>
-                                                <lightning-datatable
-                                                    key-field="materialCode"
-                                                    data={promo.products}
-                                                    columns={subColumns}
-                                                    hide-checkbox-column>
-                                                </lightning-datatable>
-                                            </div>
-                                        </lightning-card>
-                                    </div>
-                                </template>
+                                    <!-- title: แสดงชื่อโปรนี้ -->
+                                    <lightning-datatable
+                                        key-field="id"
+                                        data={promotionData} 
+                                        columns={columnPromotionsTitle}
+                                        hide-checkbox-column>
+                                    </lightning-datatable>
+
+                                    <!-- content: แสดงข้อมูลตาม Benefit Type -->
+                                    <lightning-datatable
+                                        key-field="id"
+                                        data={promo.data}
+                                        columns={promo.columns}
+                                        hide-checkbox-column>
+                                    </lightning-datatable>
+                                </div>
+                            </template>
+
                             </div>
                         </div>
                     </lightning-card>
@@ -492,120 +490,5 @@
             </div>
         </lightning-quick-action-panel>
         <div class="heighter" ></div>
-    </template> -->
-
-
-
-    <!-- mock data  -->
-    <!-- Start Summary Promotion Component -->
-    <template if:true={isShowSummary}>
-        <lightning-quick-action-panel header="Summary Product" class="title_product">
-            <div  style="width: 90vw; height: auto" >
-                <!-- Summary Product Table -->
-                <div class="datatable-container slds-m-top_medium main_product">
-                    <lightning-datatable
-                        key-field="id"
-                        data={summaryProducts}
-                        columns={summaryColumns}
-                        hide-checkbox-column
-                        class="slds-m-top_medium main_product">
-                    </lightning-datatable>
-                </div>
-                <!--  Promotion Section -->
-                <div style="margin-top: 50px;" >
-                    <lightning-card class="slds-m-top_medium">
-                        <h1 style="text-align: center; margin-bottom: 10px; color: #00101e; " >Summary Apply Promotion</h1>
-                        <div style="background-color: #f4f6f9; padding: 1rem; border-radius: 8px;">
-                            <!-- Promotion Block 1 -->
-                            <table class="display product-table product cell-border">
-                                <thead>
-                                    <tr>
-                                        <th colspan="3" style="text-align: center;">Promotion</th>
-                                        <th colspan="3" style="text-align: center;">Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 2,500 บาท</td>
-                                        <td colspan="3">แถมฟรี xxxxxx 1ชิ้น (EXP 13/05/2026)</td>
-                                    </tr>
-                                </tbody>
-                                <thead>
-                                    <tr>
-                                        <th style="text-align: center;">Material Code</th>
-                                        <th style="text-align: center;">SKU Description</th>
-                                        <th style="text-align: center;">Quantity</th>
-                                        <th style="text-align: center;">Unit</th>
-                                        <th style="text-align: center;">Sale Price</th>
-                                        <th style="text-align: center;">Remark</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style="text-align: left;">1000000xxxx</td>
-                                        <td style="text-align: left;">xxxxxxx</td>
-                                        <td style="text-align: center;">1</td>
-                                        <td style="text-align: right;">Box</td>
-                                        <td style="text-align: right;">0.00</td>
-                                        <td style="text-align: right;">EXP 13/05/2026</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <!-- Promotion Block 2 -->
-                            <table class="display product-table product cell-border slds-m-top_medium">
-                                <thead>
-                                    <tr>
-                                        <th colspan="3" style="text-align: center;">Promotion</th>
-                                        <th colspan="3" style="text-align: center;">Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="3">ซื้อสินค้ากลุ่ม XXXX ครบ 10,000 บาท</td>
-                                        <td colspan="3">ส่วนลดราคาพิเศษ Buy 1-50 get 95.00 THB each</td>
-                                    </tr>
-                                </tbody>
-                                <thead>
-                                    <tr>
-                                        <th style="text-align: center;">Material Code</th>
-                                        <th style="text-align: center;">SKU Description</th>
-                                        <th style="text-align: center;">Quantity</th>
-                                        <th style="text-align: center;">Unit</th>
-                                        <th style="text-align: center;">Sale Price</th>
-                                        <th style="text-align: center;">Remark</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style="text-align: left;">1000000xxxx</td>
-                                        <td style="text-align: left;">xxxxxxx</td>
-                                        <td style="text-align: center;">1</td>
-                                        <td style="text-align: right;">Box</td>
-                                        <td style="text-align: right;">95.00</td>
-                                        <td style="text-align: right;"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                        </div>
-                    </lightning-card>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div slot="footer" class="main_product" style="display: flex; justify-content: space-between;">
-                <div class="">
-                    <lightning-button variant="brand" label="Back" onclick={backToApply}></lightning-button>
-                </div>
-                <div class="btn_next">
-                    <lightning-button variant="neutral" label="Cancel" onclick={closeTab}></lightning-button>
-                    <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
-                </div>
-            </div>
-        </lightning-quick-action-panel>
-        <div class="heighter" ></div>
     </template>
-    <!-- End Summary Promotion Component -->
-     <!-- end mock data -->
 </template>

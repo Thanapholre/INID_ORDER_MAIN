@@ -18,6 +18,7 @@ import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__
 import ACCOUNT_ID from '@salesforce/schema/Account.Id';
 import LightningConfirm from 'lightning/confirm';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
+import getProductPromotionByPID from '@salesforce/apex/INID_OrderController.getProductPromotionByPID'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 
@@ -954,11 +955,12 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         try {
             const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
             console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
-            // console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
+            
             
             this.comboGroups = getPromotions.promotions.map(promo => ({
                 promotionId: promo.id,
                 promotionName: promo.name,
+                promotionDescript: promo.description,
                 isSelected: false,
                 arrowSymbol: 'fa-solid fa-circle-chevron-down',
                 className: 'promotion-box',
@@ -966,6 +968,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     ...b,
                     id: b.Id,
                     Name: b.Name,
+                    // promotionMaterialCode: b.INID_Material_Code__c,
+                    // INID_Benefit_Type__c: b.INID_Benefit_Type__c,
+                    BenefitProduct: b.INID_Product_Price_Book__c,
                     selected: false,
                     className: 'benefit-box'
                 }))
@@ -1176,23 +1181,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             })
         );
 
-        // // รอให้ปิดแท็บเสร็จ (ถ้า closeTab เป็น async)
-        // if (this.closeTab instanceof Function) {
-        //     await this.closeTab(); 
-        // }
-
-        // // ตรวจสอบว่า orderId พร้อมหรือยัง
-        // if (!this.orderId) {
-        //     console.error('Missing orderId for navigation!');
-        //     return;
-        // }
-
-        // // รอ 600ms ก่อน redirect
-        // await new Promise(resolve => setTimeout(resolve, 600));
-
-        // นำทางไปยังหน้า Order Record
-        // alert(this.orderId) ;
-
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: {
@@ -1246,7 +1234,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
 
         try {
-            console.log('✅ selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
+            console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
             await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
             console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
            
@@ -1335,26 +1323,14 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             variant: 'error',
         }));
     }
+
     //End Handle Save 
-
-
     isShowSummary = false ;
     @track summaryProducts = [];    
     @track selectedPromotion = [] ;
     @track promotionData = [] ;
 
-    columnPromotions = [
-        { label: 'Promotion Name', fieldName: 'name' ,hideDefaultActions: true },
-        { label: 'Description', fieldName: 'description' ,hideDefaultActions: true },
-    ];
 
-    subColumns = [
-        { label: 'Material Code', fieldName: 'materialCode' ,hideDefaultActions: true },
-        { label: 'SKU Description', fieldName: 'description' ,hideDefaultActions: true },
-        { label: 'Quantity', fieldName: 'quantity'  ,hideDefaultActions: true},
-        { label: 'Unit', fieldName: 'unit' ,hideDefaultActions: true},
-        { label: 'Sale Price', fieldName: 'salePrice' ,hideDefaultActions: true},
-    ];
 
     summaryColumns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
@@ -1368,38 +1344,64 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         { label: 'Net Price', fieldName: 'netPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , initialWidth: 110 }
     ];
 
+    // columnPromotionsContent = [
+    //     { label: 'Material Code', fieldName: 'promotionMaterialCode' ,hideDefaultActions: true },
+    //     { label: 'SKU Description', fieldName: 'promotionDescription' ,hideDefaultActions: true },
+    //     { label: 'Quantity', fieldName: 'freeProductQuantity'  ,hideDefaultActions: true},
+    //     { label: 'Unit', fieldName: 'unit' ,hideDefaultActions: true},
+    //     // { label: 'Sale Price', fieldName: 'salePrice' ,hideDefaultActions: true},
+    // ];
+
+    columnPromotionsTitle = [
+       { label: 'Promotion ', fieldName: 'promotionName' ,hideDefaultActions: true },
+       { label: 'Descirption ', fieldName: 'promotionDescirption' ,hideDefaultActions: true },
+    ];
+
+
+    getColumnsByType(type) {
+        if (type === 'Free Amount') {
+            return [
+                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true },
+                { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
+                { label: 'Quantity', fieldName: 'freeProductQuantity', hideDefaultActions: true },
+            ];
+        } else if (type === 'Discount Amount') {
+            return [
+                { label: 'Discount  Type', fieldName: 'freeProductQuantity', hideDefaultActions: true },
+                { label: 'Total(AMOUNT/PERCENT)', fieldName: 'unit', hideDefaultActions: true }
+            ];
+        } else if (type === 'Set Price') {
+            return [
+                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
+                { label: 'Sales Price', fieldName: 'salePrice', hideDefaultActions: true } ,
+                { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
+            ];
+        } else if (type === 'Free Product (Fix Quantity)') {
+            return [
+                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
+                { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
+                // { label: 'Numerator', fieldName: 'numerator', hideDefaultActions: true },
+                { label: 'Quantity', fieldName: 'freeProductQuantity', hideDefaultActions: true },
+            ];
+        } else if (type === 'Free Product (Ratio)') {
+            return [
+                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
+                { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
+                { label: 'Numerator', fieldName: 'numerator', hideDefaultActions: true },
+                { label: 'Quantity', fieldName: 'freeProductQuantity', hideDefaultActions: true },
+            ];
+        }
+    }
+    
     showSummary() {
         this.isShowOrder = false;
         this.isShowSummary = true;
         this.isShowApplyPromotion = false;
         this.summaryProducts = [];
-
-        // สร้างข้อความสรุปโปรโมชั่นที่เลือกไว้
-        let summaryText = 'คุณเลือกโปรโมชั่นดังนี้:\n';
-
-        const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
-
-        selectedPromotions.forEach(group => {
-            const selectedBenefits = group.benefits.filter(b => b.selected);
-            const benefitNames = selectedBenefits.map(b => `- ${b.Name}`).join('\n') || '- (ยังไม่เลือก Benefit)';
-            summaryText += `\n ${group.promotionName}:\n${benefitNames}\n`;
-
-            selectedBenefits.forEach(b => {
-                this.promotionData.push({
-                    id: b.Id, // หรือใช้ promotionId ก็ได้ถ้าจะ track กลับ
-                    name: group.promotionName,
-                    description: b.Name,
-                    products: b.products || []
-                });
-            });
-
-
-            // alert(JSON.stringify(this.promotionData.benefits , null , 2));
-            console.log(JSON.stringify(this.promotionData , null , 2));
-        });
-
-        // แสดงผลผ่าน alert
-        // alert(summaryText);
 
         // สรุปรายการสินค้า
         const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
@@ -1433,6 +1435,39 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 this.summaryProducts.push({
                     ...addon,
                     addOnText: addon.nameBtn
+                });
+            });
+
+            // set up promotion
+            const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
+
+            console.log("selectedPromotions ของ Benefit ที่เลือก : " + JSON.stringify(selectedPromotions , null , 2));
+            console.log("combo Group ของ Benefit ที่เลือก : " + JSON.stringify(this.comboGroups , null , 2));
+
+            selectedPromotions.forEach(group => {
+                const selectedBenefits = group.benefits.filter(b => b.selected);
+
+                selectedBenefits.forEach(b => {
+                    const type = b.INID_Benefit_Type__c;
+
+                    this.promotionData.push({
+                        id: b.Id,
+                        benefitType: type,
+                        promotionName: group.promotionName,
+                        promotionDescirption: group.promotionDescript,
+                        columns: this.getColumnsByType(type),
+                        data: [{
+                            promotionMaterialCode: b.INID_Product_Price_Book__r.INID_Material_Code__c || '',
+                            promotionDescription: b.INID_Product_Price_Book__r.INID_SKU_Description__c || '',
+                            unit: b.INID_Product_Price_Book__r.INID_Unit__c || '-',
+                            numerator: b.INID_Free_Product_Quantity_Numerator__c,
+                            denomiator: b.INID_Free_Product_Quantity_Denominator__c ,
+                            freeProductQuantity: b.INID_Free_Product_Quantity_Fix__c,
+                            discountAmount: b.INID_Discount_Amount__c,
+                        }]
+
+                    });
+                     console.log('promotionData :'+ JSON.stringify(this.promotionData , null , 2));
                 });
             });
         });
