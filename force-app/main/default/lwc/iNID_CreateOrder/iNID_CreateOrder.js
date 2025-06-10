@@ -18,12 +18,11 @@ import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__
 import ACCOUNT_ID from '@salesforce/schema/Account.Id';
 import LightningConfirm from 'lightning/confirm';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
-import getProductPromotionByPID from '@salesforce/apex/INID_OrderController.getProductPromotionByPID'
+import fetchBuProduct from '@salesforce/apex/INID_OrderController.fetchBuProduct'
+import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
-
-
-
+import USER_ID from '@salesforce/user/Id';
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
     
@@ -76,10 +75,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track quoteItemValue = [] ;
     @track accountId;
     @track orderId ;
+    @track productBu;
+    @track productBuGroup;
+    // @track userId;
+    @track userId = USER_ID;
+
   
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 120},
-        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }, initialWidth: 200}, 
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 170},
+        { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }, initialWidth: 250}, 
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', }, initialWidth: 140},
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100}, 
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, editable: {fieldName : 'editableSalePrice'} , hideDefaultActions: true ,  cellAttributes: { alignment: 'center'} , initialWidth: 175},
@@ -101,6 +105,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             }
         }
     ];
+
+    // @wire(fetchBuProduct , {userId: '$userId'})
+    // wiredFetchBuProductList({error , data}) {
+    //     if(data) {
+    //         this.productBu = data ;
+
+    //         this.productBuIds = new Set(data.map(item => item.INID_Product_Price_Book__c));
+    //         // console.log('BU Product IDs:', Array.from(this.productBuIds));
+    //     } else {
+    //         console.log(error) ;
+    //     }
+    // }
+    
+    // @wire(fetchBuGroupId , {userId: '$userId'})
+    // wiredFetchBuGroupIdList({error , data}) {
+    //     if(data) {
+    //         this.productBuGroup = data ;
+    //         console.log('BU Product Group ID:' + JSON.stringify(this.productBuGroup, null, 2));
+    //         alert('BU Product Group ID:' + this.productBuGroup);
+    //     } else {
+    //         console.log('error: ' + JSON.stringify(error, null, 2)) ;
+    //     }
+    // }
+
 
     //closeTab
     @wire(IsConsoleNavigation) isConsoleNavigation;
@@ -490,6 +518,12 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         hlNumber += 1;
         this.hlNumber = hlNumber ;
 
+        const productPriceBookId = source.Id;
+        // const editUserBu = this.productBu?.some(p => p.Id === source.Id); // เช็คว่า Product นี้เป็นของ User นี้หรือไม่
+        // console.log(JSON.stringify(editUserBu , null ,2)) ;
+        const editableSalePrice =
+        this.productBuIds && this.productBuIds.has(productPriceBookId);
+
         return {
             rowKey: source.Id,
             id: source.Id,
@@ -506,7 +540,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             addOn: isMainProduct ? 'true' : 'false',
             nameBtn: isMainProduct ? '+' : 'Add-On Item',
             variant: 'brand',
-            editableSalePrice: true,
+            // editUserBuSalePrice: editUserBu,
+            editableSalePrice: editableSalePrice,
             addonDisabled: isMainProduct && hasAddon,
             hlItemNumber: this.hlNumber,
 
@@ -855,8 +890,22 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-    connectedCallback() {
+    async connectedCallback() {
         loadStyle(this, FONT_AWESOME + '/css/all.min.css');
+
+        // alert('userId : ' + this.userId) ;
+
+        // if (this.userId) {
+        //     alert('userId : ' + this.userId) ;
+        //     try {
+        //         const buGroupId = await fetchBuGroupId({ userId: this.userId });
+        //         this.productBuGroup = buGroupId;
+        //         console.log('BU Product Group ID:', this.productBuGroup);
+        //         alert('BU Product Group ID: ' + this.productBuGroup);
+        //     } catch (error) {
+        //         console.error('Error fetching BU Group ID:', error);
+        //     }
+        // }
     }
 
 
@@ -930,7 +979,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
         this.isShowAddProduct = true;
         this.isShowOrder = false;
+
+
     }
+
 
     @track comboGroups = [];
 
@@ -970,7 +1022,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         Name: b.Name,
                         BenefitProduct: b.INID_Product_Price_Book__c,
                         selected: false,
-                        className: 'benefit-box'
+                        className: 'benefit-box' , 
+                        benefitType: b.INID_Benefit_Type__c ,
+                        displayBenefit: b.INID_Benefit_Type__c === 'Free Product (Ratio)'
+                                        ? b.INID_Benefit_Type__c + ' ' + b.INID_Free_Product_Quantity_Numerator__c + ' : ' + b.INID_Free_Product_Quantity_Denominator__c
+                                        : b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)'
+                                        ? b.INID_Benefit_Type__c + ' : ' + b.INID_Free_Product_Quantity_Fix__c
+                                        : b.INID_Benefit_Type__c === 'Set Price'
+                                        ? b.INID_Benefit_Type__c + ' ' + b.INID_SetPrice__c
+                                        : b.INID_Benefit_Type__c === 'Discount Amount'
+                                        ? b.INID_Benefit_Type__c + ' ' + b.INID_Discount_Amount__c + ' THB ' 
+                                        : b.INID_Benefit_Type__c === 'Discount(%)'
+                                        ? b.INID_Benefit_Type__c + ' : ' + b.INID_Discount__c + ' % '
+                                        : 'N/A',
                     });
                 });
 
@@ -1024,11 +1088,32 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId !== promoId) return group;
 
-            const updatedGrouped = group.groupedBenefits.map(bg => {
-            // เช็คว่า benefit ที่คลิกอยู่ในกลุ่มนี้หรือเปล่า
-            const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
-                if (!isBenefitInGroup) return bg; // ไม่อยู่ก็ข้าม
+            const hasSelectedAnd = group.groupedBenefits.some(
+                bg => bg.conditionType === 'AND' && bg.benefits.some(b => b.selected)
+            );
+            const hasSelectedOr = group.groupedBenefits.some(
+                bg => bg.conditionType === 'OR' && bg.benefits.some(b => b.selected)
+            );
 
+            const updatedGrouped = group.groupedBenefits.map(bg => {
+                const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
+
+                if (!isBenefitInGroup) {
+                    const isConflict =
+                        (bg.conditionType === 'AND') ||
+                        (bg.conditionType === 'OR');
+
+                    if (isConflict) {
+                        const clearedBenefits = bg.benefits.map(b => ({
+                            ...b,
+                            selected: false,
+                            className: 'benefit-box'
+                        }));
+                        return { ...bg, benefits: clearedBenefits };
+                    }
+
+                    return bg; 
+                }
                 if (bg.conditionType === 'AND') {
                     const isAllSelected = bg.benefits.every(b => b.selected);
                     const newSelected = !isAllSelected;
@@ -1071,6 +1156,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
     }
 
+
+
     // INID_Sale_Promotion_Benefit__r.INID_Condition_Type__c
 
     get hasSelectedProducts() {
@@ -1088,7 +1175,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         return this.selectedProducts;
     }
 
-    openOrder() {
+    async openOrder() {
         if (!this.validateInputs()) return;
 
         if (this.typeOrderFirstValue === 'Create New Order' && this.typeOrderSecondValue !== 'One Time Order') {
@@ -1122,6 +1209,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.isShowOrder = true;
         this.isShowAddProduct = false;
         this.isShowPickListType = false;
+
+
+        // about user
+        alert('user id : ' + this.userId) ;
+        const buGroupResult = await fetchBuGroupId({userId: this.userId});
+        alert('BU Product Group ID: ' + buGroupResult);
+
     }
 
 
@@ -1544,7 +1638,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             });
         });
 
-        console.log("🎯 สรุป promotionData:", JSON.stringify(this.promotionData, null, 2));
+        console.log(" สรุป promotionData:", JSON.stringify(this.promotionData, null, 2));
+
+        const totalNetPrice = this.summaryProducts
+            .filter(p => !p.addOnText) // กรองเฉพาะสินค้าหลัก
+            .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
+
+        alert(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
     }
 
     get promoList(){

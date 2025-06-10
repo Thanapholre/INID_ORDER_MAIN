@@ -23,7 +23,7 @@ public with sharing class INID_OrderController {
     public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
         return [
             SELECT Id , INID_Quantity__C, INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c
-            FROM INID_Product_Price_Book__c LIMIT 20
+            FROM INID_Product_Price_Book__c
         ];
     }
 
@@ -148,5 +148,27 @@ public with sharing class INID_OrderController {
     public static List<INID_Product_Price_Book__c> getProductPromotionByPID(Id productId) {
         return [SELECT INID_Material_Code__c ,  INID_SKU_Description__c	 FROM INID_Product_Price_Book__c];
     }
+
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_BU_to_Product__c> fetchBuProduct(Id userId) {
+        return [
+            SELECT INID_Product_Price_Book__c
+            FROM INID_BU_to_Product__c                                                                          
+            WHERE CreatedById = :userId 
+        ];
+    }
+
+
+
+
+    @AuraEnabled(cacheable=true)
+    public static String fetchBuGroupId(Id userId) {
+        INID_User_Detail__c userDetail = [ SELECT INID_BU_Group__c FROM INID_User_Detail__c WHERE INID_User__c = :userId ];
+        System.debug(userDetail.INID_BU_Group__c) ;
+        return userDetail.INID_BU_Group__c;
+    }
+
+    
 
 }
