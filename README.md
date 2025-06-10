@@ -17,257 +17,116 @@ The `sfdx-project.json` file contains useful configuration information for your 
 - [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
 - [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
 
-promotionData :[
+
+
+combo group : [
   {
-    "id": "a0h85000000zqCzAAI",
-    "benefitType": "Free Product (Fix Quantity)",
-    "promotionName": "TestProductBenefit",
-    "promotionDescirption": "ซื้อ 1000 ขึ้นไปเเถม 10 ชิ้น",
-    "columns": [
-      {
-        "label": "Material Code",
-        "fieldName": "promotionMaterialCode",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "SKU Description",
-        "fieldName": "promotionDescription",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Unit",
-        "fieldName": "unit",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Quantity",
-        "fieldName": "freeProductQuantity",
-        "hideDefaultActions": true
-      }
-    ],
-    "data": [
-      {
-        "promotionMaterialCode": "10002",
-        "promotionDescription": "Sample SKU Desc 2",
-        "unit": "-",
-        "freeProductQuantity": 10
-      }
-    ]
-  },
-  {
-    "id": "a0h850000010MBFAA2",
-    "benefitType": "Free Product (Ratio)",
+    "promotionId": "a0G85000000y7BVEAY",
     "promotionName": "Free Amount Test",
-    "promotionDescirption": "ซื้อไปเถอะ",
-    "columns": [
+    "promotionDescript": "ซื้อไปเถอะ",
+    "isSelected": false,
+    "arrowSymbol": "fa-solid fa-circle-chevron-down",
+    "className": "promotion-box",
+    "groupedBenefits": [
       {
-        "label": "Material Code",
-        "fieldName": "promotionMaterialCode",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "SKU Description",
-        "fieldName": "promotionDescription",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Unit",
-        "fieldName": "unit",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Numerator",
-        "fieldName": "numerator",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Quantity",
-        "fieldName": "freeProductQuantity",
-        "hideDefaultActions": true
-      }
-    ],
-    "data": [
-      {
-        "promotionMaterialCode": "100020",
-        "promotionDescription": "Sample SKU Desc 20",
-        "unit": "Box",
-        "numerator": 20,
-        "denomiator": 5
-      }
-    ]
-  },
-  {
-    "id": "a0h85000000zqCzAAI",
-    "benefitType": "Free Product (Fix Quantity)",
-    "promotionName": "TestProductBenefit",
-    "promotionDescirption": "ซื้อ 1000 ขึ้นไปเเถม 10 ชิ้น",
-    "columns": [
-      {
-        "label": "Material Code",
-        "fieldName": "promotionMaterialCode",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "SKU Description",
-        "fieldName": "promotionDescription",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Unit",
-        "fieldName": "unit",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Quantity",
-        "fieldName": "freeProductQuantity",
-        "hideDefaultActions": true
-      }
-    ],
-    "data": [
-      {
-        "promotionMaterialCode": "10002",
-        "promotionDescription": "Sample SKU Desc 2",
-        "unit": "-",
-        "freeProductQuantity": 10
-      }
-    ]
-  },
-  {
-    "id": "a0h850000010MBFAA2",
-    "benefitType": "Free Product (Ratio)",
-    "promotionName": "Free Amount Test",
-    "promotionDescirption": "ซื้อไปเถอะ",
-    "columns": [
-      {
-        "label": "Material Code",
-        "fieldName": "promotionMaterialCode",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "SKU Description",
-        "fieldName": "promotionDescription",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Unit",
-        "fieldName": "unit",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Numerator",
-        "fieldName": "numerator",
-        "hideDefaultActions": true
-      },
-      {
-        "label": "Quantity",
-        "fieldName": "freeProductQuantity",
-        "hideDefaultActions": true
-      }
-    ],
-    "data": [
-      {
-        "promotionMaterialCode": "100020",
-        "promotionDescription": "Sample SKU Desc 20",
-        "unit": "Box",
-        "numerator": 20,
-        "denomiator": 5
-      }
-    ]
-  }
-]
-
-
-
-
-
-
-
-
-🎯 สรุป promotionData: [
-  {
-    "id": "a0G85000000xw1aEAA",
-    "promotionName": "TestProductBenefit",
-    "promotionDescirption": "ซื้อ 1000 ขึ้นไปเเถม 10 ชิ้น",
-    "benefits": [
-      {
-        "id": "a0h85000000zqCzAAI",
-        "columns": [
+        "conditionType": "AND",
+        "benefits": [
           {
-            "label": "Material Code",
-            "fieldName": "promotionMaterialCode",
-            "hideDefaultActions": true
+            "Id": "a0h850000010SuzAAE",
+            "Name": "SPBP-0280",
+            "INID_Product_Price_Book__c": "a078500000KrqwPAAR",
+            "INID_Free_Product_Quantity_Numerator__c": 20,
+            "INID_Free_Product_Quantity_Denominator__c": 5,
+            "INID_Benefit_Type__c": "Free Product (Ratio)",
+            "INID_Sale_Promotion_Benefit__c": "a0H85000000FoFpEAK",
+            "INID_Product_Price_Book__r": {
+              "INID_Material_Code__c": "100020",
+              "INID_SKU_Description__c": "Sample SKU Desc 20",
+              "INID_Unit__c": "Box",
+              "Id": "a078500000KrqwPAAR"
+            },
+            "INID_Sale_Promotion_Benefit__r": {
+              "INID_Condition_Type__c": "AND",
+              "Id": "a0H85000000FoFpEAK"
+            },
+            "id": "a0h850000010SuzAAE",
+            "BenefitProduct": "a078500000KrqwPAAR",
+            "selected": false,
+            "className": "benefit-box"
           },
           {
-            "label": "SKU Description",
-            "fieldName": "promotionDescription",
-            "hideDefaultActions": true
-          },
-          {
-            "label": "Unit",
-            "fieldName": "unit",
-            "hideDefaultActions": true
-          },
-          {
-            "label": "Quantity",
-            "fieldName": "freeProductQuantity",
-            "hideDefaultActions": true
-          }
-        ],
-        "data": [
-          {
-            "promotionMaterialCode": "10002",
-            "promotionDescription": "Sample SKU Desc 2",
-            "unit": "-",
-            "freeProductQuantity": 10
+            "Id": "a0h850000010Sv2AAE",
+            "Name": "SPBP-0283",
+            "INID_Product_Price_Book__c": "a078500000KTOHeAAP",
+            "INID_Free_Product_Quantity_Fix__c": 30,
+            "INID_Benefit_Type__c": "Free Product (Fix Quantity)",
+            "INID_Sale_Promotion_Benefit__c": "a0H85000000FoFsEAK",
+            "INID_Product_Price_Book__r": {
+              "INID_Material_Code__c": "10002",
+              "INID_SKU_Description__c": "Sample SKU Desc 2",
+              "Id": "a078500000KTOHeAAP"
+            },
+            "INID_Sale_Promotion_Benefit__r": {
+              "INID_Condition_Type__c": "AND",
+              "Id": "a0H85000000FoFsEAK"
+            },
+            "id": "a0h850000010Sv2AAE",
+            "BenefitProduct": "a078500000KTOHeAAP",
+            "selected": false,
+            "className": "benefit-box"
           }
         ]
-      }
-    ]
-  },
-  {
-    "id": "a0G85000000y7BVEAY",
-    "promotionName": "Free Amount Test",
-    "promotionDescirption": "ซื้อไปเถอะ",
-    "benefits": [
+      },
       {
-        "id": "a0h850000010MBFAA2",
-        "columns": [
+        "conditionType": "OR",
+        "benefits": [
           {
-            "label": "Material Code",
-            "fieldName": "promotionMaterialCode",
-            "hideDefaultActions": true
+            "Id": "a0h850000010Sv0AAE",
+            "Name": "SPBP-0281",
+            "INID_Product_Price_Book__c": "a078500000KTOHdAAP",
+            "INID_SetPrice__c": 300,
+            "INID_Benefit_Type__c": "Set Price",
+            "INID_Sale_Promotion_Benefit__c": "a0H85000000FoFqEAK",
+            "INID_Product_Price_Book__r": {
+              "INID_Material_Code__c": "10001",
+              "INID_SKU_Description__c": "Sample SKU Desc 1",
+              "INID_Unit__c": "Box",
+              "Id": "a078500000KTOHdAAP"
+            },
+            "INID_Sale_Promotion_Benefit__r": {
+              "INID_Condition_Type__c": "OR",
+              "Id": "a0H85000000FoFqEAK"
+            },
+            "id": "a0h850000010Sv0AAE",
+            "BenefitProduct": "a078500000KTOHdAAP",
+            "selected": false,
+            "className": "benefit-box"
           },
           {
-            "label": "SKU Description",
-            "fieldName": "promotionDescription",
-            "hideDefaultActions": true
-          },
-          {
-            "label": "Unit",
-            "fieldName": "unit",
-            "hideDefaultActions": true
-          },
-          {
-            "label": "Numerator",
-            "fieldName": "numerator",
-            "hideDefaultActions": true
-          },
-          {
-            "label": "Quantity",
-            "fieldName": "freeProductQuantity",
-            "hideDefaultActions": true
-          }
-        ],
-        "data": [
-          {
-            "promotionMaterialCode": "100020",
-            "promotionDescription": "Sample SKU Desc 20",
-            "unit": "Box",
-            "numerator": 20,
-            "denomiator": 5
+            "Id": "a0h850000010Sv1AAE",
+            "Name": "SPBP-0282",
+            "INID_Product_Price_Book__c": "a078500000KTOHiAAP",
+            "INID_SetPrice__c": 30,
+            "INID_Benefit_Type__c": "Set Price",
+            "INID_Sale_Promotion_Benefit__c": "a0H85000000FoFrEAK",
+            "INID_Product_Price_Book__r": {
+              "INID_Material_Code__c": "10006",
+              "INID_SKU_Description__c": "Sample SKU Desc 6",
+              "Id": "a078500000KTOHiAAP"
+            },
+            "INID_Sale_Promotion_Benefit__r": {
+              "INID_Condition_Type__c": "OR",
+              "Id": "a0H85000000FoFrEAK"
+            },
+            "id": "a0h850000010Sv1AAE",
+            "BenefitProduct": "a078500000KTOHiAAP",
+            "selected": false,
+            "className": "benefit-box"
           }
         ]
       }
     ]
   }
 ]
+
+

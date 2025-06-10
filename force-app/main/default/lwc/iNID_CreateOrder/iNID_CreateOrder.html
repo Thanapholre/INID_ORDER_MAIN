@@ -381,22 +381,30 @@
                 <lightning-card>
                     <div class="slds-p-around_medium">
                         <template for:each={comboGroups} for:item="group">
-                            <div key={group.promotionId} class="slds-m-bottom_medium" style="background-color: #fff; border: 1px solid rgb(118, 118, 118); margin-bottom: 20px; border-radius: 12px; " >
+                            <div key={group.promotionId} class="slds-m-bottom_medium"
+                                style="background-color: #fff; border: 1px solid rgb(118, 118, 118); margin-bottom: 20px; border-radius: 12px;">
+
                                 <!-- Promotion Header -->
-                                <div class={group.className}  onclick={handleTogglePromotion} data-promoid={group.promotionId}>
+                                <div class={group.className} onclick={handleTogglePromotion} data-promoid={group.promotionId}>
                                     <span>{group.promotionName}</span>
                                     <i class={group.arrowIconClass} style="margin-left: 10px; color: #933B06"></i>
                                 </div>
 
-                                <!-- Benefits -->
+                                <!-- Benefits Grouped -->
                                 <template if:true={group.isSelected}>
-                                    <template for:each={group.benefits} for:item="benefit">
-                                        <div key={benefit.Id} class={benefit.className}
-                                            onclick={handleToggleBenefit}
-                                            data-promoid={group.promotionId}
-                                            data-benefitid={benefit.Id}
-                                            style="margin: 20px;" >
-                                            {benefit.Name}
+                                    <template for:each={group.groupedBenefits} for:item="gBenefit">
+                                        <div key={gBenefit.conditionType} style="padding-left: 20px; padding-bottom: 10px;">
+                                            <p style="font-weight: bold; margin-top: 30px;">เงื่อนไข: {gBenefit.conditionType}</p>
+                                            <template for:each={gBenefit.benefits} for:item="benefit">
+                                                <div key={benefit.Id}
+                                                    class={benefit.className}
+                                                    onclick={handleToggleBenefit}
+                                                    data-promoid={group.promotionId}
+                                                    data-benefitid={benefit.Id}
+                                                    style="margin: 10px 20px;">
+                                                    {benefit.Name}
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
                                 </template>
