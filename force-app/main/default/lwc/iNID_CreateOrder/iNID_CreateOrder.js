@@ -962,19 +962,21 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 promotionName: promo.name,
                 promotionDescript: promo.description,
                 isSelected: false,
+                // conditionType: promo.benefits[0]?.INID_Sale_Promotion_Benefit__r?.INID_Condition_Type__c || 'OR', 
                 arrowSymbol: 'fa-solid fa-circle-chevron-down',
                 className: 'promotion-box',
                 benefits: promo.benefits.map(b => ({
                     ...b,
                     id: b.Id,
                     Name: b.Name,
-                    // promotionMaterialCode: b.INID_Material_Code__c,
-                    // INID_Benefit_Type__c: b.INID_Benefit_Type__c,
                     BenefitProduct: b.INID_Product_Price_Book__c,
                     selected: false,
                     className: 'benefit-box'
                 }))
             }));
+
+            console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
+
         } catch(error) {
             alert('error\n'+ (error.body?.message || error.message || JSON.stringify(error)));
         }   
@@ -1005,12 +1007,28 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId === promoId) {
+                const isAND = group.conditionType === 'AND';
+
                 const updatedBenefits = group.benefits.map(b => {
-                    return {
-                        ...b,
-                        selected: b.Id === benefitId, 
-                        className: b.Id === benefitId ? 'benefit-box selected' : 'benefit-box'
-                    };
+                    if (isAND) {
+                        // แบบ AND: toggle เลือก/ไม่เลือกได้หลายตัว
+                        if (b.Id === benefitId) {
+                            const newSelected = !b.selected;
+                            return {
+                                ...b,
+                                selected: newSelected,
+                                className: newSelected ? 'benefit-box selected' : 'benefit-box'
+                            };
+                        }
+                        return b;
+                    } else {
+                        // แบบ OR: เลือกได้แค่ตัวเดียว
+                        return {
+                            ...b,
+                            selected: b.Id === benefitId,
+                            className: b.Id === benefitId ? 'benefit-box selected' : 'benefit-box'
+                        };
+                    }
                 });
 
                 return {
@@ -1022,6 +1040,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
     }
 
+
+    // INID_Sale_Promotion_Benefit__r.INID_Condition_Type__c
 
     get hasSelectedProducts() {
         return this.selectedProducts && this.selectedProducts.length > 0;
@@ -1359,7 +1379,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
 
     getColumnsByType(type) {
-        if (type === 'Free Amount') {
+        if (type === 'Free Product (Fix Quantity)') {
             return [
                 { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
                 { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true },
@@ -1368,23 +1388,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             ];
         } else if (type === 'Discount Amount') {
             return [
-                { label: 'Discount  Type', fieldName: 'freeProductQuantity', hideDefaultActions: true },
-                { label: 'Total(AMOUNT/PERCENT)', fieldName: 'unit', hideDefaultActions: true }
+                { label: 'Discount Type', fieldName: 'discountType', hideDefaultActions: true },
+                { label: 'Total(AMOUNT/PERCENT)', fieldName: 'discountAmount', hideDefaultActions: true }
             ];
         } else if (type === 'Set Price') {
             return [
                 { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
                 { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
-                { label: 'Sales Price', fieldName: 'salePrice', hideDefaultActions: true } ,
+                { label: 'Sales Price', fieldName: 'setPrice', hideDefaultActions: true } ,
                 { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
-            ];
-        } else if (type === 'Free Product (Fix Quantity)') {
-            return [
-                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
-                { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
-                { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
-                // { label: 'Numerator', fieldName: 'numerator', hideDefaultActions: true },
-                { label: 'Quantity', fieldName: 'freeProductQuantity', hideDefaultActions: true },
             ];
         } else if (type === 'Free Product (Ratio)') {
             return [
@@ -1392,18 +1404,27 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
                 { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
                 { label: 'Numerator', fieldName: 'numerator', hideDefaultActions: true },
-                { label: 'Quantity', fieldName: 'freeProductQuantity', hideDefaultActions: true },
+                { label: 'Denominator', fieldName: 'denomiator', hideDefaultActions: true },
+            ];
+        } else {
+            return [
+                { label: 'Discount Type', fieldName: 'discountType', hideDefaultActions: true },
+                { label: 'Total(AMOUNT/PERCENT)', fieldName: 'discountPercent', hideDefaultActions: true }
             ];
         }
     }
+
+
     
     showSummary() {
         this.isShowOrder = false;
         this.isShowSummary = true;
         this.isShowApplyPromotion = false;
         this.summaryProducts = [];
+        this.promotionData = []; // เคลียร์ก่อนใช้ใหม่
+        this.selectedPromotion = []; // เคลียร์ด้วยถ้าใช้
 
-        // สรุปรายการสินค้า
+        // 1) สรุปรายการสินค้า + Add-on
         const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
 
         mainProducts.forEach(main => {
@@ -1425,10 +1446,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 addOnText: null
             });
 
-            if (!this.selectedPromotion.some(p => p.id === main.id && p.promotionId === p.promotionId )) {
-                this.selectedPromotion.push({
-                    ...main
-                });
+            if (!this.selectedPromotion.some(p => p.id === main.id)) {
+                this.selectedPromotion.push({ ...main });
             }
 
             relatedAddons.forEach(addon => {
@@ -1437,40 +1456,114 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     addOnText: addon.nameBtn
                 });
             });
+        });
 
-            // set up promotion
-            const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
+        // 2) รวมโปรโมชันแบบไม่ซ้ำ (แยกออกจาก forEach ของ mainProducts)
+        const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
 
-            console.log("selectedPromotions ของ Benefit ที่เลือก : " + JSON.stringify(selectedPromotions , null , 2));
-            console.log("combo Group ของ Benefit ที่เลือก : " + JSON.stringify(this.comboGroups , null , 2));
+        selectedPromotions.forEach(group => {
+            const selectedBenefits = group.benefits.filter(b => b.selected);
 
-            selectedPromotions.forEach(group => {
-                const selectedBenefits = group.benefits.filter(b => b.selected);
+            const existingPromoGroup = this.promotionData.find(p => p.promotionName === group.promotionName);
 
-                selectedBenefits.forEach(b => {
-                    const type = b.INID_Benefit_Type__c;
+            if (!existingPromoGroup) {
+                this.promotionData.push({
+                    id: group.promotionId || group.id,
+                    promotionName: group.promotionName,
+                    promotionDescirption: group.promotionDescript,
+                    benefits: []
+                });
+            }
 
-                    this.promotionData.push({
-                        id: b.Id,
-                        benefitType: type,
-                        promotionName: group.promotionName,
-                        promotionDescirption: group.promotionDescript,
-                        columns: this.getColumnsByType(type),
-                        data: [{
-                            promotionMaterialCode: b.INID_Product_Price_Book__r.INID_Material_Code__c || '',
-                            promotionDescription: b.INID_Product_Price_Book__r.INID_SKU_Description__c || '',
-                            unit: b.INID_Product_Price_Book__r.INID_Unit__c || '-',
-                            numerator: b.INID_Free_Product_Quantity_Numerator__c,
-                            denomiator: b.INID_Free_Product_Quantity_Denominator__c ,
-                            freeProductQuantity: b.INID_Free_Product_Quantity_Fix__c,
-                            discountAmount: b.INID_Discount_Amount__c,
-                        }]
+            const targetGroup = this.promotionData.find(p => p.promotionName === group.promotionName);
 
-                    });
-                     console.log('promotionData :'+ JSON.stringify(this.promotionData , null , 2));
+            selectedBenefits.forEach(b => {
+                const type = b.INID_Benefit_Type__c;
+
+                targetGroup.benefits.push({
+                    id: b.Id,
+                    columns: this.getColumnsByType(type),
+                    data: [{
+                        promotionMaterialCode: b.INID_Product_Price_Book__r?.INID_Material_Code__c || '',
+                        promotionDescription: b.INID_Product_Price_Book__r?.INID_SKU_Description__c || '',
+                        unit: b.INID_Product_Price_Book__r?.INID_Unit__c || '-',
+                        numerator: b.INID_Free_Product_Quantity_Numerator__c,
+                        denomiator: b.INID_Free_Product_Quantity_Denominator__c,
+                        freeProductQuantity: b.INID_Free_Product_Quantity_Fix__c,
+                        discountAmount: b.INID_Discount_Amount__c , 
+                        discountType: type ,
+                        discountPercent: b.INID_Discount__c ,
+                        setPrice: b.INID_SetPrice__c,
+                        
+                    }]
                 });
             });
         });
+
+        // selectedPromotions.forEach(group => {
+        //     const selectedBenefits = group.benefits.filter(b => b.selected);
+
+        //     // เช็กว่ามี Promotion นี้ใน promotionData หรือยัง
+        //     let targetGroup = this.promotionData.find(p => p.promotionName === group.promotionName);
+
+        //     if (!targetGroup) {
+        //         // ถ้ายังไม่มี ให้สร้างใหม่
+        //         targetGroup = {
+        //             id: group.promotionId || group.id,
+        //             promotionName: group.promotionName,
+        //             promotionDescirption: group.promotionDescript,
+        //             benefits: []
+        //         };
+        //         this.promotionData.push(targetGroup);
+        //     }
+
+        //     selectedBenefits.forEach(b => {
+        //         const type = b.INID_Benefit_Type__c;
+
+        //         // ✅ หา benefit ที่มี ID เดียวกันใน benefits[] แล้วหรือยัง
+        //         let benefit = targetGroup.benefits.find(ben => ben.id === b.Id);
+
+        //         const dataItem = {
+        //             promotionMaterialCode: b.INID_Product_Price_Book__r?.INID_Material_Code__c || '',
+        //             promotionDescription: b.INID_Product_Price_Book__r?.INID_SKU_Description__c || '',
+        //             unit: b.INID_Product_Price_Book__r?.INID_Unit__c || '-',
+        //             numerator: b.INID_Free_Product_Quantity_Numerator__c,
+        //             denomiator: b.INID_Free_Product_Quantity_Denominator__c,
+        //             freeProductQuantity: b.INID_Free_Product_Quantity_Fix__c,
+        //             discountAmount: b.INID_Discount_Amount__c
+        //         };
+
+        //         if (benefit) {
+        //             // ✅ ถ้ามี benefit เดิมอยู่แล้ว → เพิ่มเข้า data[]
+        //             benefit.data.push(dataItem);
+        //         } else {
+        //             // ✅ ถ้ายังไม่มี benefit นี้ → เพิ่มใหม่เข้า benefits[]
+        //             targetGroup.benefits.push({
+        //                 id: b.Id,
+        //                 columns: this.getColumnsByType(type),
+        //                 data: [dataItem]
+        //             });
+        //         }
+        //     });
+        // });
+
+
+
+        console.log("🎯 สรุป promotionData:", JSON.stringify(this.promotionData, null, 2));
     }
+
+    get promoList(){
+        return this.promotionData.map(p => ({
+            ...p,
+            rowWrapper: [{
+                id: p.id,
+                promotionName: p.promotionName,
+                promotionDescirption: p.promotionDescirption
+            }]
+        }));
+    }
+
+
+
 
 }

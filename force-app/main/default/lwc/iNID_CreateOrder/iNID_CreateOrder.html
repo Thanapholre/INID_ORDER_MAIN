@@ -452,27 +452,28 @@
                         <h1 style="text-align: center; margin-bottom: 10px; color: #00101e; " >Summary Apply Promotion</h1>
                         <div>
                             <div class="datatable-container slds-m-top_medium main_product">
-                            <template for:each={promotionData} for:item="promo">
-                                <div key={promo.id} class="slds-m-top_medium">
-
-                                    <!-- title: แสดงชื่อโปรนี้ -->
+                            <template for:each={promoList} for:item="promo">
+                                <div key={promo.id} style="margin-bottom: 50px; border: 1px solid black; padding: 5px; border-radius: 15px;" >
                                     <lightning-datatable
                                         key-field="id"
-                                        data={promotionData} 
+                                        data={promo.rowWrapper}
                                         columns={columnPromotionsTitle}
                                         hide-checkbox-column>
                                     </lightning-datatable>
 
-                                    <!-- content: แสดงข้อมูลตาม Benefit Type -->
-                                    <lightning-datatable
-                                        key-field="id"
-                                        data={promo.data}
-                                        columns={promo.columns}
-                                        hide-checkbox-column>
-                                    </lightning-datatable>
+                                    <!-- ตาราง Benefit -->
+                                    <template for:each={promo.benefits} for:item="benefit">
+                                        <div key={benefit.id}>
+                                            <lightning-datatable
+                                                key-field="promotionMaterialCode"
+                                                data={benefit.data}
+                                                columns={benefit.columns}
+                                                hide-checkbox-column>
+                                            </lightning-datatable>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
-
                             </div>
                         </div>
                     </lightning-card>

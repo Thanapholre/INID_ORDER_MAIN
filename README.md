@@ -17,33 +17,257 @@ The `sfdx-project.json` file contains useful configuration information for your 
 - [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
 - [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
 
+promotionData :[
+  {
+    "id": "a0h85000000zqCzAAI",
+    "benefitType": "Free Product (Fix Quantity)",
+    "promotionName": "TestProductBenefit",
+    "promotionDescirption": "ซื้อ 1000 ขึ้นไปเเถม 10 ชิ้น",
+    "columns": [
+      {
+        "label": "Material Code",
+        "fieldName": "promotionMaterialCode",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "SKU Description",
+        "fieldName": "promotionDescription",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Unit",
+        "fieldName": "unit",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Quantity",
+        "fieldName": "freeProductQuantity",
+        "hideDefaultActions": true
+      }
+    ],
+    "data": [
+      {
+        "promotionMaterialCode": "10002",
+        "promotionDescription": "Sample SKU Desc 2",
+        "unit": "-",
+        "freeProductQuantity": 10
+      }
+    ]
+  },
+  {
+    "id": "a0h850000010MBFAA2",
+    "benefitType": "Free Product (Ratio)",
+    "promotionName": "Free Amount Test",
+    "promotionDescirption": "ซื้อไปเถอะ",
+    "columns": [
+      {
+        "label": "Material Code",
+        "fieldName": "promotionMaterialCode",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "SKU Description",
+        "fieldName": "promotionDescription",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Unit",
+        "fieldName": "unit",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Numerator",
+        "fieldName": "numerator",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Quantity",
+        "fieldName": "freeProductQuantity",
+        "hideDefaultActions": true
+      }
+    ],
+    "data": [
+      {
+        "promotionMaterialCode": "100020",
+        "promotionDescription": "Sample SKU Desc 20",
+        "unit": "Box",
+        "numerator": 20,
+        "denomiator": 5
+      }
+    ]
+  },
+  {
+    "id": "a0h85000000zqCzAAI",
+    "benefitType": "Free Product (Fix Quantity)",
+    "promotionName": "TestProductBenefit",
+    "promotionDescirption": "ซื้อ 1000 ขึ้นไปเเถม 10 ชิ้น",
+    "columns": [
+      {
+        "label": "Material Code",
+        "fieldName": "promotionMaterialCode",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "SKU Description",
+        "fieldName": "promotionDescription",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Unit",
+        "fieldName": "unit",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Quantity",
+        "fieldName": "freeProductQuantity",
+        "hideDefaultActions": true
+      }
+    ],
+    "data": [
+      {
+        "promotionMaterialCode": "10002",
+        "promotionDescription": "Sample SKU Desc 2",
+        "unit": "-",
+        "freeProductQuantity": 10
+      }
+    ]
+  },
+  {
+    "id": "a0h850000010MBFAA2",
+    "benefitType": "Free Product (Ratio)",
+    "promotionName": "Free Amount Test",
+    "promotionDescirption": "ซื้อไปเถอะ",
+    "columns": [
+      {
+        "label": "Material Code",
+        "fieldName": "promotionMaterialCode",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "SKU Description",
+        "fieldName": "promotionDescription",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Unit",
+        "fieldName": "unit",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Numerator",
+        "fieldName": "numerator",
+        "hideDefaultActions": true
+      },
+      {
+        "label": "Quantity",
+        "fieldName": "freeProductQuantity",
+        "hideDefaultActions": true
+      }
+    ],
+    "data": [
+      {
+        "promotionMaterialCode": "100020",
+        "promotionDescription": "Sample SKU Desc 20",
+        "unit": "Box",
+        "numerator": 20,
+        "denomiator": 5
+      }
+    ]
+  }
+]
 
-getPromotion{
-  "promotions": [
-    {
-      "benefits": [
-        {
-          "Id": "a0h85000000znNCAAY",
-          "Name": "SPBP-0179",
-          "INID_Product_Price_Bookc": "a078500000KTOHdAAP",
-          "INID_Free_Product_Quantity_Numeratorc": 15,
-          "INID_Free_Product_Quantity_Denominatorc": 3
-        }
-      ],
-      "id": "a0G85000000xavVEAQ",
-      "name": "Tier"
-    },
-    {
-      "benefits": [
-        {
-          "Id": "a0h85000000zqCzAAI",
-          "Name": "SPBP-0188",
-          "INID_Product_Price_Bookc": "a078500000KTOHeAAP",
-          "INID_Free_Product_Quantity_Fix__c": 10
-        }
-      ],
-      "id": "a0G85000000xw1aEAA",
-      "name": "TestProductBenefit"
-    }
-  ]
-}
+
+
+
+
+
+
+
+🎯 สรุป promotionData: [
+  {
+    "id": "a0G85000000xw1aEAA",
+    "promotionName": "TestProductBenefit",
+    "promotionDescirption": "ซื้อ 1000 ขึ้นไปเเถม 10 ชิ้น",
+    "benefits": [
+      {
+        "id": "a0h85000000zqCzAAI",
+        "columns": [
+          {
+            "label": "Material Code",
+            "fieldName": "promotionMaterialCode",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "SKU Description",
+            "fieldName": "promotionDescription",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "Unit",
+            "fieldName": "unit",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "Quantity",
+            "fieldName": "freeProductQuantity",
+            "hideDefaultActions": true
+          }
+        ],
+        "data": [
+          {
+            "promotionMaterialCode": "10002",
+            "promotionDescription": "Sample SKU Desc 2",
+            "unit": "-",
+            "freeProductQuantity": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a0G85000000y7BVEAY",
+    "promotionName": "Free Amount Test",
+    "promotionDescirption": "ซื้อไปเถอะ",
+    "benefits": [
+      {
+        "id": "a0h850000010MBFAA2",
+        "columns": [
+          {
+            "label": "Material Code",
+            "fieldName": "promotionMaterialCode",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "SKU Description",
+            "fieldName": "promotionDescription",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "Unit",
+            "fieldName": "unit",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "Numerator",
+            "fieldName": "numerator",
+            "hideDefaultActions": true
+          },
+          {
+            "label": "Quantity",
+            "fieldName": "freeProductQuantity",
+            "hideDefaultActions": true
+          }
+        ],
+        "data": [
+          {
+            "promotionMaterialCode": "100020",
+            "promotionDescription": "Sample SKU Desc 20",
+            "unit": "Box",
+            "numerator": 20,
+            "denomiator": 5
+          }
+        ]
+      }
+    ]
+  }
+]
