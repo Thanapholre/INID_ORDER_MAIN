@@ -151,16 +151,13 @@ public with sharing class INID_OrderController {
 
 
     @AuraEnabled(cacheable=true)
-    public static List<INID_BU_to_Product__c> fetchBuProduct(Id userId) {
+    public static List<INID_BU_to_Product__c> fetchBuProduct(Id buGroupId) {
         return [
             SELECT INID_Product_Price_Book__c
             FROM INID_BU_to_Product__c                                                                          
-            WHERE CreatedById = :userId 
+            WHERE INID_BU_Group__c = :buGroupId 
         ];
     }
-
-
-
 
     @AuraEnabled(cacheable=true)
     public static String fetchBuGroupId(Id userId) {

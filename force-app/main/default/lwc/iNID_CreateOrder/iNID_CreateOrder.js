@@ -75,10 +75,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track quoteItemValue = [] ;
     @track accountId;
     @track orderId ;
-    @track productBu;
-    @track productBuGroup;
+    @track buGroupbyId;
+    @track buGroupId;
     // @track userId;
     @track userId = USER_ID;
+    @track productBuIds;
 
   
     columns = [
@@ -106,17 +107,16 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     ];
 
-    // @wire(fetchBuProduct , {userId: '$userId'})
-    // wiredFetchBuProductList({error , data}) {
-    //     if(data) {
-    //         this.productBu = data ;
-
-    //         this.productBuIds = new Set(data.map(item => item.INID_Product_Price_Book__c));
-    //         // console.log('BU Product IDs:', Array.from(this.productBuIds));
-    //     } else {
-    //         console.log(error) ;
-    //     }
-    // }
+    @wire(fetchBuProduct , {buGroupId: '$buGroupId'})
+    wiredFetchBuProductList({error , data}) {
+        if(data) {
+            this.buGroupbyId = data ;
+            this.productBuIds = new Set(data.map(item => item.INID_Product_Price_Book__c));
+            console.log('BU Groups IDs:' + JSON.stringify(this.buGroupbyId, null, 2));
+        } else {
+            console.log(error) ;
+        }
+    }
     
     // @wire(fetchBuGroupId , {userId: '$userId'})
     // wiredFetchBuGroupIdList({error , data}) {
@@ -779,7 +779,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 message: 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ',
                 variant: 'error'
             }));
-            return; // หยุดทำงานทันที
+            return;
         }
 
         const addedProducts = [];
@@ -790,29 +790,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             if (matched) {
                 const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
                 if (!alreadyAdded) {
-                    const salePrice = matched.INID_Unit_Price__c || 0;
-                    const quantity = 1;
-                    const total = salePrice * quantity;
-
-                    const product = {
-                        rowKey: matched.Id,
-                        id: matched.Id,
-                        code: matched.INID_Material_Code__c,
-                        productPriceBookId: matched.Id, 
-                        Name: matched.Name,
-                        description: matched.INID_SKU_Description__c,
-                        quantity: quantity,
-                        salePrice,
-                        unit: matched.INID_Unit__c,
-                        unitPrice: matched.INID_Unit_Price__c,
-                        total: total,
-                        nameBtn: '+' ,
-                        variant: 'brand' ,
-                        editableSalePrice : true 
-                        
-                    };
-
-                    addedProducts.push(product);
+                    // ✅ ใช้ mapProduct แทนการสร้าง object ตรง ๆ
+                    const mappedProduct = this.mapProduct(matched, [], this.hlNumber);
+                    addedProducts.push(mappedProduct);
                 } else {
                     duplicatedCodes.push(code);
                 }
@@ -823,8 +803,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         if (addedProducts.length > 0) {
             this.selectedProducts = [...this.selectedProducts, ...addedProducts];
-            this.isShowAddfromText = false ;
-
+            this.isShowAddfromText = false;
         }
 
         if (duplicatedCodes.length > 0) {
@@ -843,6 +822,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             textarea.value = '';
         }
     }
+
 
 
     // ---------------------------------------------------------------------------
@@ -1214,7 +1194,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         // about user
         alert('user id : ' + this.userId) ;
         const buGroupResult = await fetchBuGroupId({userId: this.userId});
-        alert('BU Product Group ID: ' + buGroupResult);
+        this.buGroupId = buGroupResult ;
+        alert('BU Product Group ID: ' + this.buGroupId);
 
     }
 
