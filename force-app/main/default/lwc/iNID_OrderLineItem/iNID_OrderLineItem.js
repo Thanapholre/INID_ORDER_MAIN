@@ -1041,6 +1041,9 @@ export default class INID_OrderLine extends LightningElement {
 
             this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
+            setTimeout(() => {
+                window.location.reload();
+            }, 200);
 
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error));
