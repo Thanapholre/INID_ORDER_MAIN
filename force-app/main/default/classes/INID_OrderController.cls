@@ -166,6 +166,65 @@ public with sharing class INID_OrderController {
         return userDetail.INID_BU_Group__c;
     }
 
-    
+    // @AuraEnabled
+    // public static void insertFocOrderItem(Id orderId, List<INID_Order_Foc__c> focOrderList) {
+    //     for (INID_Order_Foc__c foc : focOrderList) {
+    //         foc.INID_Original_Order__c = orderId;
+    //     }
+    //     insert focOrderList;
+    // }
+
+
+
+    // @AuraEnabled
+    // public static void insertFocOrderItem(Id orderId) {
+    //     for (INID_Order_Foc__c foc : focOrderList) {
+    //         foc.INID_Original_Order__c = orderId;
+    //     }
+    //     insert focOrderList;
+    // }
+
+    // @AuraEnabled
+    // public static void insertOrderFocById(Id orderId) {
+    //     List<INID_Order_Foc__c> focList = new List<INID_Order_Foc__c>();
+
+    //     // ตัวอย่าง: สร้าง 2 record แบบ fix ค่า
+    //     focList.add(new INID_Order_Foc__c(
+    //         INID_Original_Order__c = orderId
+    //     ));
+
+    //     insert focList;
+    //     return focList;
+    // }
+
+    // @AuraEnabled
+    // public static void insertOrderFocById(Id orderId) {
+    //     List<INID_Order_Foc__c> focList = new List<INID_Order_Foc__c>();
+
+    //     focList.add(new INID_Order_Foc__c(
+    //         INID_Original_Order__c = orderId
+    //     ));
+
+    //     insert focList;
+    // }
+
+    @AuraEnabled
+    public static void insertOrderFocById(List<INID_Order_Foc__c> orderFocList ) {
+        insert orderFocList ;
+        System.debug('orderFocList : ' + orderFocList) ;
+    }    
+
+
+    @AuraEnabled(cacheable=true)
+    public static String fetchOrderFocId(Id orderId) {
+        INID_Order_Foc__c orderFocId = [SELECT Id FROM INID_Order_Foc__c WHERE INID_Original_Order__c = :orderId];
+        return orderFocId.Id;
+    }
+
+
+    @AuraEnabled
+    public static void insertOrderItemFoc(List<INID_Product_Order_Item_Foc__c> orderItemList){
+        insert orderItemList ;
+    }
 
 }

@@ -20,6 +20,10 @@ import LightningConfirm from 'lightning/confirm';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
 import fetchBuProduct from '@salesforce/apex/INID_OrderController.fetchBuProduct'
 import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
+import fetchOrderFocId from '@salesforce/apex/INID_OrderController.fetchOrderFocId'
+import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
+import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
+// import fetchOrderFocById from '@salesforce/apex/INID_OrderController.fetchOrderFocById'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
@@ -80,6 +84,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     // @track userId;
     @track userId = USER_ID;
     @track productBuIds;
+    @track orderFocId ;
+    @track orderFocById;
 
   
     columns = [
@@ -118,17 +124,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
     
-    // @wire(fetchBuGroupId , {userId: '$userId'})
-    // wiredFetchBuGroupIdList({error , data}) {
-    //     if(data) {
-    //         this.productBuGroup = data ;
-    //         console.log('BU Product Group ID:' + JSON.stringify(this.productBuGroup, null, 2));
-    //         alert('BU Product Group ID:' + this.productBuGroup);
-    //     } else {
-    //         console.log('error: ' + JSON.stringify(error, null, 2)) ;
-    //     }
-    // }
-
 
     //closeTab
     @wire(IsConsoleNavigation) isConsoleNavigation;
@@ -178,6 +173,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error fetching accounts:', error);
         }
     }
+
+    // @wire(fetchOrderFocById , {orderId: '$orderId'})
+    // wiredOrderFocById({ error, data }) {
+    //     if (data) {
+    //         this.orderFocById = data;
+    //         console.log('wire this.orderFocById: ' + JSON.stringify(this.orderFocById , null , 2)) ;
+    //     } else if (error) {
+    //         console.error('Error fetching accounts:', error);
+    //     }
+    // }
+
 
     // fetch Auto Field Ship To 
    fetchShipto(accountId) {
@@ -873,19 +879,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     async connectedCallback() {
         loadStyle(this, FONT_AWESOME + '/css/all.min.css');
 
-        // alert('userId : ' + this.userId) ;
-
-        // if (this.userId) {
-        //     alert('userId : ' + this.userId) ;
-        //     try {
-        //         const buGroupId = await fetchBuGroupId({ userId: this.userId });
-        //         this.productBuGroup = buGroupId;
-        //         console.log('BU Product Group ID:', this.productBuGroup);
-        //         alert('BU Product Group ID: ' + this.productBuGroup);
-        //     } catch (error) {
-        //         console.error('Error fetching BU Group ID:', error);
-        //     }
-        // }
     }
 
 
@@ -1293,7 +1286,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     // Start Handle Save
     async handleSaveSuccess() {
-        // Toast แจ้งว่าบันทึกสำเร็จ
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'รายการแจ้งเตือน',
@@ -1310,6 +1302,38 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 actionName: 'view'
             }
         });
+    }
+
+
+    async insertOrderFoc(orderId) {
+        const orderFoc = {
+            AccountId: this.accountId ,
+            Status: 'Draft' ,
+            EffectiveDate: new Date().toISOString(),
+            Type: this.typeOrderSecondValue ,
+            INID_PaymentType__c: this.paymentTypeValue,
+            INID_PaymentTerm__c: this.paymentTermValue,
+            INID_Bill_To_Code__c: this.billto,	
+            INID_Ship_To_Code__c: this.shipto,
+            INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
+            INID_Organization__c: this.organizationValue	,
+            INID_NoteInternal__c: this.noteInternal,
+            INID_ExcVAT__c: this.radioButtonOrderLabel2,
+            INID_IncVAT__c: this.radioButtonOrderLabel1,
+            INID_NoteAgent__c : this.noteAgent ,
+            INID_Original_Order__c: orderId
+        };
+        try {   
+            if (this.focProducts && this.focProducts.length > 0) {
+                await insertOrderFocById({ orderFocList: [orderFoc] });
+                // console.log('FOC records inserted successfully');    
+                // return focOrderId ;
+            } else {
+                console.log('ไม่มีของแถม FOC → ไม่สร้าง INID_Order_Foc__c');
+            }
+            } catch (error) {
+                console.error('Error:', error);
+        }
     }
 
 
@@ -1335,6 +1359,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.orderId = orderId;
             await this.insertPromotion(this.orderId);
             await this.insertOrderItemListFunction(this.orderId); 
+            await this.insertOrderFoc(this.orderId) ;
+            const orderFocId = await fetchOrderFocId({orderId: this.orderId});
+            console.log('order foc id : ' + orderFocId);
+            await this.insertOrderItemFocListFunction(orderFocId);
         } catch (error) {
             this.handleSaveError(error);
         }
@@ -1406,6 +1434,36 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.handleSaveError(error);
         }
     }
+
+    async insertOrderItemFocListFunction(orderFocId) {
+        console.log('this.focProduct: ' + JSON.stringify(this.focProducts , null , 2)) ;
+        let currentHLNumber = 0;
+        const orderItemFocList = this.focProducts.map((foc) => {
+            currentHLNumber += 1 ;
+            return {
+                
+                INID_Quantity__c: foc.focProduct.quantity ,
+                INID_Sale_Price__c: foc.focProduct.salePrice ,
+                INID_Product_Price_Book__c: foc.productPriceBookId ,
+                INID_Type__c: 'Add-on',
+                INID_Remark__c: foc.focProduct.addOnText || '',
+                INID_Order_Foc__c: orderFocId ,
+                INID_HL_Number__c: currentHLNumber,
+                INID_Item_Number__c: foc.itemNumber,
+            }
+        });
+        console.log('order Item foc list: ' + JSON.stringify(orderItemFocList , null , 2)) ;
+
+        try {
+            await insertOrderItemFoc({ orderItemList: orderItemFocList });
+            console.log('FOC Item records inserted successfully');
+    
+           
+        } catch (error) {
+            this.handleSaveError(error);
+        }
+    }
+
 
     async handleSave(){
         if (!this.accountId) {
@@ -1547,8 +1605,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 addOnText: null
             });
 
-            
-
             if (!this.selectedPromotion.some(p => p.id === main.id)) {
                 this.selectedPromotion.push({ ...main });
             }
@@ -1572,8 +1628,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     focProduct: foc
                 };
             });
+        
+        this.focProducts = focList;
 
-        console.log('FOC Mapping:', JSON.stringify(focList, null, 2));
+        console.log('FOC Mapping:', JSON.stringify(this.focProducts, null, 2));
         console.log(`พบของแถมนอกบิล (FOC) ทั้งหมด ${focList.length} รายการ`);
         console.log('summary Product : ' + JSON.stringify(this.summaryProducts, null , 2));
 
@@ -1601,7 +1659,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             selectedBenefits.forEach(b => {
                 const type = b.INID_Benefit_Type__c;
-                const columnKey = JSON.stringify(this.getColumnsByType(type)); // ทำให้เทียบ column ได้ง่าย
+                const columnKey = JSON.stringify(this.getColumnsByType(type)); 
 
                     let existingBenefitGroup = targetGroup.benefits.find(bg => 
                         JSON.stringify(bg.columns) === columnKey
@@ -1641,7 +1699,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
     }
 
-
+            
 
     get promoList(){
         return this.promotionData.map(p => ({
