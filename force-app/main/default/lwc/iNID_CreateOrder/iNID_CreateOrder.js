@@ -928,9 +928,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     // ---------------------------------------------------------------------------
     // Start: Sumary
     // ---------------------------------------------------------------------------
-
-    
-
     backtoProduct(){
         this.isShowAddProduct = true;
         this.isShowApplyPromotion = false ;
@@ -1192,16 +1189,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
 
         // about user
-        alert('user id : ' + this.userId) ;
+        console.log('user id : ' + this.userId) ;
         const buGroupResult = await fetchBuGroupId({userId: this.userId});
         this.buGroupId = buGroupResult ;
-        alert('BU Product Group ID: ' + this.buGroupId);
-
+        console.log('BU Product Group ID: ' + this.buGroupId);
     }
 
 
     isShowPickListType =true;
-
+    
     backtoPicList() {
         this.isShowOrder = false ;
         this.isShowPickListType = true ;
@@ -1396,6 +1392,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     INID_HL_Number__c: currentHLNumber,
                     INID_Item_Number__c: item.itemNumber,
                     INID_Remark__c: item.addOnText || '',
+                    
                 };
             }
         });
@@ -1520,14 +1517,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
 
-    
     showSummary() {
         this.isShowOrder = false;
         this.isShowSummary = true;
         this.isShowApplyPromotion = false;
         this.summaryProducts = [];
-        this.promotionData = []; // เคลียร์ก่อนใช้ใหม่
-        this.selectedPromotion = []; // เคลียร์ด้วยถ้าใช้
+        this.promotionData = []; 
+        this.selectedPromotion = []; 
 
         // 1) สรุปรายการสินค้า + Add-on
         const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
@@ -1551,6 +1547,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 addOnText: null
             });
 
+            
+
             if (!this.selectedPromotion.some(p => p.id === main.id)) {
                 this.selectedPromotion.push({ ...main });
             }
@@ -1562,6 +1560,22 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 });
             });
         });
+
+        const focList = this.summaryProducts
+            .filter(p => p.addOnText === 'ของแถมนอกบิล (FOC)')
+            .map(foc => {
+                const main = this.summaryProducts.find(
+                    mp => !mp.addOnText && mp.code === foc.productCode
+                );
+
+                return {
+                    focProduct: foc
+                };
+            });
+
+        console.log('FOC Mapping:', JSON.stringify(focList, null, 2));
+        console.log(`พบของแถมนอกบิล (FOC) ทั้งหมด ${focList.length} รายการ`);
+        console.log('summary Product : ' + JSON.stringify(this.summaryProducts, null , 2));
 
         // 2) รวมโปรโมชันแบบไม่ซ้ำ (แยกออกจาก forEach ของ mainProducts)
         const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
@@ -1615,7 +1629,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         discountPercent: b.INID_Discount__c ,
                         setPrice: b.INID_SetPrice__c,
                     });
-
             });
         });
 
@@ -1625,8 +1638,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             .filter(p => !p.addOnText) // กรองเฉพาะสินค้าหลัก
             .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
 
-        alert(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
+        console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
     }
+
+
 
     get promoList(){
         return this.promotionData.map(p => ({
