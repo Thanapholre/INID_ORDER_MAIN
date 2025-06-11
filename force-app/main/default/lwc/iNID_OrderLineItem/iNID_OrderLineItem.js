@@ -9,11 +9,17 @@ import fetchProductOrderItem from '@salesforce/apex/INID_OrderController.fetchPr
 import deleteProductItems from '@salesforce/apex/INID_OrderController.deleteProductItems'
 import { refreshApex } from '@salesforce/apex';
 import insertProductItem from '@salesforce/apex/INID_OrderController.insertProductItem';
+import fetchOrderFocId from '@salesforce/apex/INID_OrderController.fetchOrderFocId';
+import deleteFocFromOrder from '@salesforce/apex/INID_OrderController.deleteFocFromOrder';
 import replaceProductItems from '@salesforce/apex/INID_OrderController.replaceProductItems';
+import fetchProductOrderItemFoc from '@salesforce/apex/INID_OrderController.fetchProductOrderItemFoc';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
 import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers';
 // import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote'
 import insertOrderSalePromotion from '@salesforce/apex/INID_OrderController.insertOrderSalePromotion'
+import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
+import fetchOrderToOrderFoc from '@salesforce/apex/INID_OrderController.fetchOrderToOrderFoc';
+import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
 import getAccountId from '@salesforce/apex/INID_OrderController.getAccountId' ;
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -48,6 +54,9 @@ export default class INID_OrderLine extends LightningElement {
     @track comboGroups = [];
     @track selectedPromotion = [] ;
     @track promotionData = [] ;
+    @track orderFocId ;
+    @track orderFocItem = [] ;
+    @track orderFocDetail = [];
 
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
@@ -129,7 +138,6 @@ export default class INID_OrderLine extends LightningElement {
         }
      }
     
-
     //Apex wire: fetch product price book
     @wire(fetchDataProductPriceBook)
     wiredproductPriceBook({ error, data }) {
@@ -140,65 +148,173 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+
+
+    @wire(fetchOrderFocId, { orderId: '$recordId' })
+    wiredFocId({ error, data }) {
+        if (data) {
+            console.log('ได้ FOC Id:' +  JSON.stringify(data , null ,2));
+            this.orderFocId = data;
+        } else if (error) {
+            console.error(' เกิดข้อผิดพลาดในการดึง FOC ID:', error);
+        }
+    }
+
     @wire(fetchProductOrderItem, { orderId: '$recordId' })
     getDataProductOrderItem({ error, data }) {
         if (data) {
+            console.log('✅ ดึงข้อมูล Product Order Item สำเร็จ:', JSON.stringify(data, null, 2));
+
             const mainProducts = [];
             const addonProducts = [];
-           
+
             data.forEach(row => {
-            const isAddon = row.INID_Sale_Price__c === 0;
-            const quantity = Number(row.INID_Quantity__c) || 0;
-            const salePrice = Number(row.INID_Sale_Price__c) || 0;
-            const total = parseFloat((quantity * salePrice).toFixed(2));
+                const isAddon = row.INID_Sale_Price__c === 0;
+                const quantity = Number(row.INID_Quantity__c) || 0;
+                const salePrice = Number(row.INID_Sale_Price__c) || 0;
+                const total = parseFloat((quantity * salePrice).toFixed(2));
 
-            const productObj = {
-                rowKey: row.Id,
-                code: row.INID_Material_Code__c,
-                hlItemNumber: row.INID_HL_Item_Number__c,
-                id: row.INID_Product_Price_Book__r?.Id,
-                productCode: row.INID_Material_Code__c || '',
-                description: row.INID_SKU_Decription__c,
-                unitPrice: row.INID_Product_Price_Book__r?.INID_Unit_Price__c || 0,
-                quantity,
-                salePrice,
-                unit: row.INID_Product_Price_Book__r?.INID_Unit__c || '',
-                total,
-                nameBtn: isAddon ? row.INID_Remark__c : '+',
-                variant: isAddon ? 'base' : 'brand',
-                addonDisabled: false,
-                isAddOn: isAddon,
-                productPriceBookId: row.INID_Product_Price_Book__r?.Id
-            };
+                const productObj = {
+                    rowKey: row.Id,
+                    code: row.INID_Material_Code__c,
+                    hlItemNumber: row.INID_HL_Item_Number__c,
+                    id: row.INID_Product_Price_Book__r?.Id,
+                    productCode: row.INID_Material_Code__c || '',
+                    description: row.INID_SKU_Decription__c,
+                    unitPrice: row.INID_Product_Price_Book__r?.INID_Unit_Price__c || 0,
+                    quantity,
+                    salePrice,
+                    unit: row.INID_Product_Price_Book__r?.INID_Unit__c || '',
+                    total,
+                    nameBtn: isAddon ? row.INID_Remark__c : '+',
+                    variant: isAddon ? 'base' : 'brand',
+                    addonDisabled: false,
+                    isAddOn: isAddon,
+                    productPriceBookId: row.INID_Product_Price_Book__r?.Id
+                };
 
-            if (isAddon) {
-                addonProducts.push(productObj);
-            } else {
-                mainProducts.push(productObj);
-            }
-        });
-
-            // ปิดปุ่ม Add-on ของ Main ถ้ามี Add-on แล้ว
-            mainProducts.forEach(main => {
-                const hasAddon = addonProducts.some(addon => addon.hlItemNumber === main.hlItemNumber);
-                main.addonDisabled = hasAddon;
+                if (isAddon) {
+                    addonProducts.push(productObj);
+                } else {
+                    mainProducts.push(productObj);
+                }
             });
 
-            const combined = [];
-            mainProducts.forEach(main => {
-                combined.push(main);
-                const relatedAddons = addonProducts.filter(addon => addon.hlItemNumber === main.hlItemNumber);
-                combined.push(...relatedAddons);
-            });
+            console.log('🧱 Main Products:', JSON.stringify(mainProducts, null, 2));
+            console.log('🧩 Add-on Products (Before FOC):', JSON.stringify(addonProducts, null, 2));
 
-            this.selectedProducts = combined;
-            this.visibleRows = this.selectedProducts.map(row => ({
-                ...row,
-                showAddonBtn: !row.isAddOn
-            }));
+            // ดึง FOC ID ก่อน
+            fetchOrderFocId({ orderId: this.orderId })
+                .then(focId => {
+                    if (!focId) {
+                        console.warn('❌ ไม่พบ FOC ID: ข้ามการดึง FOC ไปเลย');
+
+                        // 👉 ทำการรวมและ map ปกติเลย
+                        mainProducts.forEach(main => {
+                            const hasAddon = addonProducts.some(addon => addon.hlItemNumber === main.hlItemNumber);
+                            main.addonDisabled = hasAddon;
+                        });
+
+                        const combined = [];
+                        mainProducts.forEach(main => {
+                            combined.push(main);
+                            const relatedAddons = addonProducts.filter(addon => addon.hlItemNumber === main.hlItemNumber);
+                            combined.push(...relatedAddons);
+                        });
+
+                        this.selectedProducts = combined;
+                        this.visibleRows = this.selectedProducts.map(row => ({
+                            ...row,
+                            showAddonBtn: !row.isAddOn
+                        }));
+
+                        console.log('Combined Products (Main + Add-ons, No FOC):', JSON.stringify(this.selectedProducts, null, 2));
+
+                        return null; // ไม่ต้องไป .then(focItems) แล้ว
+                    }
+
+                    console.log('🔎 FOC ID ที่ได้:', focId);
+                    return fetchProductOrderItemFoc({ orderFocId: focId });
+                })
+                .then(focItems => {
+                    if (!focItems) return;
+
+                    console.log('ข้อมูล FOC Add-ons:', JSON.stringify(focItems, null, 2));
+
+                    focItems.forEach(foc => {
+                        const quantity = Number(foc.INID_Quantity__c) || 0;
+                        const salePrice = Number(foc.INID_Sale_Price__c) || 0;
+                        const total = parseFloat((quantity * salePrice).toFixed(2));
+                        const materialCode = foc.INID_Product_Price_Book__r?.INID_Material_Code__c;
+
+                        const matchedMain = mainProducts.find(main => main.code === materialCode);
+                        const hlItemNumber = matchedMain?.hlItemNumber || null;
+
+                        const addonObj = {
+                            rowKey: 'FOC-' + Math.random(),
+                            code: materialCode,
+                            hlItemNumber: hlItemNumber,
+                            id: null,
+                            productCode: materialCode,
+                            description: foc.INID_Product_Price_Book__r?.INID_SKU_Description__c,
+                            unitPrice: foc.INID_Product_Price_Book__r?.INID_Unit_Price__c || 0,
+                            quantity,
+                            salePrice,
+                            unit: foc.INID_Product_Price_Book__r?.INID_Unit__c || '',
+                            total,
+                            nameBtn: foc.INID_Remark__c,
+                            variant: 'base',
+                            addonDisabled: false,
+                            isAddOn: true,
+                            productPriceBookId: foc.INID_Product_Price_Book__c
+                        };
+
+                        if (hlItemNumber) {
+                            addonProducts.push(addonObj);
+                            console.log(`ผูก FOC Add-on กับ Main Product (${hlItemNumber}) แล้ว`);
+                        } else {
+                            console.warn(`ไม่พบ Main Product ที่ตรงกับ Material Code: ${materialCode}`);
+                        }
+                    });
+
+                    console.log('🧩 Add-on Products (After FOC):', JSON.stringify(addonProducts, null, 2));
+
+                    mainProducts.forEach(main => {
+                        const hasAddon = addonProducts.some(addon => addon.hlItemNumber === main.hlItemNumber);
+                        main.addonDisabled = hasAddon;
+                    });
+
+                    const combined = [];
+                    mainProducts.forEach(main => {
+                        combined.push(main);
+                        const relatedAddons = addonProducts.filter(addon => addon.hlItemNumber === main.hlItemNumber);
+                        combined.push(...relatedAddons);
+                    });
+
+                    this.selectedProducts = combined;
+                    this.visibleRows = this.selectedProducts.map(row => ({
+                        ...row,
+                        showAddonBtn: !row.isAddOn
+                    }));
+
+                    console.log('Combined Products (Main + Add-ons):', JSON.stringify(this.selectedProducts, null, 2));
+                })
+                .catch(err => {
+                    console.error('ดึงข้อมูล FOC ไม่สำเร็จ:', err);
+                });
 
         } else if (error) {
-            console.error('Error fetching product order items:', error);
+            console.error('ดึงข้อมูล Product Order Item ไม่สำเร็จ:', error);
+        }
+    }
+
+    @wire(fetchOrderToOrderFoc , {orderId: '$orderId'})
+    getOrderToOrderFoc({error , data}) {
+        if(data) {
+            this.orderFocDetail = data ;
+            console.log('order Foc Detail From order Id : ' + JSON.stringify(this.orderFocDetail , null ,2));
+        } else {
+            console.log('error is : ' + error) ;
         }
     }
 
@@ -365,7 +481,7 @@ export default class INID_OrderLine extends LightningElement {
 
                 let rawPrice = updated.salePrice ?? product.salePrice;
 
-                // ✅ ล้างสัญลักษณ์ ฿ และ comma
+                // ล้างสัญลักษณ์ ฿ และ comma
                 if (typeof rawPrice === 'string') {
                     rawPrice = rawPrice.replace(/[฿,]/g, '');
                 }
@@ -397,14 +513,14 @@ export default class INID_OrderLine extends LightningElement {
     
     handletest (){
         getPromotion({ orderId: this.recordId })
-            .then(result => {
-                console.log('Promotion Data:', result);
-                this.showToast('ข้อมูลโปรโมชั่น', JSON.stringify(result), 'info');
-            })
-            .catch(error => {
-                console.error('Error fetching promotion data:', error);
-                this.showToast('Error', 'ไม่สามารถดึงข้อมูลโปรโมชั่นได้', 'error');
-            });
+        .then(result => {
+            console.log('Promotion Data:', result);
+            this.showToast('ข้อมูลโปรโมชั่น', JSON.stringify(result), 'info');
+        })
+        .catch(error => {
+            console.error('Error fetching promotion data:', error);
+            this.showToast('Error', 'ไม่สามารถดึงข้อมูลโปรโมชั่นได้', 'error');
+        });
     }
 
     handleCancel() {
@@ -650,50 +766,192 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
-    async insertPromotion(orderId) {
-        const selectedBenefitItems = [];
 
-        this.comboGroups.forEach(group => {
-            const selectedBenefits = group.benefits.filter(b => b.selected);
 
-            selectedBenefits.forEach(benefit => {
-                selectedBenefitItems.push({
-                    INID_Order__c: orderId,
-                    INID_Sale_Promotion_Benefit_Product__c: benefit.Id
-                });
-            });
-        });
+    // อันนี้อันที่มี save ปกติจะ comment ไว้ก่อนนะ
+    // async handleSave() {
+    //     try {
+    //         const confirmed = await LightningConfirm.open({
+    //             message: 'คุณแน่ใจหรือไม่ว่าต้องการบันทึกรายการ?',
+    //             variant: 'header',
+    //             label: 'ยืนยันการบันทึก',
+    //         });
 
-        try {
-            console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
-            await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
-            console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
-           
-        } catch (error) {
-            this.handleSaveError(error);
-        }
-    }
+    //         if (!confirmed) return;
+
+    //         let hlNumber = 1;
+    //         let recordsToInsert = [];
+    //         let itemIndex = 1;
+
+    //         console.log('this.selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
+
+    //         const focProducts = this.selectedProducts.filter(
+    //             p => p.salePrice === 0 && p.nameBtn === 'ของแถมนอกบิล (FOC)'
+    //         );
+
+    //         const addonFocProducts = this.selectedProducts.filter(
+    //             p => p.salePrice === 0 && p.nameBtn !== 'ของแถมนอกบิล (FOC)'
+    //         );
+
+    //         // ✅ แสดงรายการ FOC ทั้งหมด
+    //         console.log(`🧾 พบของแถมนอกบิล (FOC) ทั้งหมด: ${focProducts.length} รายการ`);
+    //         focProducts.forEach((item, index) => {
+    //             console.log(`📦 FOC #${index + 1}:`, JSON.stringify(item, null, 2));
+    //         });
+
+    //         this.selectedProducts.forEach((prod) => {
+    //             const isFoc = prod.salePrice === 0 && prod.nameBtn === 'ของแถมนอกบิล (FOC)'; 
+    //             const isAddon = prod.salePrice === 0 && prod.nameBtn !== 'ของแถมนอกบิล (FOC)'; 
+
+    //             if (!isAddon && !isFoc) {
+    //                 hlNumber = recordsToInsert.length + 1;
+    //             }
+
+    //             const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
+
+    //             recordsToInsert.push({
+    //                 INID_Quantity__c: parseFloat(prod.quantity),
+    //                 INID_Sale_Price__c: parseFloat(prod.salePrice),
+    //                 INID_Quote__c: this.recordId,
+    //                 INID_Order__c: this.orderId,
+    //                 INID_Product_Price_Book__c: (isFoc || isAddon) ? prod.productPriceBookId : prod.id,
+    //                 INID_Type__c: isFoc ? 'Foc' : isAddon ? 'Add On' : 'Main',
+    //                 INID_Remark__c: (isFoc || isAddon) ? prod.nameBtn : null,
+    //                 INID_HL_Number__c: hlNumber,
+    //                 INID_Item_Number__c: formattedNumber,
+    //             });
+
+    //             itemIndex++;
+    //         });
+
+    //         // ✅ สร้างรายการที่ใช้ส่งให้ Apex insertOrderItemFoc
+    //         const focRecordsToInsert = focProducts.map((prod, index) => {
+    //             const formattedNumber = ((index + 1) * 10).toString().padStart(6, '0');
+    //             return {
+    //                 INID_Quantity__c: parseFloat(prod.quantity),
+    //                 INID_Sale_Price__c: parseFloat(prod.salePrice),
+    //                 INID_Quote__c: this.recordId,
+    //                 INID_Order_Foc__c: this.orderFocId,
+    //                 INID_Product_Price_Book__c: prod.productPriceBookId,
+    //                 INID_Type__c: 'Foc',
+    //                 INID_Remark__c: prod.nameBtn,
+    //                 INID_HL_Number__c: index + 1,
+    //                 INID_Item_Number__c: formattedNumber,
+    //             };
+    //         });
+
+    //         // ✅ ลบ FOC เดิมถ้าไม่มี FOC เหลือ
+    //         if (focProducts.length === 0) {
+    //             console.log('foc prodcut ไม่มีแล้ว จะลบแล้วน๊ะจ๊ะ ที่ id = ' + this.orderFocId + ' ถ้าไปค้นหาแล้วไม่เจอแปลว่าลบแล้วนะจ๊ะ');
+    //             await this.deleteFocItemsOnly(this.orderFocId);
+    //         }
+
+    //         // ✅ Insert FOC (เฉพาะของแถมนอกบิล)
+    //         if (focRecordsToInsert.length > 0) {
+    //             await insertOrderItemFoc({
+    //                 orderFocId: this.orderFocId,
+    //                 orderItemList: focRecordsToInsert
+    //             });
+    //         }
+
+    //         // ✅ Insert รายการ Main + Add-on
+    //         // await replaceProductItems({
+    //         //     orderId: this.orderId,
+    //         //     products: recordsToInsert
+    //         // });
+
+    //         this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
+    //         this.selectedProducts = [];
+
+    //     } catch (error) {
+    //         console.error('Save Error:', JSON.stringify(error));
+    //         alert('error : ' + JSON.stringify(error, null, 2));
+    //     }
+    // }
+
+    // async insertOrderFoc(orderId) {
+    //     try {
+    //         const newOrderFocDetail = this.orderFocDetail.map((item) =>{
+    //             return {
+    //                 ...item ,
+    //                 INID_Original_Order__c: orderId
+    //             }
+    //         })
+    //         await insertOrderFocById({ orderFocList: newOrderFocDetail });
+            
+    //         console.log('new order detail : ' + JSON.stringify(newOrderFocDetail , null , 2));
+    //         console.log('insertOrderItemFoc success')
+
+    //     }catch(error) {
+    //         console.log('have error + ' + JSON.stringify(error , null ,2));
+    //     }
+    // }
+
 
     async handleSave() {
         try {
             const confirmed = await LightningConfirm.open({
                 message: 'คุณแน่ใจหรือไม่ว่าต้องการบันทึกรายการ?',
-                variant: 'header', 
+                variant: 'header',
                 label: 'ยืนยันการบันทึก',
             });
 
-            if (!confirmed) {
-                return;
-            }
+            if (!confirmed) return;
 
             let hlNumber = 1;
             let recordsToInsert = [];
             let itemIndex = 1;
 
-            this.selectedProducts.forEach((prod) => {
-                const isAddon = prod.salePrice === 0;
+            console.log('this.selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
 
-                if (!isAddon) {
+            const focProducts = this.selectedProducts.filter(
+                p => p.salePrice === 0 && p.nameBtn === 'ของแถมนอกบิล (FOC)'
+            );
+
+            const addonFocProducts = this.selectedProducts.filter(
+                p => p.salePrice === 0 && p.nameBtn !== 'ของแถมนอกบิล (FOC)'
+            );
+
+            console.log(`🧾 พบของแถมนอกบิล (FOC) ทั้งหมด: ${focProducts.length} รายการ`);
+            focProducts.forEach((item, index) => {
+                console.log(`📦 FOC #${index + 1}:`, JSON.stringify(item, null, 2));
+            });
+
+            // รวมยอด quantity ของ FOC ที่ซ้ำกันโดย productPriceBookId + nameBtn
+            const focMap = new Map();
+            focProducts.forEach(prod => {
+                const key = prod.productPriceBookId + '-' + prod.nameBtn;
+                if (focMap.has(key)) {
+                    const exist = focMap.get(key);
+                    exist.quantity += parseFloat(prod.quantity);
+                } else {
+                    // clone object พร้อมแปลง quantity เป็น number
+                    focMap.set(key, { ...prod, quantity: parseFloat(prod.quantity) });
+                }
+            });
+            const uniqueFocProducts = Array.from(focMap.values());
+
+            // สร้าง focRecordsToInsert จาก uniqueFocProducts
+            const focRecordsToInsert = uniqueFocProducts.map((prod, index) => {
+                const formattedNumber = ((index + 1) * 10).toString().padStart(6, '0');
+                return {
+                    INID_Quantity__c: prod.quantity,
+                    INID_Sale_Price__c: parseFloat(prod.salePrice),
+                    INID_Quote__c: this.recordId,
+                    INID_Order_Foc__c: this.orderFocId, // จะอัพเดตใหม่ถ้าสร้าง Order FOC
+                    INID_Product_Price_Book__c: prod.productPriceBookId,
+                    INID_Type__c: 'Foc',
+                    INID_Remark__c: prod.nameBtn,
+                    INID_HL_Number__c: index + 1,
+                    INID_Item_Number__c: formattedNumber,
+                };
+            });
+
+            this.selectedProducts.forEach((prod) => {
+                const isFoc = prod.salePrice === 0 && prod.nameBtn === 'ของแถมนอกบิล (FOC)';
+                const isAddon = prod.salePrice === 0 && prod.nameBtn !== 'ของแถมนอกบิล (FOC)';
+
+                if (!isAddon && !isFoc) {
                     hlNumber = recordsToInsert.length + 1;
                 }
 
@@ -704,35 +962,105 @@ export default class INID_OrderLine extends LightningElement {
                     INID_Sale_Price__c: parseFloat(prod.salePrice),
                     INID_Quote__c: this.recordId,
                     INID_Order__c: this.orderId,
-                    INID_Product_Price_Book__c: isAddon ? prod.productPriceBookId : prod.id,
-                    INID_Type__c: isAddon ? 'Add On' : 'Main',
-                    INID_Remark__c: isAddon ? prod.nameBtn : null,
+                    INID_Product_Price_Book__c: (isFoc || isAddon) ? prod.productPriceBookId : prod.id,
+                    INID_Type__c: isFoc ? 'Foc' : isAddon ? 'Add On' : 'Main',
+                    INID_Remark__c: (isFoc || isAddon) ? prod.nameBtn : null,
                     INID_HL_Number__c: hlNumber,
                     INID_Item_Number__c: formattedNumber,
                 });
 
                 itemIndex++;
             });
-            
-            await this.insertPromotion(this.orderId);
+
+            // ถ้าไม่มี FOC แล้วเคยมี orderFocId ก็ลบ FOC เดิมทิ้ง
+            if (uniqueFocProducts.length === 0 && this.orderFocId) {
+                console.log('foc product ไม่มีแล้ว จะลบที่ id = ' + this.orderFocId);
+                await this.deleteFocItemsOnly(this.orderFocId);
+            }
+
+            // ถ้ายังไม่มี orderFocId และมีรายการ FOC ที่จะ insert
+            if (!this.orderFocId && focRecordsToInsert.length > 0) {
+                const newOrderFocDetail = this.orderFocDetail.map(item => {
+                    const { Id, ...rest } = item;
+                    return {
+                        ...rest,
+                        INID_Original_Order__c: Id,
+                        INID_Order_Foc__c: this.orderFocId // จะอัพเดตหลังสร้าง orderFocId
+                    };
+                });
+
+                try {
+                    // 1. สร้าง Order FOC
+                    const createdOrderFoc = await insertOrderFocById({ orderFocList: newOrderFocDetail });
+
+                    if (createdOrderFoc && Array.isArray(createdOrderFoc) && createdOrderFoc.length > 0) {
+                        this.orderFocId = createdOrderFoc[0].Id;
+                        console.log('✔️ สร้าง Order FOC สำเร็จ, orderFocId:', this.orderFocId);
+
+                        // 2. อัพเดต focRecordsToInsert ด้วย orderFocId ใหม่
+                        const focItemsWithOrderFocId = focRecordsToInsert.map(item => ({
+                            ...item,
+                            INID_Order_Foc__c: this.orderFocId
+                        }));
+
+                        // 3. Insert FOC Items
+                        await insertOrderItemFoc({
+                            orderFocId: this.orderFocId,
+                            orderItemList: focItemsWithOrderFocId
+                        });
+
+                        console.log('✔️ Insert FOC items สำเร็จ');
+                    } else {
+                        console.warn('⚠️ insertOrderFocById คืนค่าผิดปกติ:', createdOrderFoc);
+                        this.orderFocId = null;
+                    }
+                } catch (error) {
+                    console.error('❌ Error insertOrderFocById หรือ insertOrderItemFoc:', error);
+                    this.showToast('ผิดพลาด', 'ไม่สามารถสร้าง Order FOC หรือเพิ่มรายการ FOC ได้', 'error');
+                    return; // หยุดถ้า insert ไม่สำเร็จ
+                }
+            } else if (this.orderFocId && focRecordsToInsert.length > 0) {
+                // ถ้ามี orderFocId แล้ว insert FOC items ปกติ
+                await insertOrderItemFoc({
+                    orderFocId: this.orderFocId,
+                    orderItemList: focRecordsToInsert
+                });
+                console.log('insert order item foc success');
+            }
+
+            // Insert รายการ Main + Add-on
+            // กรองเอาเฉพาะรายการที่ไม่ใช่ของแถมนอกบิล (FOC)
+            const recordsToInsertFiltered = recordsToInsert.filter(
+                item => item.INID_Type__c !== 'Foc'
+            );
+
             await replaceProductItems({
                 orderId: this.orderId,
-                products: recordsToInsert
+                products: recordsToInsertFiltered
             });
 
             this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
 
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error));
-            // this.showToast('เกิดข้อผิดพลาด', error.body?.message || error.message, 'error');
-            alert('error : ' + JSON.stringify(error, null , 2)) ;
+            this.showToast('ผิดพลาด', 'เกิดข้อผิดพลาดในการบันทึก', 'error');
         }
     }
+
+
+
+
+
+    async deleteFocItemsOnly(orderFocId) {
+        try {
+            await deleteFocFromOrder({ orderFocId });
+            console.log('FOC items deleted successfully');
+        } catch (error) {
+            console.error('Error deleting FOC items:', error);
+        }
+    }
+
 
     @track comboGroups = [];
 
@@ -881,11 +1209,13 @@ export default class INID_OrderLine extends LightningElement {
         });
 
         // สรุปรายการสินค้า
-        const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
+        const mainProducts = this.selectedProducts.filter(p => p.salePrice !== 0);
+
+        console.log('this.select product:' + JSON.stringify(this.selectedProducts , null ,2)) ;
 
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
-                p => p.unitPrice === 0 && p.hlItemNumber === main.hlItemNumber
+                p => p.salePrice === 0 && p.hlItemNumber === main.hlItemNumber
             );
 
             const mainQty = Number(main.quantity || 0);
@@ -896,11 +1226,16 @@ export default class INID_OrderLine extends LightningElement {
             const totalSum = mainTotal + addonTotalSum;
             const netPrice = totalQty > 0 ? (totalSum / totalQty).toFixed(2) : '0.00';
 
+            console.log('main qty : ' + JSON.stringify(mainQty , null , 2));
+            console.log('addon qty : ' + JSON.stringify(addonQtySum , null , 2))
+
             this.summaryProducts.push({
                 ...main,
-                netPrice: netPrice,
-                addOnText: null
+                netPrice: main.unitPrice === 0 ? null : netPrice, 
+                addOnText: main.nameBtn == '+' ? '' : main.nameBtn
             });
+
+            
 
             if (!this.selectedPromotion.some(p => p.id === main.id && p.promotionId === p.promotionId )) {
                 this.selectedPromotion.push({
@@ -909,11 +1244,15 @@ export default class INID_OrderLine extends LightningElement {
             }
 
             relatedAddons.forEach(addon => {
+                const { netPrice, ...addonWithoutNetPrice } = addon;
                 this.summaryProducts.push({
-                    ...addon,
+                    ...addonWithoutNetPrice,
                     addOnText: addon.nameBtn
-                  });
+                });
             });
+
         });
+
+        console.log('this.summary products : ' + JSON.stringify(this.summaryProducts , null ,2)) ; 
     }
 }

@@ -163,68 +163,101 @@ public with sharing class INID_OrderController {
     public static String fetchBuGroupId(Id userId) {
         INID_User_Detail__c userDetail = [ SELECT INID_BU_Group__c FROM INID_User_Detail__c WHERE INID_User__c = :userId ];
         System.debug(userDetail.INID_BU_Group__c) ;
-        return userDetail.INID_BU_Group__c;
+        return userDetail.INID_BU_Group__c; 
     }
 
+    @AuraEnabled
+    public static List<INID_Order_Foc__c> insertOrderFocById(List<INID_Order_Foc__c> orderFocList) {
+        insert orderFocList;
+        return orderFocList;
+    } 
+
+
+    // @AuraEnabled(cacheable=true)
+    // public static String fetchOrderFocId(Id orderId) {
+    //     INID_Order_Foc__c orderFocId = [SELECT Id FROM INID_Order_Foc__c WHERE INID_Original_Order__c = :orderId];
+    //     return orderFocId.Id;
+    // }
+
+    @AuraEnabled(cacheable=true)
+    public static Id fetchOrderFocId(Id orderId) {
+        try {
+            INID_Order_Foc__c foc = [SELECT Id FROM INID_Order_Foc__c WHERE INID_Original_Order__c = :orderId LIMIT 1];
+            return foc?.Id;
+        } catch (Exception e) {
+            // Return null แทน throw error เพื่อให้ JS ฝั่ง client handle ได้
+            return null;
+        }
+    }
+
+
     // @AuraEnabled
-    // public static void insertFocOrderItem(Id orderId, List<INID_Order_Foc__c> focOrderList) {
-    //     for (INID_Order_Foc__c foc : focOrderList) {
-    //         foc.INID_Original_Order__c = orderId;
+    // public static void insertOrderItemFoc( Id orderFocId , List<INID_Product_Order_Item_Foc__c> orderItemList){
+    //     if(orderFocId == null) {
+    //         insert orderItemList ;
+    //     } else {
+    //         List<INID_Product_Order_Item_Foc__c> oldItems = [
+    //             SELECT Id FROM INID_Product_Order_Item_Foc__c
+    //             WHERE INID_Order_Foc__c = :orderFocId
+    //         ];
+
+    //         delete oldItems;
+    //         insert orderItemList;
     //     }
-    //     insert focOrderList;
-    // }
-
-
-
-    // @AuraEnabled
-    // public static void insertFocOrderItem(Id orderId) {
-    //     for (INID_Order_Foc__c foc : focOrderList) {
-    //         foc.INID_Original_Order__c = orderId;
-    //     }
-    //     insert focOrderList;
-    // }
-
-    // @AuraEnabled
-    // public static void insertOrderFocById(Id orderId) {
-    //     List<INID_Order_Foc__c> focList = new List<INID_Order_Foc__c>();
-
-    //     // ตัวอย่าง: สร้าง 2 record แบบ fix ค่า
-    //     focList.add(new INID_Order_Foc__c(
-    //         INID_Original_Order__c = orderId
-    //     ));
-
-    //     insert focList;
-    //     return focList;
-    // }
-
-    // @AuraEnabled
-    // public static void insertOrderFocById(Id orderId) {
-    //     List<INID_Order_Foc__c> focList = new List<INID_Order_Foc__c>();
-
-    //     focList.add(new INID_Order_Foc__c(
-    //         INID_Original_Order__c = orderId
-    //     ));
-
-    //     insert focList;
     // }
 
     @AuraEnabled
-    public static void insertOrderFocById(List<INID_Order_Foc__c> orderFocList ) {
-        insert orderFocList ;
-        System.debug('orderFocList : ' + orderFocList) ;
-    }    
+    public static void insertOrderItemFoc(Id orderFocId, List<INID_Product_Order_Item_Foc__c> orderItemList){
+        if(orderFocId == null) {
+            throw new AuraHandledException('Order FOC Id is required for inserting Order Item FOC.');
+        }
+
+        // กำหนดค่า lookup ฟิลด์ INID_Order_Foc__c ให้กับทุกตัวใน orderItemList
+        for(INID_Product_Order_Item_Foc__c item : orderItemList) {
+            item.INID_Order_Foc__c = orderFocId;
+        }
+
+        List<INID_Product_Order_Item_Foc__c> oldItems = [
+            SELECT Id FROM INID_Product_Order_Item_Foc__c
+            WHERE INID_Order_Foc__c = :orderFocId
+        ];
+
+        if(!oldItems.isEmpty()) {
+            delete oldItems;
+        }
+
+        insert orderItemList;
+    }
 
 
     @AuraEnabled(cacheable=true)
-    public static String fetchOrderFocId(Id orderId) {
-        INID_Order_Foc__c orderFocId = [SELECT Id FROM INID_Order_Foc__c WHERE INID_Original_Order__c = :orderId];
-        return orderFocId.Id;
+    public static List<INID_Product_Order_Item_Foc__c> fetchProductOrderItemFoc(Id orderFocId) {
+        return [
+            SELECT INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_SKU_Description__c , 
+            INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Quantity__c , INID_Sale_Price__c , 
+            INID_Product_Price_Book__r.INID_Unit__c , INID_Product_Price_Book__r.Id , INID_Total__c ,INID_Remark__c
+            FROM INID_Product_Order_Item_Foc__c 
+            WHERE INID_Order_Foc__c = :orderFocId
+        ];
     }
-
 
     @AuraEnabled
-    public static void insertOrderItemFoc(List<INID_Product_Order_Item_Foc__c> orderItemList){
-        insert orderItemList ;
+    public static void deleteFocFromOrder(Id orderFocId) {
+        List<INID_Order_Foc__c> focItems = [SELECT Id FROM INID_Order_Foc__c  WHERE Id = :orderFocId];
+        delete focItems;
     }
+
+    @AuraEnabled(cacheable=true)
+    public static List<Order> fetchOrderToOrderFoc(Id orderId) {
+        return[
+            SELECT AccountId , Status , EffectiveDate , Type , INID_PaymentType__c , 
+            INID_PaymentTerm__c , INID_Bill_To_Code__c , INID_Ship_To_Code__c , 
+            INID_PurchaseOrderNumber__c , INID_Organization__c , INID_NoteInternal__c , 
+            INID_ExcVAT__c , INID_IncVAT__c , INID_NoteAgent__c 
+            FROM Order 
+            WHERE Id = :orderId
+        ] ;
+    }
+
 
 }

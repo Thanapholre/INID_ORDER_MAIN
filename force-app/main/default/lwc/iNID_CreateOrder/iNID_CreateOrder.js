@@ -580,13 +580,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             return;
         }
 
+        
+
         const addonProduct = {
             rowKey: addonId,
             id: addonId, 
             code: matchedMain.code,
             productCode: matchedMain.code,
             description: matchedMain.description,
-            unitPrice: 0,
+            unitPrice: matchedMain.unitPrice,
             salePrice: 0,
             quantity: 1,
             unit: matchedMain.unit,
@@ -638,6 +640,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const newData = [...this.selectedProducts];
         newData.splice(index + 1, 0, addonProduct);
         this.selectedProducts = newData;
+        console.log('select product ตรง add on' + JSON.stringify(this.selectedProducts , null,2));
     }
 
     //search Product to AddProduct
@@ -1392,13 +1395,61 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    // async insertOrderItemListFunction(orderId) {
+    //     let currentHLNumber = 0;
+    //     let hlItemNumber = 0;
+
+    //     const orderItemList = this.summaryProducts.map((item) => {
+    //         if (item.isAddOn){
+    //                 return {
+    //                 INID_Quantity__c: item.quantity,
+    //                 INID_Sale_Price__c: item.salePrice,
+    //                 INID_Product_Price_Book__c: item.productPriceBookId,
+    //                 INID_Type__c: 'Add-on',
+    //                 INID_Order__c: orderId,
+    //                 INID_HL_Number__c: hlItemNumber,
+    //                 INID_Item_Number__c: item.itemNumber,
+    //                 INID_Remark__c: item.addOnText || '',
+    //             };
+    //         } else {
+    //             currentHLNumber++;
+    //             hlItemNumber = currentHLNumber;
+    //             return {
+    //                 INID_Quantity__c: item.quantity,
+    //                 INID_Sale_Price__c: item.salePrice,
+    //                 INID_Product_Price_Book__c: item.productPriceBookId,
+    //                 INID_Type__c: 'Main',
+    //                 INID_Order__c: orderId,
+    //                 INID_HL_Number__c: currentHLNumber,
+    //                 INID_Item_Number__c: item.itemNumber,
+    //                 INID_Remark__c: item.addOnText || '',
+                    
+    //             };
+    //         }
+    //     });
+    //     console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
+    //     try {
+    //         await insertOrderItem({ orderList: orderItemList, accountId: this.accountId });
+    //         this.handleSaveSuccess();
+            
+
+    //     } catch (error) {
+    //         this.handleSaveError(error);
+    //     }
+    // }
+
     async insertOrderItemListFunction(orderId) {
         let currentHLNumber = 0;
         let hlItemNumber = 0;
 
-        const orderItemList = this.summaryProducts.map((item) => {
-            if (item.isAddOn){
-                    return {
+        // ✅ กรองออก: ไม่รวม FOC Add-on
+        const filteredProducts = this.summaryProducts.filter(item => {
+            return !(item.isAddOn && item.addOnText === 'ของแถมนอกบิล (FOC)');
+        });
+
+        const orderItemList = filteredProducts.map((item) => {
+            if (item.isAddOn) {
+                return {
                     INID_Quantity__c: item.quantity,
                     INID_Sale_Price__c: item.salePrice,
                     INID_Product_Price_Book__c: item.productPriceBookId,
@@ -1420,20 +1471,20 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     INID_HL_Number__c: currentHLNumber,
                     INID_Item_Number__c: item.itemNumber,
                     INID_Remark__c: item.addOnText || '',
-                    
                 };
             }
         });
-        console.log('Order Item List:', JSON.stringify(orderItemList, null, 2));
+
+        console.log('Order Item List (excluded FOC Add-ons):', JSON.stringify(orderItemList, null, 2));
+
         try {
             await insertOrderItem({ orderList: orderItemList, accountId: this.accountId });
             this.handleSaveSuccess();
-            
-
         } catch (error) {
             this.handleSaveError(error);
         }
     }
+
 
     async insertOrderItemFocListFunction(orderFocId) {
         console.log('this.focProduct: ' + JSON.stringify(this.focProducts , null , 2)) ;
@@ -1441,10 +1492,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const orderItemFocList = this.focProducts.map((foc) => {
             currentHLNumber += 1 ;
             return {
-                
                 INID_Quantity__c: foc.focProduct.quantity ,
                 INID_Sale_Price__c: foc.focProduct.salePrice ,
-                INID_Product_Price_Book__c: foc.productPriceBookId ,
+                INID_Product_Price_Book__c: foc.focProduct.productPriceBookId ,
                 INID_Type__c: 'Add-on',
                 INID_Remark__c: foc.focProduct.addOnText || '',
                 INID_Order_Foc__c: orderFocId ,
@@ -1455,7 +1505,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         console.log('order Item foc list: ' + JSON.stringify(orderItemFocList , null , 2)) ;
 
         try {
-            await insertOrderItemFoc({ orderItemList: orderItemFocList });
+            await insertOrderItemFoc({orderFocId: null , orderItemList: orderItemFocList });
             console.log('FOC Item records inserted successfully');
     
            
@@ -1584,11 +1634,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.selectedPromotion = []; 
 
         // 1) สรุปรายการสินค้า + Add-on
-        const mainProducts = this.selectedProducts.filter(p => p.unitPrice !== 0);
+        const mainProducts = this.selectedProducts.filter(p => p.salePrice !== 0);
 
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
-                p => p.productCode === main.code && p.unitPrice === 0
+                p => p.productCode === main.code && p.salePrice === 0
             );
 
             const mainQty = Number(main.quantity || 0);
@@ -1616,6 +1666,12 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 });
             });
         });
+        const focAddons = this.summaryProducts.filter(p => p.addOnText === 'ของแถมนอกบิล (FOC)');
+        console.log(`➡️ พบ Add-on ที่เป็นของแถมนอกบิล (FOC) จำนวน ${focAddons.length} รายการ`);
+        const focMaterialCodes = focAddons.map(p => p.productCode || p.materialCode).filter(code => !!code);
+        console.log(`🧾 Material Codes ของ FOC Add-ons: ${focMaterialCodes.join(', ')}`);
+
+        // console.log('show summary product is a : ' + JSON.stringify(this.summaryProducts, null, 2));
 
         const focList = this.summaryProducts
             .filter(p => p.addOnText === 'ของแถมนอกบิล (FOC)')
