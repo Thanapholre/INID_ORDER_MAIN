@@ -24,3 +24,5 @@ aura://ApexActionController.execute: ServerServiceImpl::unwrapAction Class Cast 
 
 Error saving data
 Cannot read properties of undefined (reading 'productPriceBookId')
+
+Order FOC Id is required for inserting Order Item FOC.

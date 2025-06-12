@@ -22,7 +22,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
         return [
-            SELECT Id , INID_Quantity__C, INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c
+            SELECT Id , INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c
             FROM INID_Product_Price_Book__c
         ];
     }
@@ -79,7 +79,9 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_Order_Item__c> fetchProductOrderItem(Id orderId) {
         return [
-            SELECT Id , INID_Material_Code__c , INID_SKU_Decription__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__c , INID_Product_Price_Book__r.INID_Unit__c, INID_Total__c , INID_Order__c , INID_Remark__c , INID_HL_Item_Number__c
+            SELECT Id , INID_Material_Code__c , INID_SKU_Decription__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
+            INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__c , INID_Product_Price_Book__r.INID_Unit__c, 
+            INID_Total__c , INID_Order__c , INID_Remark__c , INID_HL_Item_Number__c
             FROM INID_Product_Order_Item__c                                                                          
             WHERE INID_Order__c = :orderId 
         ];
@@ -144,27 +146,27 @@ public with sharing class INID_OrderController {
     }
 
 
-    @AuraEnabled
+    @AuraEnabled 
     public static List<INID_Product_Price_Book__c> getProductPromotionByPID(Id productId) {
         return [SELECT INID_Material_Code__c ,  INID_SKU_Description__c	 FROM INID_Product_Price_Book__c];
     }
 
 
-    @AuraEnabled(cacheable=true)
-    public static List<INID_BU_to_Product__c> fetchBuProduct(Id buGroupId) {
-        return [
-            SELECT INID_Product_Price_Book__c
-            FROM INID_BU_to_Product__c                                                                          
-            WHERE INID_BU_Group__c = :buGroupId 
-        ];
-    }
+    // @AuraEnabled(cacheable=true)
+    // public static List<INID_BU_to_Product__c> fetchBuProduct(Id buGroupId) {
+    //     return [
+    //         SELECT INID_Product_Price_Book__c
+    //         FROM INID_BU_to_Product__c                                                                          
+    //         WHERE INID_BU_Group__c = :buGroupId 
+    //     ];
+    // }
 
-    @AuraEnabled(cacheable=true)
-    public static String fetchBuGroupId(Id userId) {
-        INID_User_Detail__c userDetail = [ SELECT INID_BU_Group__c FROM INID_User_Detail__c WHERE INID_User__c = :userId ];
-        System.debug(userDetail.INID_BU_Group__c) ;
-        return userDetail.INID_BU_Group__c; 
-    }
+    // @AuraEnabled(cacheable=true)
+    // public static String fetchBuGroupId(Id userId) {
+    //     INID_User_Detail__c userDetail = [ SELECT INID_BU_Group__c FROM INID_User_Detail__c WHERE INID_User__c = :userId ];
+    //     System.debug(userDetail.INID_BU_Group__c) ;
+    //     return userDetail.INID_BU_Group__c; 
+    // }
 
     @AuraEnabled
     public static List<INID_Order_Foc__c> insertOrderFocById(List<INID_Order_Foc__c> orderFocList) {
@@ -253,7 +255,7 @@ public with sharing class INID_OrderController {
             SELECT AccountId , Status , EffectiveDate , Type , INID_PaymentType__c , 
             INID_PaymentTerm__c , INID_Bill_To_Code__c , INID_Ship_To_Code__c , 
             INID_PurchaseOrderNumber__c , INID_Organization__c , INID_NoteInternal__c , 
-            INID_ExcVAT__c , INID_IncVAT__c , INID_NoteAgent__c 
+            INID_ExcVAT__c , INID_IncVAT__c , INID_NoteAgent__c , Account.Name
             FROM Order 
             WHERE Id = :orderId
         ] ;

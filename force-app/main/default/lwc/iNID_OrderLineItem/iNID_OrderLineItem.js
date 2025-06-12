@@ -233,7 +233,7 @@ export default class INID_OrderLine extends LightningElement {
                         return null; // ไม่ต้องไป .then(focItems) แล้ว
                     }
 
-                    console.log('🔎 FOC ID ที่ได้:', focId);
+                    console.log('FOC ID ที่ได้:', focId);
                     return fetchProductOrderItemFoc({ orderFocId: focId });
                 })
                 .then(focItems => {
@@ -992,6 +992,7 @@ export default class INID_OrderLine extends LightningElement {
                 try {
                     // 1. สร้าง Order FOC
                     const createdOrderFoc = await insertOrderFocById({ orderFocList: newOrderFocDetail });
+                    console.log('create order foc : ' + JSON.stringify(createdOrderFoc, null , 2));
 
                     if (createdOrderFoc && Array.isArray(createdOrderFoc) && createdOrderFoc.length > 0) {
                         this.orderFocId = createdOrderFoc[0].Id;
@@ -1041,9 +1042,10 @@ export default class INID_OrderLine extends LightningElement {
 
             this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
-            setTimeout(() => {
-                window.location.reload();
-            }, 200);
+            
+            // setTimeout(() => {
+            //     window.location.reload();
+            // }, 200);
 
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error));
@@ -1218,7 +1220,7 @@ export default class INID_OrderLine extends LightningElement {
 
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
-                p => p.salePrice === 0 && p.hlItemNumber === main.hlItemNumber
+                p => p.salePrice === 0 && p.code === main.code
             );
 
             const mainQty = Number(main.quantity || 0);
