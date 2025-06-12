@@ -18,8 +18,8 @@ import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__
 import ACCOUNT_ID from '@salesforce/schema/Account.Id';
 import LightningConfirm from 'lightning/confirm';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
-import fetchBuProduct from '@salesforce/apex/INID_OrderController.fetchBuProduct'
-import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
+// import fetchBuProduct from '@salesforce/apex/INID_OrderController.fetchBuProduct'
+// import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
 import fetchOrderFocId from '@salesforce/apex/INID_OrderController.fetchOrderFocId'
 import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
@@ -112,16 +112,16 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     ];
 
-    @wire(fetchBuProduct , {buGroupId: '$buGroupId'})
-    wiredFetchBuProductList({error , data}) {
-        if(data) {
-            this.buGroupbyId = data ;
-            this.productBuIds = new Set(data.map(item => item.INID_Product_Price_Book__c));
-            console.log('BU Groups IDs:' + JSON.stringify(this.buGroupbyId, null, 2));
-        } else {
-            console.log(error) ;
-        }
-    }
+    // @wire(fetchBuProduct , {buGroupId: '$buGroupId'})
+    // wiredFetchBuProductList({error , data}) {
+    //     if(data) {
+    //         this.buGroupbyId = data ;
+    //         this.productBuIds = new Set(data.map(item => item.INID_Product_Price_Book__c));
+    //         console.log('BU Groups IDs:' + JSON.stringify(this.buGroupbyId, null, 2));
+    //     } else {
+    //         console.log(error) ;
+    //     }
+    // }
     
 
     //closeTab
@@ -172,17 +172,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error fetching accounts:', error);
         }
     }
-
-    // @wire(fetchOrderFocById , {orderId: '$orderId'})
-    // wiredOrderFocById({ error, data }) {
-    //     if (data) {
-    //         this.orderFocById = data;
-    //         console.log('wire this.orderFocById: ' + JSON.stringify(this.orderFocById , null , 2)) ;
-    //     } else if (error) {
-    //         console.error('Error fetching accounts:', error);
-    //     }
-    // }
-
 
     // fetch Auto Field Ship To 
    fetchShipto(accountId) {
@@ -524,8 +513,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.hlNumber = hlNumber ;
 
         const productPriceBookId = source.Id;
-        // const editUserBu = this.productBu?.some(p => p.Id === source.Id); // เช็คว่า Product นี้เป็นของ User นี้หรือไม่
-        // console.log(JSON.stringify(editUserBu , null ,2)) ;
         const editableSalePrice =
         this.productBuIds && this.productBuIds.has(productPriceBookId);
 
@@ -545,7 +532,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             addOn: isMainProduct ? 'true' : 'false',
             nameBtn: isMainProduct ? '+' : 'Add-On Item',
             variant: 'brand',
-            // editUserBuSalePrice: editUserBu,
             editableSalePrice: editableSalePrice,
             addonDisabled: isMainProduct && hasAddon,
             hlItemNumber: this.hlNumber,
@@ -955,6 +941,14 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     }
 
+    benefitTypeOptions = [
+        { label: 'Discount Amount', value: 'Discount Amount' },
+        { label: 'Discount(%)', value: 'Discount(%)' },
+        { label: 'Free Product (Fix Quantity)', value: 'Free Product (Fix Quantity)' },
+        { label: 'Free Product (Ratio)', value: 'Free Product (Ratio)' },
+        { label: 'Set Price', value: 'Set Price' }
+    ];
+
 
     @track comboGroups = [];
 
@@ -994,19 +988,44 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         Name: b.Name,
                         BenefitProduct: b.INID_Product_Price_Book__c,
                         selected: false,
-                        className: 'benefit-box' , 
-                        benefitType: b.INID_Benefit_Type__c ,
-                        displayBenefit: b.INID_Benefit_Type__c === 'Free Product (Ratio)'
-                                        ? b.INID_Benefit_Type__c + ' ' + b.INID_Free_Product_Quantity_Numerator__c + ' : ' + b.INID_Free_Product_Quantity_Denominator__c
-                                        : b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)'
-                                        ? b.INID_Benefit_Type__c + ' : ' + b.INID_Free_Product_Quantity_Fix__c
-                                        : b.INID_Benefit_Type__c === 'Set Price'
-                                        ? b.INID_Benefit_Type__c + ' ' + b.INID_SetPrice__c
-                                        : b.INID_Benefit_Type__c === 'Discount Amount'
-                                        ? b.INID_Benefit_Type__c + ' ' + b.INID_Discount_Amount__c + ' THB ' 
-                                        : b.INID_Benefit_Type__c === 'Discount(%)'
-                                        ? b.INID_Benefit_Type__c + ' : ' + b.INID_Discount__c + ' % '
-                                        : 'N/A',
+                        className: 'benefit-box',
+                        benefitType: b.INID_Benefit_Type__c,
+
+                        //Show Input
+                        discountAmount: b.INID_Discount_Amount__c || null,
+                        discountPercent: b.INID_Discount__c || null,
+                        freeProductQuantityFix: b.INID_Free_Product_Quantity_Fix__c || null,
+                        freeProductQuantityRatioNumerator: b.INID_Free_Product_Quantity_Numerator__c || null,
+                        freeProductQuantityRatioDenominator: b.INID_Free_Product_Quantity_Denominator__c || null,
+                        batch: b.INID_Batch_Lot_No__c || null,
+                        setPrice: b.INID_SetPrice__c || null,
+                        remark: b.INID_Remark__c || '',
+                        freeProductLabelFix: b.INID_Product_Price_Book__r
+                            ? `${b.INID_Product_Price_Book__r.INID_Material_Code__c || ''} - ${b.INID_Product_Price_Book__r.INID_SKU_Description__c || ''}`.trim()
+                            : '',
+
+
+
+
+                        // Add these flags for conditional rendering
+                        isDiscountAmount: b.INID_Benefit_Type__c === 'Discount Amount',
+                        isDiscountPercent: b.INID_Benefit_Type__c === 'Discount(%)',
+                        isFreeProductFix: b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)',
+                        isFreeProductRatio: b.INID_Benefit_Type__c === 'Free Product (Ratio)',
+                        isSetPrice: b.INID_Benefit_Type__c === 'Set Price',
+
+                        displayBenefit:
+                            b.INID_Benefit_Type__c === 'Free Product (Ratio)'
+                                ? b.INID_Benefit_Type__c + ' ' + b.INID_Free_Product_Quantity_Numerator__c + ' : ' + b.INID_Free_Product_Quantity_Denominator__c
+                                : b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)'
+                                ? b.INID_Benefit_Type__c + ' : ' + b.INID_Free_Product_Quantity_Fix__c
+                                : b.INID_Benefit_Type__c === 'Set Price'
+                                ? b.INID_Benefit_Type__c + ' ' + b.INID_SetPrice__c
+                                : b.INID_Benefit_Type__c === 'Discount Amount'
+                                ? b.INID_Benefit_Type__c + ' ' + b.INID_Discount_Amount__c + ' THB '
+                                : b.INID_Benefit_Type__c === 'Discount(%)'
+                                ? b.INID_Benefit_Type__c + ' : ' + b.INID_Discount__c + ' % '
+                                : 'N/A'
                     });
                 });
 
@@ -1119,8 +1138,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     return { ...bg, benefits: updatedBenefits };
                 }
             });
-
-
             return {
                 ...group,
                 groupedBenefits: updatedGrouped
@@ -1128,6 +1145,99 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
     }
 
+    handleBenefitTypeChange(event) {
+        const id = event.target.dataset.id;
+        const value = event.detail.value;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            const updatedGrouped = group.groupedBenefits.map(bg => {
+                const updatedBenefits = bg.benefits.map(b => {
+                    if (b.id !== id) return b;
+
+                    return {
+                        ...b,
+                        benefitType: value,
+                        isDiscountAmount: value === 'Discount Amount',
+                        isDiscountPercent: value === 'Discount(%)',
+                        isFreeProductFix: value === 'Free Product (Fix Quantity)',
+                        isFreeProductRatio: value === 'Free Product (Ratio)',
+                        isSetPrice: value === 'Set Price'
+                    };
+                });
+                return { ...bg, benefits: updatedBenefits };
+            });
+            return { ...group, groupedBenefits: updatedGrouped };
+        });
+    }
+
+    handleBenefitFieldChange(event) {
+        const id = event.target.dataset.id;
+        const name = event.target.name;
+        const value = event.target.value;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            const updatedGrouped = group.groupedBenefits.map(bg => {
+                const updatedBenefits = bg.benefits.map(b => {
+                    if (b.id !== id) return b;
+                    return {
+                        ...b,
+                        [name]: value
+                    };
+                });
+                return { ...bg, benefits: updatedBenefits };
+            });
+            return { ...group, groupedBenefits: updatedGrouped };
+        });
+    }
+
+    handleConditionChange(event) {
+        const id = event.target.dataset.id;
+        const value = event.detail.value;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            const updatedGrouped = group.groupedBenefits.map(bg => {
+                const updatedBenefits = bg.benefits.map(b => {
+                    if (b.id !== id) return b;
+                    return {
+                        ...b,
+                        condition: value
+                    };
+                });
+                return { ...bg, benefits: updatedBenefits };
+            });
+            return { ...group, groupedBenefits: updatedGrouped };
+        });
+    }
+
+    handleFreeProductSearchChange(event) {
+        const id = event.target.dataset.id;
+        const type = event.target.dataset.type;
+        const value = event.target.value;
+
+        const labelField = type === 'fix' ? 'freeProductLabelFix' : 'freeProductLabelRatio';
+
+        this.comboGroups = this.comboGroups.map(group => {
+            const updatedGrouped = group.groupedBenefits.map(bg => {
+                const updatedBenefits = bg.benefits.map(b => {
+                    if (b.id !== id) return b;
+                    return {
+                        ...b,
+                        [labelField]: value
+                    };
+                });
+                return { ...bg, benefits: updatedBenefits };
+            });
+            return { ...group, groupedBenefits: updatedGrouped };
+        });
+    }
+
+    handleSetPriceSearchChange(event) {
+        const id = event.target.dataset.id;
+        const value = event.target.value;
+
+        // สมมุติว่าคุณมี logic ค้นหา product set price แบบ async ใน backend
+        this.searchSetPriceProducts(id, value);
+    }
 
 
     // INID_Sale_Promotion_Benefit__r.INID_Condition_Type__c
