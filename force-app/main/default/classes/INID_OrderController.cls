@@ -170,9 +170,16 @@ public with sharing class INID_OrderController {
 
     @AuraEnabled
     public static List<INID_Order_Foc__c> insertOrderFocById(List<INID_Order_Foc__c> orderFocList) {
-        insert orderFocList;
-        return orderFocList;
-    } 
+        try {
+            insert orderFocList;
+            return orderFocList;
+        } catch (NullPointerException e) {
+            throw new AuraHandledException('Null error: ' + e.getMessage());
+        } catch (Exception e) {
+            throw new AuraHandledException('Error inserting Order FOC records: ' + e.getMessage());
+        }
+    }
+
 
 
     // @AuraEnabled(cacheable=true)
@@ -212,6 +219,7 @@ public with sharing class INID_OrderController {
     public static void insertOrderItemFoc(Id orderFocId, List<INID_Product_Order_Item_Foc__c> orderItemList){
         if(orderFocId == null) {
             throw new AuraHandledException('Order FOC Id is required for inserting Order Item FOC.');
+            // throw null;
         }
 
         // กำหนดค่า lookup ฟิลด์ INID_Order_Foc__c ให้กับทุกตัวใน orderItemList

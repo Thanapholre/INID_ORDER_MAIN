@@ -412,7 +412,21 @@ th , td {
 }
 
 
+.benefit-box {
+    border: 2px solid #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background-color: white;
+}
 
 
+/* ถูกเลือก */
+.benefit-box.selected {
+    border-color: #C4551D;
+    background-color: white;
+    box-shadow: 5px 0 5px rgba(0, 112, 210, 0.3);
+}
 
 /* ๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒๒ */

@@ -970,7 +970,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         try {
             const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
             console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
-            
+        
+            console.log('get promotion : ' + JSON.stringify(getPromotion , null ,2));
+
             this.comboGroups = getPromotions.promotions.map(promo => {
                 // แยก benefits ตาม conditionType
                 const benefitGroups = {};
@@ -1003,9 +1005,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         freeProductLabelFix: b.INID_Product_Price_Book__r
                             ? `${b.INID_Product_Price_Book__r.INID_Material_Code__c || ''} - ${b.INID_Product_Price_Book__r.INID_SKU_Description__c || ''}`.trim()
                             : '',
-
-
-
 
                         // Add these flags for conditional rendering
                         isDiscountAmount: b.INID_Benefit_Type__c === 'Discount Amount',
@@ -1143,7 +1142,41 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 groupedBenefits: updatedGrouped
             };
         });
+
+        this.updateSelectedBenefits();
     }
+
+    //select Benefit
+    updateSelectedBenefits() {
+        this.selectedBenefits = [];
+        
+
+        this.comboGroups.forEach(group => {
+            group.groupedBenefits.forEach(bg => {
+                bg.benefits.forEach(b => {
+                    if (b.selected) {
+                        this.selectedBenefits.push({
+                            productPriceBook: b.INID_Product_Price_Book__c,
+                            promotionId: group.promotionId,
+                            benefitId: b.Id,
+                            benefitType: b.benefitType,
+                            value: {
+                                discountAmount: b.discountAmount,
+                                discountPercent: b.discountPercent,
+                                freeProductQuantityFix: b.freeProductQuantityFix,
+                                freeProductQuantityRatioNumerator: b.freeProductQuantityRatioNumerator,
+                                freeProductQuantityRatioDenominator: b.freeProductQuantityRatioDenominator,
+                                setPrice: b.setPrice,
+                                batch: b.batch
+                            }
+                        });
+                    }
+                });
+            });
+        });
+        console.log('selectedBenefits: ' + JSON.stringify(this.selectedBenefits , null ,2)) ;
+    }
+
 
     handleBenefitTypeChange(event) {
         const id = event.target.dataset.id;
@@ -1467,6 +1500,14 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_NoteAgent__c : this.noteAgent ,
         };
         try {
+            // const orderId = await insertOrder({ order: orderDetail });
+            // this.orderId = orderId;
+            // await this.insertPromotion(this.orderId);
+            // await this.insertOrderItemListFunction(this.orderId); 
+            // await this.insertOrderFoc(this.orderId) ;
+            // const orderFocId = await fetchOrderFocId({orderId: this.orderId});
+            // console.log('order foc id : ' + orderFocId);
+            // await this.insertOrderItemFocListFunction(orderFocId);
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
             await this.insertPromotion(this.orderId);
@@ -1480,17 +1521,42 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    // async insertPromotion(orderId) {
+    //     const selectedBenefitItems = [];
+
+    //     // console.log('select benefit from insert promotion function : ' + JSON.stringify())
+
+    //     this.comboGroups.forEach(group => {
+    //         const selectedBenefits = group.benefits.filter(b => b.selected);
+
+    //         selectedBenefits.forEach(benefit => {
+    //             selectedBenefitItems.push({
+    //                 INID_Order__c: orderId,
+    //                 INID_Sale_Promotion_Benefit_Product__c: benefit.Id
+    //             });
+    //         });
+    //     });
+
+    //     try {
+    //         console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
+    //         await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
+    //         console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
+           
+    //     } catch (error) {
+    //         this.handleSaveError(error);
+    //     }
+    // }
+
     async insertPromotion(orderId) {
         const selectedBenefitItems = [];
 
-        this.comboGroups.forEach(group => {
-            const selectedBenefits = group.benefits.filter(b => b.selected);
+        // ensure updated data
+        this.updateSelectedBenefits();
 
-            selectedBenefits.forEach(benefit => {
-                selectedBenefitItems.push({
-                    INID_Order__c: orderId,
-                    INID_Sale_Promotion_Benefit_Product__c: benefit.Id
-                });
+        this.selectedBenefits.forEach(benefit => {
+            selectedBenefitItems.push({
+                INID_Order__c: orderId,
+                INID_Sale_Promotion_Benefit_Product__c: benefit.benefitId
             });
         });
 
@@ -1498,11 +1564,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
             await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
             console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
-           
         } catch (error) {
             this.handleSaveError(error);
         }
-    }
+}
+
 
 
     async insertOrderItemListFunction(orderId) {
@@ -1577,7 +1643,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     
            
         } catch (error) {
-            this.handleSaveError(error);
+            // this.handleSaveError(error);
+            console.log('error :' + JSON.stringify(error , null ,2)) ;
         }
     }
 
