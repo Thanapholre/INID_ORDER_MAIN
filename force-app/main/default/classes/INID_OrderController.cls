@@ -22,7 +22,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
         return [
-            SELECT Id , INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c
+            SELECT Id , INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c 
             FROM INID_Product_Price_Book__c
         ];
     }
@@ -269,5 +269,42 @@ public with sharing class INID_OrderController {
         ] ;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Add_on_Product_Price_Book__c> fetchAddonProductPriceBook(Id accountId) {
+        return [
+            SELECT INID_Product_Price_Book__c , INID_Product_Price_Book__r.INID_Material_Code__c , 
+            INID_Product_Price_Book__r.INID_SKU_Description__c,  INID_Product_Price_Book__r.INID_Unit_Price__c, 
+            INID_Product_Price_Book__r.INID_Unit__c,   INID_Main_Quantity__c , INID_Add_on_Quantity__c , INID_Remark__c 
+            FROM INID_Add_on_Product_Price_Book__c WHERE INID_Account__c = :accountId
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static String fetchUserGroup(Id userId) {
+        
+        INID_User_Detail__c userGroup = [
+            SELECT INID_Group__c FROM INID_User_Detail__c WHERE INID_User__c = :userId
+        ] ;
+
+        return userGroup.INID_Group__c;
+    }
+    
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Group_Details__c> fetchBuGroupId(String userGroup) {
+        return[
+            SELECT INID_BU_Group__c FROM INID_Group_Details__c WHERE Group__c = :userGroup 
+        ];
+    }
+
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_BU_to_Product__c> fetchProductsByBuGroups(List<Id> buGroupIds)  {
+        return [
+            SELECT INID_Product_Price_Book__c 
+            FROM INID_BU_to_Product__c 
+            WHERE INID_BU_Group__c IN :buGroupIds
+        ];
+    }
 
 }

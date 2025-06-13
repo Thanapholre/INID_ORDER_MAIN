@@ -22,7 +22,11 @@ import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromot
 // import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
 import fetchOrderFocId from '@salesforce/apex/INID_OrderController.fetchOrderFocId'
 import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
+import fetchUserGroup from '@salesforce/apex/INID_OrderController.fetchUserGroup'
+import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
+import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetchProductsByBuGroups'
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
+import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 // import fetchOrderFocById from '@salesforce/apex/INID_OrderController.fetchOrderFocById'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -85,6 +89,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track productBuIds;
     @track orderFocId ;
     @track orderFocById;
+    @track addonProductPriceBook = [] ;
+    @track userGroup ;
+    @track buGroupData ;
+    @track productsByBuGroups = [] ;
+    @track productBuGroupId = [] ;
 
   
     columns = [
@@ -213,6 +222,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    @wire(fetchAddonProductPriceBook , {accountId: '$accountId'})
+    wireaddonProductPriceBook({error, data}) {
+        if(data){
+            this.addonProductPriceBook = data;
+            console.log('this Addon Product Price Books '+ JSON.stringify(this.addonProductPriceBook , null ,2));
+        }else if(error){
+            console.log(' error fetch addonProductPriceBook : ', error)
+        }
+            
+    }
+
     // fetch Auto Field Bill To
     @wire(fetchDataBillto)
     fetchBillTo(accountId) {
@@ -228,6 +248,41 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error fetching Bill To:', error);
         });
     }
+    
+
+    @wire(fetchUserGroup, {userId: '$userId'})
+    wiredUserGroup({ error, data }) {
+        if (data) {
+            this.userGroup = data;
+            console.log('user Gruop : ' + JSON.stringify(this.userGroup, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+    @wire(fetchBuGroupId, {userGroup: '$userGroup'})
+    wiredBuGroupId({ error, data }) {
+        if (data) {
+            this.buGroupData = data;
+            this.buGroupId = this.buGroupData.map(r => r.INID_BU_Group__c);
+            console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+    @wire(fetchProductsByBuGroups, {buGroupIds: '$buGroupId'})
+    wiredproductsByBuGroups({ error, data }) {
+        if (data) {
+            this.productsByBuGroups = data;
+            this.productBuGroupId = this.productsByBuGroups.map(r => r.INID_Product_Price_Book__c);
+            this.productBuIds = new Set(this.productBuGroupId); 
+            console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
     
     @wire(getRecord, {
         recordId: "$recordId",
@@ -252,6 +307,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log(error);
         }
     }
+
+
 
     
     get billToCodes() {
@@ -477,34 +534,96 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     handleSelectProduct(event) {
-        const selectedId = event.currentTarget.dataset.id;
-        const selected = this.productPriceBook.find(p => p.Id === selectedId);
-        const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
+        try {
+            const selectedId = event.currentTarget.dataset.id;
+            const selected = this.productPriceBook.find(p => p.Id === selectedId);
+            const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
 
-        if (!this.accountId && this.customerId) {
-            this.accountId = this.customerId;
-        }
+            console.log('selected is : ' + JSON.stringify(selected, null , 2));
 
-        if (isDuplicate) {
-            this.dispatchEvent(
-                new ShowToastEvent({
+            if (!selected) {
+                this.dispatchEvent(new ShowToastEvent({
+                    title: 'ไม่พบสินค้า',
+                    message: 'ไม่พบสินค้าที่เลือก',
+                    variant: 'error'
+                }));
+                return;
+            }
+
+            if (isDuplicate) {
+                this.dispatchEvent(new ShowToastEvent({
                     title: 'รายการซ้ำ',
                     message: 'สินค้านี้มีอยู่ในตารางแล้ว',
                     variant: 'warning'
-                })
-            );
-        } else if (selected) {
-            const product = this.mapProduct(selected, [] , this.hlNumber);
-            this.selectedProducts = [...this.selectedProducts, product];
-            console.log('selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
-        }
+                }));
+                return;
+            }
 
-        this.searchProductTerm = '';
-        this.showProductDropdown = false;
+            const product = this.mapProduct(selected, [], this.hlNumber);
+            this.selectedProducts = [...this.selectedProducts, product];
+
+            // ตรวจสอบ Add-on
+            const matchedAddon = this.addonProductPriceBook.find(rule =>
+                rule.INID_Main_Quantity__c === 1 &&
+                rule.INID_Product_Price_Book__c === product.productPriceBookId
+            );
+
+            if (matchedAddon) {
+                const addonId = `${product.rowKey}_addon_auto_${Date.now()}`;
+                const addonProduct = {
+                    rowKey: addonId,
+                    id: addonId,
+                    code: matchedAddon.INID_Product_Price_Book__r.INID_Material_Code__c,
+                    description: matchedAddon.INID_Product_Price_Book__r.INID_SKU_Description__c,
+                    unitPrice: 0,
+                    salePrice: 0,
+                    quantity: matchedAddon.INID_Add_on_Quantity__c,
+                    unit: matchedAddon.INID_Product_Price_Book__r.INID_Unit__c,
+                    total: 0,
+                    productPriceBookId: matchedAddon.INID_Product_Price_Book__c,
+                    nameBtn: this.getAddonLabel('1'),
+                    variant: 'base',
+                    editableSalePrice: false,
+                    addOnText: matchedAddon.INID_Remark__c || 'ของแถม',
+                    hlItemNumber: product.hlItemNumber,
+                    isAddOn: true,
+                    productCode: product.code
+                };
+
+                const isAddonExists = this.selectedProducts.some(p =>
+                    p.code === addonProduct.code &&
+                    p.unitPrice === 0 &&
+                    p.hlItemNumber === product.hlItemNumber
+                );
+
+                console.log('is add on exist : ' + JSON.stringify(isAddonExists , null ,) )
+
+                if (!isAddonExists) {
+                    this.selectedProducts = [...this.selectedProducts, addonProduct];
+                    this.dispatchEvent(new ShowToastEvent({
+                        title: 'เพิ่มของแถมอัตโนมัติ',
+                        message: `${addonProduct.code} (${addonProduct.quantity} ${addonProduct.unit})`,
+                        variant: 'info'
+                    }));
+                }
+
+               
+            }
+
+             console.log('this select product ใน function select product คือ : ' + JSON.stringify(this.selectedProducts , null ,2 ));
+
+            this.searchProductTerm = '';
+            this.showProductDropdown = false;
+
+        } catch (error) {
+            console.error('❌ error from handleSelectProduct:', error);
+            console.error('❌ error.message:', error.message);
+            console.error('❌ error.stack:', error.stack);
+        }
     }
 
     mapProduct(source, addedAddons = [] , hlNumber) {
-        const isMainProduct = source.INID_Unit_Price__c > 0;
+        // const isMainProduct = source.INID_Sale_Price__c > 0;
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
         const salePrice = source.INID_Unit_Price__c || 0;
         const quantity = 1;
@@ -514,7 +633,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         const productPriceBookId = source.Id;
         const editableSalePrice =
-        this.productBuIds && this.productBuIds.has(productPriceBookId);
+            this.productBuIds && this.productBuIds.has(productPriceBookId);
 
         return {
             rowKey: source.Id,
@@ -527,18 +646,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             salePrice: source.INID_Unit_Price__c || 0,
             unit: source.INID_Unit__c || '',
             total: total,
-            addOnButton: isMainProduct ? 'Add On' : null,
-            addOnText: !isMainProduct ? 'Add-On Item' : null,
-            addOn: isMainProduct ? 'true' : 'false',
-            nameBtn: isMainProduct ? '+' : 'Add-On Item',
+            // addOnButton: isMainProduct ? 'Add On' : null,
+            addOnText: '+',
+            // addOn: isMainProduct ? 'true' : 'false',
+            nameBtn:  '+' ,
             variant: 'brand',
             editableSalePrice: editableSalePrice,
-            addonDisabled: isMainProduct && hasAddon,
+            addonDisabled: false,
             hlItemNumber: this.hlNumber,
 
         };
     }
 
+    
     handleSaveAddon() {
         if (!this.selectedValue) {
             this.dispatchEvent(new ShowToastEvent({
@@ -549,8 +669,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             return;
         }
 
+
         const matchedMainIndex = this.selectedProducts.findIndex(
-            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+            p => p.code === this.currentMaterialCodeForAddOn && p.nameBtn === '+'
         );
 
         const matchedMain = this.selectedProducts[matchedMainIndex];
@@ -569,6 +690,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         const addonProduct = {
             rowKey: addonId,
+            parentRowKey: matchedMain.id ,
             id: addonId, 
             code: matchedMain.code,
             productCode: matchedMain.code,
@@ -582,7 +704,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             variant: 'base',
             editableSalePrice: false,
             hlItemNumber: matchedMain.hlItemNumber || matchedMain.code,
-            productPriceBookId: matchedMain.productPriceBookId
+            productPriceBookId: matchedMain.productPriceBookId ,
+            // addonDisabled: true 
         };
 
         this.addAddonToProduct(addonProduct);
@@ -603,11 +726,16 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const row = event.detail.row;
         const isAddon = row.unitPrice === 0;
 
-        if (actionName === 'btnAddOn') {
-            if (isAddon) {
-                return;
-            }
+        // if (actionName === 'btnAddOn') {
+        //     if (isAddon) {
+        //         return;
+        //     }
 
+        //     this.currentMaterialCodeForAddOn = row.code;
+        //     this.isPopupOpenFreeGood = true;
+        // }
+
+        if(row.nameBtn === '+') {
             this.currentMaterialCodeForAddOn = row.code;
             this.isPopupOpenFreeGood = true;
         }
@@ -615,7 +743,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     addAddonToProduct(addonProduct) {
         const index = this.selectedProducts.findIndex(
-            p => p.code === this.currentMaterialCodeForAddOn && p.unitPrice !== 0
+            p => p.code === this.currentMaterialCodeForAddOn && p.nameBtn === '+'
         );
 
         if (index === -1) return;
@@ -640,24 +768,162 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
     }
 
+    // handleSaveEditedRows(event) {
+    //     try {
+    //         const updates = event.detail.draftValues;
+    //         const updatedProducts = [...this.selectedProducts];
+
+    //         updates.forEach(update => {
+    //             const index = updatedProducts.findIndex(p => p.id === update.id);
+    //             if (index === -1) return;
+
+    //             const product = { ...updatedProducts[index], ...update };
+    //             product.total = product.salePrice * product.quantity;
+    //             updatedProducts[index] = product;
+
+    //             // 🔍 เช็ค rule Add-on
+    //             const matchedRule = this.addonProductPriceBook.find(rule =>
+    //                 rule.INID_Main_Quantity__c === product.quantity &&
+    //                 rule.INID_Product_Price_Book__c === product.productPriceBookId
+    //             );
+
+    //             if (matchedRule) {
+    //                 const addonId = `${product.rowKey}_addon_auto_${Date.now()}`;
+    //                 const addonProduct = {
+    //                     rowKey: addonId,
+    //                     id: addonId,
+    //                     code: matchedRule.INID_Product_Price_Book__r.INID_Material_Code__c,
+    //                     description: matchedRule.INID_Product_Price_Book__r.INID_SKU_Description__c,
+    //                     unitPrice: 0,
+    //                     salePrice: 0,
+    //                     quantity: matchedRule.INID_Add_on_Quantity__c,
+    //                     unit: matchedRule.INID_Product_Price_Book__r.INID_Unit__c,
+    //                     total: 0,
+    //                     productPriceBookId: matchedRule.INID_Product_Price_Book__c,
+    //                     nameBtn: this.getAddonLabel('1'),
+    //                     variant: 'base',
+    //                     editableSalePrice: false,
+    //                     addOnText: matchedRule.INID_Remark__c || 'ของแถม',
+    //                     hlItemNumber: product.hlItemNumber,
+    //                     isAddOn: true,
+    //                     productCode: product.code
+    //                 };
+
+    //                 const isAddonExists = updatedProducts.some(p =>
+    //                     p.code === addonProduct.code &&
+    //                     p.unitPrice === 0 &&
+    //                     p.hlItemNumber === product.hlItemNumber
+    //                 );
+
+    //                 if (!isAddonExists) {
+    //                     // ✅ แทรก Add-on ถัดจากสินค้าหลัก
+    //                     updatedProducts.splice(index + 1, 0, addonProduct);
+    //                     this.dispatchEvent(new ShowToastEvent({
+    //                         title: 'เพิ่มของแถม',
+    //                         message: `${addonProduct.code} (${addonProduct.quantity} ${addonProduct.unit})`,
+    //                         variant: 'info'
+    //                     }));
+    //                 }
+    //             }
+    //         });
+
+    //         // ✅ อัปเดต selectedProducts
+    //         this.selectedProducts = [...updatedProducts]; 
+    //         this.draftValues = []; // เคลียร์ draft หลัง save
+
+    //     } catch (error) {
+    //         console.log('error from edit row : ' + error.message);
+    //     }
+    // }
+
+
     handleSaveEditedRows(event) {
         const updatedValues = event.detail.draftValues;
-        this.selectedProducts = this.selectedProducts.map(product => {
-            const updated = updatedValues.find(d => d.rowKey === product.rowKey);            
-            if (updated) {
-                const qty = Number(updated.quantity ?? product.quantity);
-                const price = Number(updated.salePrice ?? product.salePrice);
-                return {
-                    ...product,
-                    ...updated,
-                    quantity: qty,
-                    salePrice: price,
-                    total: qty * price
-                };
+        const newSelectedProducts = [...this.selectedProducts]; // clone list
+        const matchedAddons = [];
+
+        console.log('เริ่มอัปเดต Products...');
+
+        updatedValues.forEach(updated => {
+            const index = newSelectedProducts.findIndex(p => p.rowKey === updated.rowKey);
+            if (index === -1) {
+                console.warn(`ไม่พบ rowKey: ${updated.rowKey} ใน selectedProducts`);
+                return;
             }
-            return product; 
+
+            const product = newSelectedProducts[index];
+            const qty = Number(updated.quantity ?? product.quantity);
+            const price = Number(updated.salePrice ?? product.salePrice);
+
+            const updatedProduct = {
+                ...product,
+                ...updated,
+                quantity: qty,
+                salePrice: price,
+                total: qty * price
+            };
+
+            newSelectedProducts[index] = updatedProduct;
+
+            console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
+
+            const matchedRule = this.addonProductPriceBook.find(rule =>
+                rule.INID_Product_Price_Book__c === updatedProduct.productPriceBookId &&
+                rule.INID_Main_Quantity__c === qty
+            );
+
+            if (matchedRule) {
+                console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
+
+                // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง
+                const hasAddon = newSelectedProducts.some(p =>
+                    p.isAddOn === true && p.parentRowKey === updatedProduct.rowKey
+                );
+
+                if (hasAddon) {
+                    console.log(`❗️ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
+                    return; 
+                }
+
+                console.log(`✅ แทรก Add-on ถัดจากแถว ${updatedProduct.code}`);
+
+                // mark main product ว่า addonDisabled = true
+                updatedProduct.addonDisabled = true;
+
+                const addonProduct = {
+                    rowKey: `addon_${Date.now()}`,
+                    code: matchedRule.INID_Product_Price_Book__r.INID_Material_Code__c,
+                    productPriceBookId: matchedRule.INID_Product_Price_Book__c,
+                    description: matchedRule.INID_Product_Price_Book__r.INID_SKU_Description__c,
+                    unitPrice: matchedRule.INID_Product_Price_Book__r.INID_Unit_Price__c,
+                    quantity: matchedRule.INID_Add_on_Quantity__c,
+                    salePrice: 0,
+                    total: 0,
+                    isAddOn: true,
+                    parentRowKey: updatedProduct.rowKey,
+                    nameBtn: matchedRule.INID_Remark__c,
+                    variant: 'base',
+                    editableSalePrice: false,
+                    productCode: updatedProduct.code,
+                    // addonDisabled: true
+                };
+
+                console.log('➕ Add-on ที่แทรก:', JSON.stringify(addonProduct, null, 2));
+
+                newSelectedProducts[index] = updatedProduct;
+                newSelectedProducts.splice(index + 1, 0, addonProduct);
+                matchedAddons.push({ product: updatedProduct, addon: addonProduct });
+            }
+
         });
-        this.draftValues = []; 
+
+        this.selectedProducts = newSelectedProducts;
+        this.draftValues = [];
+        console.log(`✅ สรุป: พบ Add-ons ทั้งหมด ${matchedAddons.length} รายการ`);
+        matchedAddons.forEach((item, i) => {
+            console.log(`🧩 [${i + 1}] ${item.addon.code} for ${item.product.code}`);
+        });
+
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'Success',
@@ -666,7 +932,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             })
         );
     }
-    
+
+
+
     // Handle Row Selection
     handleRowSelection(event) {
         const selectedRows = event.detail.selectedRows;
@@ -688,9 +956,73 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.selectedRowIds = [...new Set(newSelectedIds)];
     }
 
+    // async handleDeleteSelected() {
+    //     if (this.selectedRowIds.length === 0) {
+    //          this.dispatchEvent(
+    //             new ShowToastEvent({
+    //                 title: 'แจ้งเตือน',
+    //                 message: 'กรุณาเลือกรายการอย่างน้อย 1 รายการ',
+    //                 variant: 'warning'
+    //             })
+    //         );
+    //         return;
+    //     }
+
+    //      const result = await LightningConfirm.open({
+    //         message: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก?',
+    //         label: 'ยืนยันการลบรายการ',
+    //         variant: 'destructive' 
+    //     });
+
+    //     if (!result) {
+    //         this.dispatchEvent(new ShowToastEvent({
+    //             title: 'ยกเลิกการลบ',
+    //             message: 'ระบบไม่ได้ลบรายการใด ๆ',
+    //             variant: 'info'
+    //         }));
+    //         return;
+    //     }   
+
+    //     console.log('this.selectProduct from handle delete function : ' + JSON.stringify(this.selectedProducts , null ,2))
+
+    //     const selectedSet = new Set(this.selectedRowIds);
+    //     console.log('selectSet : ' + JSON.stringify(selectedSet , null ,2));
+        
+    //     const addonsToDelete = this.selectedProducts.filter(p => 
+    //         selectedSet.has(p.rowKey || p.id) && p.unitPrice === 0
+    //     );
+
+    //     console.log('addonsToDelete: ' + JSON.stringify(addonsToDelete , null ,2));
+
+    //     addonsToDelete.forEach(addon => {
+    //         const mainIndex = this.selectedProducts.findIndex(main =>
+    //             main.rowKey === addon.parentRowKey
+    //         );
+
+    //         console.log('main index : ' + mainIndex) ;
+
+    //         if (mainIndex !== -1) {
+    //             this.selectedProducts[mainIndex].addonDisabled = false;
+    //         }
+    //     });
+
+    //     this.selectedProducts = this.selectedProducts.filter(p => 
+    //         !selectedSet.has(p.rowKey || p.id)
+    //     );
+
+    //     this.selectedRowIds = [...this.selectedProducts]
+    //     this.dispatchEvent(
+    //         new ShowToastEvent({
+    //             title: 'สำเร็จ',
+    //             message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
+    //             variant: 'success',
+    //         })
+    //     );
+    // }
+    
     async handleDeleteSelected() {
         if (this.selectedRowIds.length === 0) {
-             this.dispatchEvent(
+            this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'แจ้งเตือน',
                     message: 'กรุณาเลือกรายการอย่างน้อย 1 รายการ',
@@ -700,10 +1032,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             return;
         }
 
-         const result = await LightningConfirm.open({
+        const result = await LightningConfirm.open({
             message: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก?',
             label: 'ยืนยันการลบรายการ',
-            variant: 'destructive' 
+            variant: 'destructive'
         });
 
         if (!result) {
@@ -713,35 +1045,122 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 variant: 'info'
             }));
             return;
-        }   
+        }
 
         const selectedSet = new Set(this.selectedRowIds);
-        const addonsToDelete = this.selectedProducts.filter(p => 
-            selectedSet.has(p.rowKey || p.id) && p.unitPrice === 0
+        console.log('this.selectProduct from handle delete function : ' + JSON.stringify(this.selectedProducts , null ,2))
+
+        console.log('selected product from delete function : ' + JSON.stringify(this.selectedProducts , null ,2));
+        // 🔍 Step 1: หาว่า Add-on อะไรจะถูกลบ
+        const addonsToDelete = this.selectedProducts.filter(p =>
+            selectedSet.has(p.rowKey || p.id) && p.salePrice === 0
         );
 
-        addonsToDelete.forEach(addon => {
-            const mainIndex = this.selectedProducts.findIndex(main =>
-                main.code === addon.productCode && main.unitPrice !== 0
-            );
-            if (mainIndex !== -1) {
-                this.selectedProducts[mainIndex].addonDisabled = false;
+        console.log('addonsToDelete: ', JSON.stringify(addonsToDelete, null, 2));
+
+        // 🔁 Step 2: Enable ปุ่ม Add-on ของ Main product ที่ Add-on นั้นเคยผูกไว้
+        const updatedProducts = this.selectedProducts.map(product => {
+            const isMain = product.salePrice !== 0;
+            const isMatchedMain = addonsToDelete.some(addon => addon.parentRowKey === product.rowKey);
+
+            if (isMain && isMatchedMain) {
+                console.log(`✅ Enable Add-on button for ${product.code}`);
+                return { ...product, addonDisabled: false };
             }
+
+            return product;
         });
 
-        this.selectedProducts = this.selectedProducts.filter(p => 
+        // 🧹 Step 3: ลบรายการที่ถูกเลือก (ทั้ง Add-on และ Main ที่อาจเลือก)
+        const filteredProducts = updatedProducts.filter(p =>
             !selectedSet.has(p.rowKey || p.id)
         );
 
+        this.selectedProducts = [...filteredProducts]; // re-assign ใหม่เพื่อให้ LWC detect การเปลี่ยนแปลง
         this.selectedRowIds = [];
+
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'สำเร็จ',
                 message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
-                variant: 'success',
+                variant: 'success'
             })
         );
     }
+
+
+    // async handleDeleteSelected() {
+    //     if (!this.selectedDetailItems || this.selectedDetailItems.length === 0) {
+    //         this.dispatchEvent(
+    //             new ShowToastEvent({
+    //                 title: 'แจ้งเตือน',
+    //                 message: 'ยังไม่เลือกสักรายการ',
+    //                 variant: 'warning',
+    //                 mode: 'dismissable'
+    //             })
+    //         );
+    //         return;
+    //     }
+
+    //     const deleteKeys = new Set(this.selectedDetailItems.map(item => item.rowKey));
+
+    //     // แยกรายการที่จะลบตามประเภท
+    //     const mainItems = this.selectedDetailItems.filter(item => item.type === 'Main');
+    //     const addOnItems = this.selectedDetailItems.filter(item => item.type === 'Add-On');
+
+    //     // แสดงรายการที่จะลบ
+    //     if (mainItems.length > 0) {
+    //         const mainCodes = mainItems.map(m => `• ${m.code} (rowKey: ${m.rowKey})`).join('\n');
+    //     }
+
+    //     if (addOnItems.length > 0) {
+    //         const addonCodes = addOnItems.map(a => `• ${a.code} (rowKey: ${a.rowKey})`).join('\n');
+    //     }
+
+    //     const confirmed = await LightningConfirm.open({
+    //         message: `คุณแน่ใจหรือไม่ว่าต้องการลบรายการต่อไปนี้?`,
+    //         variant: 'destructive',
+    //         label: 'ยืนยันการลบ',
+    //     });
+
+    //     if (!confirmed) {
+    //         return;
+    //     }
+
+    //     // ลบออกจากข้อมูลหลัก
+    //     this.selectedProducts = this.selectedProducts.filter(p => !deleteKeys.has(p.rowKey));
+    //     addOnItems.forEach(deletedAddon => {
+    //         const relatedMain = this.selectedProducts.find(main =>
+    //             main.unitPrice !== 0 && main.code === deletedAddon.code
+    //         );
+    //         if (relatedMain) {
+    //             const hasOtherAddon = this.selectedProducts.some(item =>
+    //                 item.unitPrice === 0 && item.code === relatedMain.code
+    //             );
+    //             relatedMain.addonDisabled = hasOtherAddon;
+    //         }
+    //     });
+
+    //     // ล้าง selection
+    //     this.selectedRowIds = [];
+    //     this.selectedDetailItems = [];
+
+    //     // เคลียร์ UI datatable
+    //     const datatable = this.template.querySelector('lightning-datatable');
+    //     if (datatable) {
+    //         datatable.selectedRows = [];
+    //     }
+
+        
+    //     this.dispatchEvent(
+    //         new ShowToastEvent({
+    //             title: 'สำเร็จ',
+    //             message: 'ลบรายการที่เลือกเรียบร้อยแล้ว',
+    //             variant: 'success'
+    //         })
+    //     );
+
+    // }
 
     showProductCode() {
         this.isShowAddfromText = !this.isShowAddfromText;
@@ -1326,11 +1745,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.isShowPickListType = false;
 
 
-        // about user
-        console.log('user id : ' + this.userId) ;
-        const buGroupResult = await fetchBuGroupId({userId: this.userId});
-        this.buGroupId = buGroupResult ;
-        console.log('BU Product Group ID: ' + this.buGroupId);
+        // // about user
+        // console.log('user id : ' + this.userId) ;
+        // const buGroupResult = await fetchBuGroupId({userId: this.userId});
+        // this.buGroupId = buGroupResult ;
+        // console.log('BU Product Group ID: ' + this.buGroupId);
     }
 
 
@@ -1510,6 +1929,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             // await this.insertOrderItemFocListFunction(orderFocId);
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
+            console.log('Order Id : ' + orderId);
             await this.insertPromotion(this.orderId);
             await this.insertOrderItemListFunction(this.orderId); 
             await this.insertOrderFoc(this.orderId) ;
@@ -1586,7 +2006,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     INID_Quantity__c: item.quantity,
                     INID_Sale_Price__c: item.salePrice,
                     INID_Product_Price_Book__c: item.productPriceBookId,
-                    INID_Type__c: 'Add-on',
+                    INID_Type__c: 'FREE',
                     INID_Order__c: orderId,
                     INID_HL_Number__c: hlItemNumber,
                     INID_Item_Number__c: item.itemNumber,
@@ -1599,7 +2019,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     INID_Quantity__c: item.quantity,
                     INID_Sale_Price__c: item.salePrice,
                     INID_Product_Price_Book__c: item.productPriceBookId,
-                    INID_Type__c: 'Main',
+                    INID_Type__c: 'SALE',
                     INID_Order__c: orderId,
                     INID_HL_Number__c: currentHLNumber,
                     INID_Item_Number__c: item.itemNumber,
@@ -1768,12 +2188,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.selectedPromotion = []; 
 
         // 1) สรุปรายการสินค้า + Add-on
-        const mainProducts = this.selectedProducts.filter(p => p.salePrice !== 0);
+        const mainProducts = this.selectedProducts.filter(p => p.nameBtn === '+');
 
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
-                p => p.productCode === main.code && p.salePrice === 0
+                p => p.productCode === main.code && p.isAddOn
             );
+
 
             const mainQty = Number(main.quantity || 0);
             const mainTotal = Number(main.total || (main.unitPrice * mainQty) || 0);
