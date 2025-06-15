@@ -678,7 +678,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             unitPrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
             quantity: 1,
             salePrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
-            unit: source.INID_Unit__c || '',
+            unit: source.INID_Product_Price_Book__r.INID_Unit__c || '',
             total: total,
             // addOnButton: isMainProduct ? 'Add On' : null,
             addOnText: '+',
@@ -1237,7 +1237,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const duplicatedCodes = [];
 
         this.enteredProductCodes.forEach(code => {
-            const matched = this.productPriceBook.find(p => p.INID_Material_Code__c === code);
+            const matched = this.productPriceBook.find(p => p.INID_Product_Price_Book__r.INID_Material_Code__c === code);
             if (matched) {
                 const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
                 if (!alreadyAdded) {
@@ -1420,7 +1420,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 INID_Quantity__c: item.quantity,
                 INID_Sale_Price__c: item.salePrice,
                 INID_Product_Price_Book__c: item.productPriceBookId, 
-                // INID_Product_Price_Book__c: item.INID_Product_Price_Book__r.Id,
                 INID_Total__c: item.total,
                 };
             });
@@ -1449,6 +1448,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         selected: false,
                         className: 'benefit-box',
                         benefitType: b.INID_Benefit_Type__c,
+                        isExpanded: false  ,
 
                         //Show Input
                         discountAmount: b.INID_Discount_Amount__c || null,
@@ -1495,7 +1495,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     promotionId: promo.id,
                     promotionName: promo.name,
                     promotionDescript: promo.description,
-                    isSelected: false,
+                    isSelected: true,
                     arrowSymbol: 'fa-solid fa-circle-chevron-down',
                     className: 'promotion-box',
                     groupedBenefits: groupedBenefits // แทนที่ benefits เดิม
@@ -1511,13 +1511,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     handleTogglePromotion(event) {
+        console.log('--------------------------------------------------------------------------------');
+        console.log('handle toggle promotion');
+        console.log('selected combogroup before : ' + JSON.stringify(this.comboGroups , null ,2));
+
+
         const promoId = event.currentTarget.dataset.promoid;
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId === promoId) {
                 const updated = {
                     ...group,
-                    isSelected: !group.isSelected
+                    isExpanded: !group.isExpanded
                 };
+                console.log('selected combogroup after : ' + JSON.stringify(this.comboGroups , null ,2));
                 updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
                 updated.arrowIconClass = updated.isSelected
                     ? 'fa-solid fa-circle-chevron-up'
@@ -1527,24 +1533,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             }
             return group;
         });
+        console.log('--------------------------------------------------------------------------------');
+
     }
 
     handleToggleBenefit(event) {
+        console.log('--------------------------------------------------------------------------------');
+        console.log('handle toggle Benefit');
         const promoId = event.currentTarget.dataset.promoid;
         const benefitId = event.currentTarget.dataset.benefitid;
 
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId !== promoId) return group;
 
-            const hasSelectedAnd = group.groupedBenefits.some(
-                bg => bg.conditionType === 'AND' && bg.benefits.some(b => b.selected)
-            );
-            const hasSelectedOr = group.groupedBenefits.some(
-                bg => bg.conditionType === 'OR' && bg.benefits.some(b => b.selected)
-            );
+            // const hasSelectedAnd = group.groupedBenefits.some(
+            //     bg => bg.conditionType === 'AND' && bg.benefits.some(b => b.selected)
+            // );
+            // const hasSelectedOr = group.groupedBenefits.some(
+            //     bg => bg.conditionType === 'OR' && bg.benefits.some(b => b.selected)
+            // );
 
             const updatedGrouped = group.groupedBenefits.map(bg => {
+                console.log('bg.benefits is : ' + JSON.stringify(group.groupedBenefits , null ,2));
                 const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
+                console.log('benefit in group  ' + JSON.stringify(isBenefitInGroup , null ,2));
 
                 if (!isBenefitInGroup) {
                     const isConflict =
@@ -1565,6 +1577,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 if (bg.conditionType === 'AND') {
                     const isAllSelected = bg.benefits.every(b => b.selected);
                     const newSelected = !isAllSelected;
+
+                    console.log('is all selected : ' + JSON.stringify(isAllSelected, null ,2)) ;
 
                     const updatedBenefits = bg.benefits.map(b => ({
                         ...b,
@@ -1602,6 +1616,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
 
         this.updateSelectedBenefits();
+        console.log('--------------------------------------------------------------------------------');
     }
 
     //select Benefit
@@ -1640,7 +1655,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             );
             return {
                 ...group,
-                isSelected: hasSelectedBenefit
+                hasSelectedBenefit
             };
         });
     }
@@ -2187,7 +2202,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     columnPromotionsTitle = [
        { label: 'Promotion ', fieldName: 'promotionName' ,hideDefaultActions: true },
-       { label: 'Descirption ', fieldName: 'promotionDescirption' ,hideDefaultActions: true },
+       { label: 'Descirption ', fieldName: 'promotionDescription' ,hideDefaultActions: true },
     ];
 
 
@@ -2238,6 +2253,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         // 1) สรุปรายการสินค้า + Add-on
         const mainProducts = this.selectedProducts.filter(p => p.nameBtn === '+');
+        console.log('selectedProduct' , JSON.stringify(this.selectedProducts, null, 2))
 
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
@@ -2296,7 +2312,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         console.log('summary Product : ' + JSON.stringify(this.summaryProducts, null , 2));
 
         // 2) รวมโปรโมชันแบบไม่ซ้ำ (แยกออกจาก forEach ของ mainProducts)
+        console.log('combogroup ในตอนนี้ที่หา error คือ  : ' + JSON.stringify(this.comboGroups, null , 2) );
         const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
+        // console.log('select promotion is : ' + selectedPromotions ) ;
+        console.log('select promotion is : ' + JSON.stringify(selectedPromotions , null , 2)) ;
 
         selectedPromotions.forEach(group => {
             const selectedBenefits = group.groupedBenefits
@@ -2305,12 +2324,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
 
             const existingPromoGroup = this.promotionData.find(p => p.promotionName === group.promotionName);
+            console.log('existing promotion group ' + JSON.stringify(existingPromoGroup , null ,2) );
 
             if (!existingPromoGroup) {
                 this.promotionData.push({
                     id: group.promotionId || group.id,
                     promotionName: group.promotionName,
-                    promotionDescirption: group.promotionDescript,
+                    promotionDescription: group.promotionDescript,
                     benefits: []
                 });
             }
@@ -2362,17 +2382,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             
 
     get promoList(){
+        console.log('promoList', JSON.stringify(this.promotionData, null, 2));
         return this.promotionData.map(p => ({
             ...p,
             rowWrapper: [{
                 id: p.id,
                 promotionName: p.promotionName,
-                promotionDescirption: p.promotionDescirption
-            }]
+                promotionDescription: p.promotionDescription
+            }] 
         }));
+      
     }
-
-
-
-
 }

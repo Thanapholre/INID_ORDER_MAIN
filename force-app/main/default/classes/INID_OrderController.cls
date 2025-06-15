@@ -321,7 +321,9 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_License__c> fetchProductLicense(List<String> licenseList)  {
         return [
-            SELECT INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c  
+            SELECT INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , 
+            INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
+            INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c      
             FROM INID_Product_License__c  
             WHERE INID_License__c IN :licenseList
         ];
