@@ -572,9 +572,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 p => p.id === selected.Id
             );
 
-
-
-
             console.log('selected is : ' + JSON.stringify(selected, null , 2));
 
             if (!selected) {
@@ -674,7 +671,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         return {
             rowKey: source.Id,
             id: source.Id,
-            productPriceBookId: source.Id,
+            // productPriceBookId: source.Id,
+            productPriceBookId: source.INID_Product_Price_Book__r.Id,
             code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
             description: source.INID_Product_Price_Book__r.INID_SKU_Description__c ,
             unitPrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
@@ -741,6 +739,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             editableSalePrice: false,
             hlItemNumber: matchedMain.hlItemNumber || matchedMain.code,
             productPriceBookId: matchedMain.productPriceBookId ,
+            mainProductId: matchedMain.rowKey //เอาไว้ match Main
             // addonDisabled: true 
         };
 
@@ -977,20 +976,23 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         let newSelectedIds = [];
 
         selectedRows.forEach(row => {
-            const isMain = row.unitPrice !== 0;
+            const isMain = row.nameBtn === '+';
             newSelectedIds.push(row.rowKey || row.id);
 
             if (isMain) {
                 const relatedAddons = this.selectedProducts.filter(
-                    p => p.productCode === row.code && p.unitPrice === 0
+                    p => p.mainProductId === row.rowKey || 
+                        (p.productCode === row.code && p.nameBtn !== '+')
                 );
                 relatedAddons.forEach(addon => {
                     newSelectedIds.push(addon.rowKey || addon.id);
                 });
             }
         });
+
         this.selectedRowIds = [...new Set(newSelectedIds)];
     }
+
 
     // async handleDeleteSelected() {
     //     if (this.selectedRowIds.length === 0) {
@@ -1417,17 +1419,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             return {
                 INID_Quantity__c: item.quantity,
                 INID_Sale_Price__c: item.salePrice,
-                INID_Product_Price_Book__c: item.productPriceBookId,
+                INID_Product_Price_Book__c: item.productPriceBookId, 
+                // INID_Product_Price_Book__c: item.INID_Product_Price_Book__r.Id,
                 INID_Total__c: item.total,
                 };
             });
 
+        console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
         try {
             const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
             console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
-        
-            console.log('get promotion : ' + JSON.stringify(getPromotion , null ,2));
-
+    
             this.comboGroups = getPromotions.promotions.map(promo => {
                 // แยก benefits ตาม conditionType
                 const benefitGroups = {};
@@ -1503,6 +1505,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
 
         } catch(error) {
+            console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
             alert('error\n'+ (error.body?.message || error.message || JSON.stringify(error)));
         }   
     }
