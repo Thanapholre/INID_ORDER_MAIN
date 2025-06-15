@@ -6,7 +6,7 @@ import { IsConsoleNavigation, getFocusedTabInfo, closeTab } from 'lightning/plat
 import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers';
 import fetchDataBillto from '@salesforce/apex/INID_OrderController.fetchDataBillto';
 import fetchDataShipto from '@salesforce/apex/INID_OrderController.fetchDataShipto';
-import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderController.fetchDataProductPriceBook';
+import fetchProductLicense from '@salesforce/apex/INID_OrderController.fetchProductLicense';
 import fetchQuoteItemById from '@salesforce/apex/INID_OrderController.fetchQuoteItemById'
 import fetchDataQuotation from '@salesforce/apex/INID_OrderController.fetchDataQuotation' ;
 import insertOrderSalePromotion from '@salesforce/apex/INID_OrderController.insertOrderSalePromotion'
@@ -27,6 +27,7 @@ import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId
 import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetchProductsByBuGroups'
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
 import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
+import fetchAccountLicense from '@salesforce/apex/INID_OrderController.fetchAccountLicense'
 // import fetchOrderFocById from '@salesforce/apex/INID_OrderController.fetchOrderFocById'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -94,6 +95,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track buGroupData ;
     @track productsByBuGroups = [] ;
     @track productBuGroupId = [] ;
+    @track accountLicenseData = [] ;
+    @track accountLicense ;
+    @track productLicenseData = [] ;
+    @track productLicense ;
 
   
     columns = [
@@ -131,7 +136,29 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //         console.log(error) ;
     //     }
     // }
-    
+
+    @wire(fetchAccountLicense , {accountId: '$accountId'})
+    wiredFetchAccountLicense({error , data}) {
+        if(data) {
+            this.accountLicenseData = data ;
+            this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
+            console.log('Account License:' + JSON.stringify(this.accountLicense, null, 2));
+        } else {
+            console.log(error) ;
+        }
+    }
+
+    @wire(fetchProductLicense, {licenseList: '$accountLicense'})
+    wiredProductLicense({ error, data }) {
+        if (data) {
+            this.productPriceBook = data;
+            // this.productPriceBook = this.productLicenseData.map(productLicense => productLicense.INID_Product_Price_Book__c );
+            console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
 
     //closeTab
     @wire(IsConsoleNavigation) isConsoleNavigation;
@@ -203,14 +230,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     // Fetch Data Price Book
-    @wire(fetchDataProductPriceBook)
-    wiredproductPriceBook({ error, data }) {
-        if (data) {
-            this.productPriceBook = data;
-        } else if (error) {
-            console.error('Error fetching accounts:', error);
-        }
-    }
+    // @wire(fetchDataProductPriceBook)
+    // wiredproductPriceBook({ error, data }) {
+    //     if (data) {
+    //         this.productPriceBook = data;
+    //     } else if (error) {
+    //         console.error('Error fetching accounts:', error);
+    //     }
+    // }
+
     
     // fetchDataQuotation
     @wire(fetchDataQuotation)
@@ -533,11 +561,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         return addonValue[value] || '-';
     }
 
+
     handleSelectProduct(event) {
         try {
             const selectedId = event.currentTarget.dataset.id;
-            const selected = this.productPriceBook.find(p => p.Id === selectedId);
-            const isDuplicate = this.selectedProducts.some(p => p.id === selectedId);
+            const selected = this.filteredProductOptions.find(
+                p => p?.INID_Product_Price_Book__r?.Id === selectedId
+            );
+            const isDuplicate = this.selectedProducts.some(
+                p => p.id === selected.Id
+            );
+
+
+
 
             console.log('selected is : ' + JSON.stringify(selected, null , 2));
 
@@ -625,7 +661,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     mapProduct(source, addedAddons = [] , hlNumber) {
         // const isMainProduct = source.INID_Sale_Price__c > 0;
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
-        const salePrice = source.INID_Unit_Price__c || 0;
+        const salePrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
         const quantity = 1;
         const total = salePrice * quantity;
         hlNumber += 1;
@@ -639,11 +675,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             rowKey: source.Id,
             id: source.Id,
             productPriceBookId: source.Id,
-            code: source.INID_Material_Code__c,
-            description: source.INID_SKU_Description__c,
-            unitPrice: source.INID_Unit_Price__c || 0,
+            code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
+            description: source.INID_Product_Price_Book__r.INID_SKU_Description__c ,
+            unitPrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
             quantity: 1,
-            salePrice: source.INID_Unit_Price__c || 0,
+            salePrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
             unit: source.INID_Unit__c || '',
             total: total,
             // addOnButton: isMainProduct ? 'Add On' : null,
@@ -762,8 +798,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const term = this.searchProductTerm.toLowerCase().trim();
         this.showProductDropdown = term.length > 2;
         this.filteredProductOptions = this.productPriceBook.filter(p => {
-            const nameStr = p.INID_SKU_Description__c ? p.INID_SKU_Description__c.toLowerCase() : '';
-            const codeStr = p.INID_Material_Code__c ? p.INID_Material_Code__c.toLowerCase() : '';
+            const nameStr = p.INID_Product_Price_Book__r.INID_Material_Code__c ? p.INID_Product_Price_Book__r.INID_SKU_Description__c .toLowerCase() : '';
+            const codeStr = p.INID_Product_Price_Book__r.INID_Material_Code__c ? p.INID_Product_Price_Book__r.INID_Material_Code__c.toLowerCase() : '';
             return nameStr.includes(term) || codeStr.includes(term);
         });
     }
@@ -1594,6 +1630,16 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             });
         });
         console.log('selectedBenefits: ' + JSON.stringify(this.selectedBenefits , null ,2)) ;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            const hasSelectedBenefit = group.groupedBenefits.some(bg =>
+                bg.benefits.some(b => b.selected)
+            );
+            return {
+                ...group,
+                isSelected: hasSelectedBenefit
+            };
+        });
     }
 
 

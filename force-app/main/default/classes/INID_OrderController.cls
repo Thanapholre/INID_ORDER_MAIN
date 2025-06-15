@@ -19,13 +19,13 @@ public with sharing class INID_OrderController {
             ];
     }
 
-    @AuraEnabled(cacheable=true)
-    public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
-        return [
-            SELECT Id , INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c 
-            FROM INID_Product_Price_Book__c
-        ];
-    }
+    // @AuraEnabled(cacheable=true)
+    // public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
+    //     return [
+    //         SELECT Id , INID_SKU_Description__c, INID_Unit_Price__c , INID_Material_Code__c , INID_Unit__c 
+    //         FROM INID_Product_Price_Book__c
+    //     ];
+    // }
 
     @AuraEnabled(cacheable=true)
         public static List<Quote> fetchDataQuotation() {
@@ -304,6 +304,26 @@ public with sharing class INID_OrderController {
             SELECT INID_Product_Price_Book__c 
             FROM INID_BU_to_Product__c 
             WHERE INID_BU_Group__c IN :buGroupIds
+        ];
+    }
+
+
+    
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Account_License__c> fetchAccountLicense(Id accountId) {
+        return[
+            SELECT INID_License__c FROM INID_Account_License__c WHERE INID_Account__c = :accountId
+        ];
+    }
+
+
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Product_License__c> fetchProductLicense(List<String> licenseList)  {
+        return [
+            SELECT INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c  
+            FROM INID_Product_License__c  
+            WHERE INID_License__c IN :licenseList
         ];
     }
 
