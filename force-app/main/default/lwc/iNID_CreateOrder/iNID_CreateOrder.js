@@ -1571,20 +1571,12 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     handleToggleBenefit(event) {
-        console.log('--------------------------------------------------------------------------------');
         console.log('handle toggle Benefit');
         const promoId = event.currentTarget.dataset.promoid;
         const benefitId = event.currentTarget.dataset.benefitid;
 
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId !== promoId) return group;
-
-            // const hasSelectedAnd = group.groupedBenefits.some(
-            //     bg => bg.conditionType === 'AND' && bg.benefits.some(b => b.selected)
-            // );
-            // const hasSelectedOr = group.groupedBenefits.some(
-            //     bg => bg.conditionType === 'OR' && bg.benefits.some(b => b.selected)
-            // );
 
             const updatedGrouped = group.groupedBenefits.map(bg => {
                 console.log('bg.benefits is : ' + JSON.stringify(group.groupedBenefits , null ,2));
@@ -1649,7 +1641,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
 
         this.updateSelectedBenefits();
-        console.log('--------------------------------------------------------------------------------');
     }
 
     //select Benefit

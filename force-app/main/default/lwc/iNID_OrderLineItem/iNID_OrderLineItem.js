@@ -2,7 +2,6 @@ import { LightningElement, track, wire , api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import LightningConfirm from 'lightning/confirm';
-import fetchDataProductPriceBook from '@salesforce/apex/INID_OrderController.fetchDataProductPriceBook'
 import insertOrderItem from '@salesforce/apex/INID_OrderController.insertOrderItem';
 import getRecordId from '@salesforce/apex/INID_OrderController.getRecordId'
 import fetchProductOrderItem from '@salesforce/apex/INID_OrderController.fetchProductOrderItem'
@@ -15,6 +14,9 @@ import replaceProductItems from '@salesforce/apex/INID_OrderController.replacePr
 import fetchProductOrderItemFoc from '@salesforce/apex/INID_OrderController.fetchProductOrderItemFoc';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
 import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers';
+import fetchAccountLicense from '@salesforce/apex/INID_OrderController.fetchAccountLicense';
+import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude';
+import fetchProductLicense from '@salesforce/apex/INID_OrderController.fetchProductLicense';
 // import fetchAccountIdByQuote from '@salesforce/apex/INID_OrderController.fetchAccountIdByQuote'
 import insertOrderSalePromotion from '@salesforce/apex/INID_OrderController.insertOrderSalePromotion'
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
@@ -57,6 +59,10 @@ export default class INID_OrderLine extends LightningElement {
     @track orderFocId ;
     @track orderFocItem = [] ;
     @track orderFocDetail = [];
+    @track accountLicenseId = [] ;
+    @track accountLicenseData = [] ;
+    @track accountLicense = [] ;
+    @track productLicenseExclude = [] ;
 
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
@@ -118,6 +124,44 @@ export default class INID_OrderLine extends LightningElement {
 
         ];
     }
+
+    @wire(fetchAccountLicense , {accountId: '$accountId'})
+    wiredFetchAccountLicense({error , data}) {
+        if(data) {
+            this.accountLicenseData = data ;
+            this.accountLicenseId = this.accountLicenseData.map(accLicenseId => accLicenseId.Id) ;
+            this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
+            console.log('Account License Id : ' + JSON.stringify(this.accountLicenseId , null , 2) );
+            console.log('License:' + JSON.stringify(this.accountLicense, null, 2));
+        } else {
+            console.log(error) ;
+        }
+    }
+
+    @wire(fetchProductLicenseExclude , {accountLicenseId: '$accountLicenseId'})
+    wirefetchProductLicenseExclude({error , data}) {
+        if(data) {
+
+            this.licenseExcludeData = data ;
+            this.productLicenseExclude = this.licenseExcludeData.map(prodId => prodId.INID_Product_Price_Book__c);
+            console.log('product license exclude มี ' + JSON.stringify(this.licenseExcludeData , null , 2));
+            console.log('product price book ที่มี license exclude คือ product : ' + JSON.stringify(this.productLicenseExclude , null ,))
+
+        } else if(error) {
+            console.log('message error from fetch product license exclude is : ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+    @wire(fetchProductLicense, {licenseList: '$accountLicense' , productPriceBookIdList: '$productLicenseExclude'})
+    wiredProductLicense({ error, data }) {
+        if (data) {
+            this.productPriceBook = data;
+            // this.productPriceBook = this.productLicenseData.map(productLicense => productLicense.INID_Product_Price_Book__c );
+            console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
       
     //Apex wire: get record id
     @wire(getRecordId, { orderId: '$recordId' })
@@ -129,27 +173,16 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
-     @wire(getAccountId,{ orderId: '$recordId' })
+    @wire(getAccountId,{ orderId: '$recordId' })
      wiredAccountIdByQuote({error, data}){
         if (data) {
             this.accountId = data;
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
-     }
-    
-    //Apex wire: fetch product price book
-    @wire(fetchDataProductPriceBook)
-    wiredproductPriceBook({ error, data }) {
-        if (data) {
-            this.productPriceBook = data;
-        } else if (error) {
-            console.error('Error fetching accounts:', error);
-        }
     }
-
-
-
+    
+ 
     @wire(fetchOrderFocId, { orderId: '$recordId' })
     wiredFocId({ error, data }) {
         if (data) {
@@ -341,8 +374,8 @@ export default class INID_OrderLine extends LightningElement {
         const term = this.searchProductTerm.toLowerCase().trim();
         this.showProductDropdown = term.length > 2;
         this.filteredProductOptions = this.productPriceBook.filter(product => {
-            const description = (product.INID_SKU_Description__c || '').toLowerCase();
-            const materialCode = (product.INID_Material_Code__c || '').toLowerCase();
+            const description = (product.INID_Product_Price_Book__r.INID_SKU_Description__c || '').toLowerCase();
+            const materialCode = (product.INID_Product_Price_Book__r.INID_Material_Code__c || '').toLowerCase();
             return description.includes(term) || materialCode.includes(term);
         });
     }
@@ -350,7 +383,7 @@ export default class INID_OrderLine extends LightningElement {
     //Select product to table
     handleSelectProduct(event) {
         const selectedId = event.currentTarget.dataset.id;
-        const selectedProduct = this.productPriceBook.find(p => p.Id === selectedId);
+        const selectedProduct = this.productPriceBook.find(p => p.INID_Product_Price_Book__r.Id === selectedId);
 
         if (!selectedProduct) return;
         const isAlreadySelected = this.selectedProducts.some(p => p.id === selectedId);
@@ -368,19 +401,19 @@ export default class INID_OrderLine extends LightningElement {
 
     //Map product for table row
     mapProduct(source) {
-        const unitPrice = source.INID_Unit_Price__c || 0;
+        const unitPrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
         const quantity = 1;
 
         return {
-            rowKey: source.Id,
-            id: source.Id,
-            productPriceBookId: source.Id, 
-            code: source.INID_Material_Code__c,
-            description: source.INID_SKU_Description__c,
+            rowKey: source.INID_Product_Price_Book__r.Id,
+            id: source.INID_Product_Price_Book__r.Id,
+            productPriceBookId: source.INID_Product_Price_Book__r.Id, 
+            code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
+            description: source.INID_Product_Price_Book__r.INID_SKU_Description__c,
             unitPrice,
             quantity,
             salePrice: unitPrice,
-            unit: source.INID_Unit__c || '',
+            unit: source.INID_Product_Price_Book__r.INID_Unit__c || '',
             total: unitPrice * quantity,
             nameBtn: '+',
             variant: 'brand',
@@ -975,39 +1008,95 @@ export default class INID_OrderLine extends LightningElement {
             return {
                 INID_Quantity__c: item.quantity,
                 INID_Sale_Price__c: item.salePrice,
-                INID_Product_Price_Book__c: item.productPriceBookId,
+                INID_Product_Price_Book__c: item.productPriceBookId, 
                 INID_Total__c: item.total,
                 };
             });
 
+        console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
         try {
-            const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId });
+            const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
             console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
     
-            if (!getPromotions || !getPromotions.promotions || getPromotions.promotions.length === 0) {
-                this.showToast('ไม่พบโปรโมชั่น', 'ไม่มีโปรโมชั่นที่ตรงกับเงื่อนไข', 'info');
-                return;
-            }
+            this.comboGroups = getPromotions.promotions.map(promo => {
+                // แยก benefits ตาม conditionType
+                const benefitGroups = {};
 
-            this.comboGroups = getPromotions.promotions.map(promo => ({
-                promotionId: promo.id,
-                promotionName: promo.name,
-                isSelected: false,
-                arrowIconClass: 'fa-solid fa-circle-chevron-down',
-                className: 'promotion-box',
-                benefits: (promo.benefits || []).map(b => ({
-                    Id: b.Id,
-                    name: b.Name,
-                    selected: false,
-                    className: 'benefit-box'
-                }))
-            }));
+                promo.benefits.forEach(b => {
+                    const condType = b.INID_Sale_Promotion_Benefit__r?.INID_Condition_Type__c || 'OR';
 
-            console.log('comboGroups:', JSON.stringify(this.comboGroups, null, 2));
-        } catch (error) {
-            console.error('Error fetching promotions:', error);
-            this.showToast('เกิดข้อผิดพลาด', error.body?.message || error.message, 'error');
-        }
+                    if (!benefitGroups[condType]) {
+                        benefitGroups[condType] = [];
+                    }
+
+                    benefitGroups[condType].push({
+                        ...b,
+                        id: b.Id,
+                        Name: b.Name,
+                        BenefitProduct: b.INID_Product_Price_Book__c,
+                        selected: false,
+                        className: 'benefit-box',
+                        benefitType: b.INID_Benefit_Type__c,
+                        isExpanded: false  ,
+
+                        //Show Input
+                        discountAmount: b.INID_Discount_Amount__c || null,
+                        discountPercent: b.INID_Discount__c || null,
+                        freeProductQuantityFix: b.INID_Free_Product_Quantity_Fix__c || null,
+                        freeProductQuantityRatioNumerator: b.INID_Free_Product_Quantity_Numerator__c || null,
+                        freeProductQuantityRatioDenominator: b.INID_Free_Product_Quantity_Denominator__c || null,
+                        batch: b.INID_Batch_Lot_No__c || null,
+                        setPrice: b.INID_SetPrice__c || null,
+                        remark: b.INID_Remark__c || '',
+                        freeProductLabelFix: b.INID_Product_Price_Book__r
+                            ? `${b.INID_Product_Price_Book__r.INID_Material_Code__c || ''} - ${b.INID_Product_Price_Book__r.INID_SKU_Description__c || ''}`.trim()
+                            : '',
+
+                        // Add these flags for conditional rendering
+                        isDiscountAmount: b.INID_Benefit_Type__c === 'Discount Amount',
+                        isDiscountPercent: b.INID_Benefit_Type__c === 'Discount(%)',
+                        isFreeProductFix: b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)',
+                        isFreeProductRatio: b.INID_Benefit_Type__c === 'Free Product (Ratio)',
+                        isSetPrice: b.INID_Benefit_Type__c === 'Set Price',
+
+                        displayBenefit:
+                            b.INID_Benefit_Type__c === 'Free Product (Ratio)'
+                                ? b.INID_Benefit_Type__c + ' ' + b.INID_Free_Product_Quantity_Numerator__c + ' : ' + b.INID_Free_Product_Quantity_Denominator__c
+                                : b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)'
+                                ? b.INID_Benefit_Type__c + ' : ' + b.INID_Free_Product_Quantity_Fix__c
+                                : b.INID_Benefit_Type__c === 'Set Price'
+                                ? b.INID_Benefit_Type__c + ' ' + b.INID_SetPrice__c
+                                : b.INID_Benefit_Type__c === 'Discount Amount'
+                                ? b.INID_Benefit_Type__c + ' ' + b.INID_Discount_Amount__c + ' THB '
+                                : b.INID_Benefit_Type__c === 'Discount(%)'
+                                ? b.INID_Benefit_Type__c + ' : ' + b.INID_Discount__c + ' % '
+                                : 'N/A'
+                    });
+                });
+
+                // สร้างกลุ่มที่แยก AND / OR
+                const groupedBenefits = Object.keys(benefitGroups).map(type => ({
+                    conditionType: type,
+                    benefits: benefitGroups[type]
+                }));
+
+                return {
+                    promotionId: promo.id,
+                    promotionName: promo.name,
+                    promotionDescript: promo.description,
+                    isSelected: true,
+                    arrowSymbol: 'fa-solid fa-circle-chevron-down',
+                    className: 'promotion-box',
+                    groupedBenefits: groupedBenefits // แทนที่ benefits เดิม
+                };
+            });
+   
+            console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
+
+        } catch(error) {
+            console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
+            alert('error\n'+ (error.body?.message || error.message || JSON.stringify(error)));
+        }   
     }
 
     handleTogglePromotion(event) {
@@ -1016,7 +1105,8 @@ export default class INID_OrderLine extends LightningElement {
             if (group.promotionId === promoId) {
                 const updated = {
                     ...group,
-                    isSelected: !group.isSelected
+                    isSelected: !group.isSelected,
+                    isExpanded: !group.isExpanded 
                 };
                 updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
                 updated.arrowIconClass = updated.isSelected
@@ -1030,25 +1120,115 @@ export default class INID_OrderLine extends LightningElement {
     }
 
     handleToggleBenefit(event) {
+        console.log('handle toggle Benefit');
         const promoId = event.currentTarget.dataset.promoid;
         const benefitId = event.currentTarget.dataset.benefitid;
 
         this.comboGroups = this.comboGroups.map(group => {
-            if (group.promotionId === promoId) {
-                const updatedBenefits = group.benefits.map(b => {
-                    return {
-                        ...b,
-                        selected: b.Id === benefitId, 
-                        className: b.Id === benefitId ? 'benefit-box selected' : 'benefit-box'
-                    };
-                });
+            if (group.promotionId !== promoId) return group;
 
-                return {
-                    ...group,
-                    benefits: updatedBenefits
-                };
-            }
-            return group;
+            const updatedGrouped = group.groupedBenefits.map(bg => {
+                console.log('bg.benefits is : ' + JSON.stringify(group.groupedBenefits , null ,2));
+                const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
+                console.log('benefit in group  ' + JSON.stringify(isBenefitInGroup , null ,2));
+
+                if (!isBenefitInGroup) {
+                    const isConflict =
+                        (bg.conditionType === 'AND') ||
+                        (bg.conditionType === 'OR');
+
+                    if (isConflict) {
+                        const clearedBenefits = bg.benefits.map(b => ({
+                            ...b,
+                            selected: false,
+                            className: 'benefit-box'
+                        }));
+                        return { ...bg, benefits: clearedBenefits };
+                    }
+
+                    return bg; 
+                }
+                if (bg.conditionType === 'AND') {
+                    const isAllSelected = bg.benefits.every(b => b.selected);
+                    const newSelected = !isAllSelected;
+
+                    console.log('is all selected : ' + JSON.stringify(isAllSelected, null ,2)) ;
+
+                    const updatedBenefits = bg.benefits.map(b => ({
+                        ...b,
+                        selected: newSelected,
+                        className: newSelected ? 'benefit-box selected' : 'benefit-box'
+                    }));
+
+                    return { ...bg, benefits: updatedBenefits };
+                } else {
+                    const isAlreadySelected = bg.benefits.find(b => b.Id === benefitId)?.selected;
+
+                    const updatedBenefits = bg.benefits.map(b => {
+                        if (b.Id === benefitId) {
+                            const newSelected = !isAlreadySelected;
+                            return {
+                                ...b,
+                                selected: newSelected,
+                                className: newSelected ? 'benefit-box selected' : 'benefit-box'
+                            };
+                        }
+                        return {
+                            ...b,
+                            selected: false,
+                            className: 'benefit-box'
+                        };
+                    });
+
+                    return { ...bg, benefits: updatedBenefits };
+                }
+            });
+            return {
+                ...group,
+                groupedBenefits: updatedGrouped
+            };
+        });
+
+        this.updateSelectedBenefits();
+    }
+
+    updateSelectedBenefits() {
+        this.selectedBenefits = [];
+        
+
+        this.comboGroups.forEach(group => {
+            group.groupedBenefits.forEach(bg => {
+                bg.benefits.forEach(b => {
+                    if (b.selected) {
+                        this.selectedBenefits.push({
+                            productPriceBook: b.INID_Product_Price_Book__c,
+                            promotionId: group.promotionId,
+                            benefitId: b.Id,
+                            benefitType: b.benefitType,
+                            value: {
+                                discountAmount: b.discountAmount,
+                                discountPercent: b.discountPercent,
+                                freeProductQuantityFix: b.freeProductQuantityFix,
+                                freeProductQuantityRatioNumerator: b.freeProductQuantityRatioNumerator,
+                                freeProductQuantityRatioDenominator: b.freeProductQuantityRatioDenominator,
+                                setPrice: b.setPrice,
+                                batch: b.batch
+                            }
+                        });
+                    }
+                });
+            });
+        });
+        console.log('selectedBenefits: ' + JSON.stringify(this.selectedBenefits , null ,2)) ;
+
+        this.comboGroups = this.comboGroups.map(group => {
+            const hasSelectedBenefit = group.groupedBenefits.some(bg =>
+                bg.benefits.some(b => b.selected)
+            );
+            return {
+                ...group,
+                hasSelectedBenefit
+            };
         });
     }
     
@@ -1057,6 +1237,13 @@ export default class INID_OrderLine extends LightningElement {
         this.isShowOrderLineItem = true ;
         this.isLoaded = false ;
     }
+
+    backtoProduct() {
+        this.isShowApplyPromotion = false;
+        this.isShowOrderLineItem = true;
+    }
+
+
 
     backToApply() {
         this.isShowApplyPromotion = true;
@@ -1085,39 +1272,70 @@ export default class INID_OrderLine extends LightningElement {
         this.isShowSummary = true;
         this.isShowApplyPromotion = false;
         this.summaryProducts = [];
+        this.promotionData = [];
+        this.selectedPromotion = [];
         this.isLoaded = false;
-
-        // สร้างข้อความสรุปโปรโมชั่นที่เลือกไว้
-        let summaryText = 'คุณเลือกโปรโมชั่นดังนี้:\n';
 
         const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
 
         selectedPromotions.forEach(group => {
-            const selectedBenefits = group.benefits.filter(b => b.selected);
-            const benefitNames = selectedBenefits.map(b => `- ${b.Name}`).join('\n') || '- (ยังไม่เลือก Benefit)';
-            summaryText += `\n ${group.promotionName}:\n${benefitNames}\n`;
+            const selectedBenefits = group.groupedBenefits
+                .flatMap(gb => gb.benefits)
+                .filter(b => b.selected);
+
+            if (!selectedBenefits.length) return;
+
+            const promoEntry = {
+                id: group.promotionId,
+                promotionName: group.promotionName,
+                promotionDescription: group.promotionDescript,
+                rowWrapper: [{
+                    id: group.promotionId,
+                    promotionName: group.promotionName,
+                    promotionDescription: group.promotionDescript
+                }],
+                benefits: []
+            };
 
             selectedBenefits.forEach(b => {
-                this.promotionData.push({
-                    id: b.Id, // หรือใช้ promotionId ก็ได้ถ้าจะ track กลับ
-                    name: group.promotionName,
-                    description: b.Name,
-                    products: b.products || []
+                const type = b.INID_Benefit_Type__c;
+                const columns = this.getColumnsByType(type); 
+
+                let benefitGroup = promoEntry.benefits.find(bg =>
+                    JSON.stringify(bg.columns) === JSON.stringify(columns)
+                );
+
+                if (!benefitGroup) {
+                    benefitGroup = {
+                        id: b.Id,
+                        columns: columns,
+                        data: []
+                    };
+                    promoEntry.benefits.push(benefitGroup);
+                }
+
+                benefitGroup.data.push({
+                    promotionMaterialCode: b.INID_Product_Price_Book__r?.INID_Material_Code__c || '',
+                    promotionDescription: b.INID_Product_Price_Book__r?.INID_SKU_Description__c || '',
+                    unit: b.INID_Product_Price_Book__r?.INID_Unit__c || '-',
+                    numerator: b.INID_Free_Product_Quantity_Numerator__c,
+                    denomiator: b.INID_Free_Product_Quantity_Denominator__c,
+                    freeProductQuantity: b.INID_Free_Product_Quantity_Fix__c,
+                    discountAmount: b.INID_Discount_Amount__c , 
+                    discountType: type,
+                    discountPercent: b.INID_Discount__c,
+                    setPrice: b.INID_SetPrice__c
                 });
             });
 
-            console.log(JSON.stringify(this.promotionData , null , 2));
+            this.promotionData.push(promoEntry);
         });
 
-        // สรุปรายการสินค้า
+        //  สินค้าหลัก + Add-ons เหมือนเดิม
         const mainProducts = this.selectedProducts.filter(p => p.nameBtn === '+');
-        console.log('main product จาก summary : ' + JSON.stringify(mainProducts , null , 2));
-
-        console.log('this.select product:' + JSON.stringify(this.selectedProducts , null ,2)) ;
-
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
-                p => p.salePrice === 0 && p.code === main.code
+                p => p.productCode === main.code && p.isAddOn
             );
 
             const mainQty = Number(main.quantity || 0);
@@ -1128,37 +1346,43 @@ export default class INID_OrderLine extends LightningElement {
             const totalSum = mainTotal + addonTotalSum;
             const netPrice = totalQty > 0 ? (totalSum / totalQty).toFixed(2) : '0.00';
 
-            console.log('main qty : ' + JSON.stringify(mainQty , null , 2));
-            console.log('addon qty : ' + JSON.stringify(addonQtySum , null , 2))
-
             this.summaryProducts.push({
                 ...main,
-                netPrice: main.unitPrice === 0 ? null : netPrice, 
-                addOnText: main.nameBtn == '+' ? '' : main.nameBtn
+                netPrice: main.unitPrice === 0 ? null : netPrice,
+                addOnText: ''
             });
 
-            
-
-            if (!this.selectedPromotion.some(p => p.id === main.id && p.promotionId === p.promotionId )) {
-                this.selectedPromotion.push({
-                    ...main
-                });
+            if (!this.selectedPromotion.some(p => p.id === main.id)) {
+                this.selectedPromotion.push({ ...main });
             }
-            
-            relatedAddons.forEach(addon => {
-                const { netPrice, ...addonWithoutNetPrice } = addon;
 
+            relatedAddons.forEach(addon => {
                 const isAlreadyAdded = this.summaryProducts.some(p => p.rowKey === addon.rowKey);
-                
                 if (!isAlreadyAdded) {
                     this.summaryProducts.push({
-                        ...addonWithoutNetPrice,
+                        ...addon,
                         addOnText: addon.nameBtn
                     });
                 }
             });
         });
 
-        console.log('this.summary products : ' + JSON.stringify(this.summaryProducts , null ,2)) ; 
+        console.log('สรุป promotionData สำหรับ UI:', JSON.stringify(this.promotionData, null, 2));
+        console.log('summaryProducts:', JSON.stringify(this.summaryProducts, null, 2));
     }
+
+     get promoList(){
+        console.log('promoList', JSON.stringify(this.promotionData, null, 2));
+        return this.promotionData.map(p => ({
+            ...p,
+            rowWrapper: [{
+                id: p.id,
+                promotionName: p.promotionName,
+                promotionDescription: p.promotionDescription
+            }] 
+        }));
+      
+    }
+
+
 }
