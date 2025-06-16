@@ -312,20 +312,40 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_License__c> fetchAccountLicense(Id accountId) {
         return[
-            SELECT INID_License__c FROM INID_Account_License__c WHERE INID_Account__c = :accountId
+            SELECT Id ,INID_License__c FROM INID_Account_License__c WHERE INID_Account__c = :accountId
         ];
     }
 
 
 
     @AuraEnabled(cacheable=true)
-    public static List<INID_Product_License__c> fetchProductLicense(List<String> licenseList)  {
+    public static List<INID_Product_License__c> fetchProductLicense(List<String> licenseList , List<Id> productPriceBookIdList)  {
         return [
             SELECT INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , 
             INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
             INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c      
             FROM INID_Product_License__c  
-            WHERE INID_License__c IN :licenseList
+            WHERE INID_License__c IN :licenseList AND INID_Product_Price_Book__c NOT IN :productPriceBookIdList
+        ];
+    }
+
+    // @AuraEnabled(cacheable=true)
+    // public static List<INID_Product_License__c> fetchProductLicense(List<String> licenseList )  {
+    //     return [
+    //         SELECT INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , 
+    //         INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
+    //         INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c      
+    //         FROM INID_Product_License__c  
+    //         WHERE INID_License__c IN :licenseList 
+    //     ];
+    // }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Account_License_Product_Exclude__c > fetchProductLicenseExclude(List<Id> accountLicenseId) {
+        return [
+            SELECT INID_Account_License__c	, INID_Product_Price_Book__c
+            FROM INID_Account_License_Product_Exclude__c 
+            WHERE INID_Account_License__c IN :accountLicenseId
         ];
     }
 

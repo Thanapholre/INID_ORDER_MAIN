@@ -28,6 +28,7 @@ import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetch
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
 import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 import fetchAccountLicense from '@salesforce/apex/INID_OrderController.fetchAccountLicense'
+import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude' ;
 // import fetchOrderFocById from '@salesforce/apex/INID_OrderController.fetchOrderFocById'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
@@ -99,6 +100,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track accountLicense ;
     @track productLicenseData = [] ;
     @track productLicense ;
+    @track accountLicenseId = [] ;
+    @track licenseExcludeData = [] ;
+    @track productLicenseExclude = [] ;
 
   
     columns = [
@@ -141,14 +145,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     wiredFetchAccountLicense({error , data}) {
         if(data) {
             this.accountLicenseData = data ;
+            this.accountLicenseId = this.accountLicenseData.map(accLicenseId => accLicenseId.Id) ;
             this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
-            console.log('Account License:' + JSON.stringify(this.accountLicense, null, 2));
+            console.log('Account License Id : ' + JSON.stringify(this.accountLicenseId , null , 2) );
+            console.log('License:' + JSON.stringify(this.accountLicense, null, 2));
         } else {
             console.log(error) ;
         }
     }
 
-    @wire(fetchProductLicense, {licenseList: '$accountLicense'})
+    @wire(fetchProductLicenseExclude , {accountLicenseId: '$accountLicenseId'})
+    wirefetchProductLicenseExclude({error , data}) {
+        if(data) {
+
+            this.licenseExcludeData = data ;
+            this.productLicenseExclude = this.licenseExcludeData.map(prodId => prodId.INID_Product_Price_Book__c);
+            console.log('product license exclude มี ' + JSON.stringify(this.licenseExcludeData , null , 2));
+            console.log('product price book ที่มี license exclude คือ product : ' + JSON.stringify(this.productLicenseExclude , null ,))
+
+        } else if(error) {
+            console.log('message error from fetch product license exclude is : ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+    @wire(fetchProductLicense, {licenseList: '$accountLicense' , productPriceBookIdList: '$productLicenseExclude'})
     wiredProductLicense({ error, data }) {
         if (data) {
             this.productPriceBook = data;
@@ -158,6 +178,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error fetching accounts:', error);
         }
     }
+
+    // @wire(fetchProductLicense, {licenseList: '$accountLicense'})
+    // wiredProductLicense({ error, data }) {
+    //     if (data) {
+    //         this.productPriceBook = data;
+    //         // this.productPriceBook = this.productLicenseData.map(productLicense => productLicense.INID_Product_Price_Book__c );
+    //         console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
+    //     } else if (error) {
+    //         console.error('Error fetching accounts:', error);
+    //     }
+    // }
+
+ 
 
 
     //closeTab
