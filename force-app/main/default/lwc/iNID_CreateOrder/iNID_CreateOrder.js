@@ -18,8 +18,6 @@ import INID_Organization__c from '@salesforce/schema/Account.INID_Organization__
 import ACCOUNT_ID from '@salesforce/schema/Account.Id';
 import LightningConfirm from 'lightning/confirm';
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
-// import fetchBuProduct from '@salesforce/apex/INID_OrderController.fetchBuProduct'
-// import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
 import fetchOrderFocId from '@salesforce/apex/INID_OrderController.fetchOrderFocId'
 import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
 import fetchUserGroup from '@salesforce/apex/INID_OrderController.fetchUserGroup'
@@ -29,7 +27,6 @@ import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrde
 import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 import fetchAccountLicense from '@salesforce/apex/INID_OrderController.fetchAccountLicense'
 import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude' ;
-// import fetchOrderFocById from '@salesforce/apex/INID_OrderController.fetchOrderFocById'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
@@ -1528,7 +1525,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     promotionId: promo.id,
                     promotionName: promo.name,
                     promotionDescript: promo.description,
-                    isSelected: true,
+                    isSelected: false,
                     arrowSymbol: 'fa-solid fa-circle-chevron-down',
                     className: 'promotion-box',
                     groupedBenefits: groupedBenefits // แทนที่ benefits เดิม
@@ -1554,6 +1551,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             if (group.promotionId === promoId) {
                 const updated = {
                     ...group,
+                    isSelected: !group.isSelected,
                     isExpanded: !group.isExpanded
                 };
                 console.log('selected combogroup after : ' + JSON.stringify(this.comboGroups , null ,2));
@@ -2007,14 +2005,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_NoteAgent__c : this.noteAgent ,
         };
         try {
-            // const orderId = await insertOrder({ order: orderDetail });
-            // this.orderId = orderId;
-            // await this.insertPromotion(this.orderId);
-            // await this.insertOrderItemListFunction(this.orderId); 
-            // await this.insertOrderFoc(this.orderId) ;
-            // const orderFocId = await fetchOrderFocId({orderId: this.orderId});
-            // console.log('order foc id : ' + orderFocId);
-            // await this.insertOrderItemFocListFunction(orderFocId);
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
             console.log('Order Id : ' + orderId);
@@ -2075,7 +2065,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         } catch (error) {
             this.handleSaveError(error);
         }
-}
+    }
 
 
 
