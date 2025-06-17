@@ -16,38 +16,52 @@ import fetchProductLicense from '@salesforce/apex/INID_OrderController.fetchProd
 import insertOrderSalePromotion from '@salesforce/apex/INID_OrderController.insertOrderSalePromotion'
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
 import fetchOrderToOrderFoc from '@salesforce/apex/INID_OrderController.fetchOrderToOrderFoc';
+import fetchUserGroup from '@salesforce/apex/INID_OrderController.fetchUserGroup';
 import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
+import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
 import getAccountId from '@salesforce/apex/INID_OrderController.getAccountId' ;
+import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetchProductsByBuGroups'
+import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
-
+import USER_ID from '@salesforce/user/Id';
 
 export default class INID_OrderLine extends LightningElement {
+    @api recordId;
     @track searchProductTerm = '';
     @track textareaValue = '';
+    @track itemNumberFormat = 0;
+    @track addonRemark = '' ;
+    @track variantBtn = '' ;
+    @track currentMaterialCodeForAddOn = '';
+
+    @track orderId;
+    @track selectedValue ;
+    @track selectedLabel;
+    @track accountId ;
+    @track userGroup;
+    @track buGroupData;
+    @track buGroupId;
+    @track productsByBuGroups;
+    @track productBuGroupId ;
+    @track productBuIds ;
+    @track userId = USER_ID;
+    
+    @track showProductDropdown = false;
+    @track isPopupOpenFreeGood = false ;
+    isShowAddfromText = false;
+    isShowSummary = false ;
+    isLoaded = false;
+    hasAlerted = false;
+    @track isShowApplyPromotion = false ;
+    @track isShowOrderLineItem = true ;
+
     @track filteredProductOptions = [];
     @track productPriceBook = [];
     @track draftValues = [];
     @track selectedRowIds = [];
     @track selectedProducts = [];
-    @track showProductDropdown = false;
     @track productOrderItemValue = [];
-    @track itemNumberFormat = 0;
-    @track orderId;
-    @track isPopupOpenFreeGood = false ;
-    @track addonRemark = '' ;
-    @track variantBtn = '' ;
-    @track selectedValue ;
-    @track selectedLabel;
-    @track currentMaterialCodeForAddOn = '';
-    @track isShowOrderLineItem = true ;
-    @track isShowApplyPromotion = false ;
-    @track accountId ;
-    @api recordId;
-    isShowAddfromText = false;
-    isShowSummary = false ;
-    isLoaded = false;
-    hasAlerted = false;
     @track comboGroups = [];
     @track selectedPromotion = [] ;
     @track promotionData = [] ;
@@ -64,7 +78,7 @@ export default class INID_OrderLine extends LightningElement {
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 200 },
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 140 },
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 100 },
-        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', editable: true, typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 175 },
+        { label: 'Sale Price', fieldName: 'salePrice', type: 'currency',     editable: { fieldName: 'editableSalePrice' }, typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 175 },
         { label: 'Unit', fieldName: 'unit', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 100 },
         { label: 'Total', fieldName: 'total', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }},
         { 
@@ -102,6 +116,8 @@ export default class INID_OrderLine extends LightningElement {
         if (this.quoteItemData) {
             refreshApex(this.quoteItemData); 
         }
+
+        console.log('userId : ' + this.userId) ;
     }
 
     connectedCallback() {
@@ -119,6 +135,52 @@ export default class INID_OrderLine extends LightningElement {
 
         ];
     }
+
+    @wire(fetchAddonProductPriceBook , {accountId: '$accountId'})
+    wireaddonProductPriceBook({error, data}) {
+        if(data){
+            this.addonProductPriceBook = data;
+            console.log('this Addon Product Price Books '+ JSON.stringify(this.addonProductPriceBook , null ,2));
+        }else if(error){
+            console.log(' error fetch addonProductPriceBook : ', error)
+        }
+            
+    }
+
+    @wire(fetchUserGroup, { userId: '$userId' })
+    wireUserGroup({ error, data }) {
+        if (data) {
+            this.userGroup = data
+            console.log('userGroup' + JSON.stringify(this.userGroup, null, 2))
+        } else {
+            console.log(error);
+        }
+    }
+
+
+    @wire(fetchBuGroupId, {userGroup: '$userGroup'})
+    wiredBuGroupId({ error, data }) {
+        if (data) {
+            this.buGroupData = data;
+            this.buGroupId = this.buGroupData.map(r => r.INID_BU_Group__c);
+            console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+    
+    @wire(fetchProductsByBuGroups, {buGroupIds: '$buGroupId'})
+    wiredproductsByBuGroups({ error, data }) {
+        if (data) {
+            this.productsByBuGroups = data;
+            this.productBuGroupId = this.productsByBuGroups.map(r => r.INID_Product_Price_Book__c);
+            this.productBuIds = new Set(this.productBuGroupId); 
+            console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
 
     @wire(fetchAccountLicense , {accountId: '$accountId'})
     wiredFetchAccountLicense({error , data}) {
@@ -151,7 +213,6 @@ export default class INID_OrderLine extends LightningElement {
     wiredProductLicense({ error, data }) {
         if (data) {
             this.productPriceBook = data;
-            // this.productPriceBook = this.productLicenseData.map(productLicense => productLicense.INID_Product_Price_Book__c );
             console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
         } else if (error) {
             console.error('Error fetching accounts:', error);
@@ -181,7 +242,7 @@ export default class INID_OrderLine extends LightningElement {
     @wire(fetchOrderFocId, { orderId: '$recordId' })
     wiredFocId({ error, data }) {
         if (data) {
-            console.log('ได้ FOC Id:' +  JSON.stringify(data , null ,2));
+            // console.log('ได้ FOC Id:' +  JSON.stringify(data , null ,2));
             this.orderFocId = data;
         } else if (error) {
             console.error(' เกิดข้อผิดพลาดในการดึง FOC ID:', error);
@@ -191,7 +252,7 @@ export default class INID_OrderLine extends LightningElement {
     @wire(fetchProductOrderItem, { orderId: '$recordId' })
     getDataProductOrderItem({ error, data }) {
         if (data) {
-            console.log('✅ ดึงข้อมูล Product Order Item สำเร็จ:', JSON.stringify(data, null, 2));
+            // console.log('✅ ดึงข้อมูล Product Order Item สำเร็จ:', JSON.stringify(data, null, 2));
 
             const mainProducts = [];
             const addonProducts = [];
@@ -219,7 +280,9 @@ export default class INID_OrderLine extends LightningElement {
                     variant: isAddon ? 'base' : 'brand',
                     addonDisabled: false,
                     isAddOn: isAddon,
-                    productPriceBookId: row.INID_Product_Price_Book__r?.Id
+                    productPriceBookId: row.INID_Product_Price_Book__r?.Id,
+                    // editableSalePrice: this.productBuIds.has(row.INID_Product_Price_Book__r?.Id)
+
                 };
 
                 if (isAddon) {
@@ -229,8 +292,8 @@ export default class INID_OrderLine extends LightningElement {
                 }
             });
 
-            console.log(' Main Products:', JSON.stringify(mainProducts, null, 2));
-            console.log(' Add-on Products (Before FOC):', JSON.stringify(addonProducts, null, 2));
+            // console.log(' Main Products:', JSON.stringify(mainProducts, null, 2));
+            // console.log(' Add-on Products (Before FOC):', JSON.stringify(addonProducts, null, 2));
 
             // ดึง FOC ID ก่อน
             fetchOrderFocId({ orderId: this.orderId })
@@ -258,18 +321,18 @@ export default class INID_OrderLine extends LightningElement {
                             showAddonBtn: !row.isAddOn
                         }));
 
-                        console.log('Combined Products (Main + Add-ons, No FOC):', JSON.stringify(this.selectedProducts, null, 2));
+                        // console.log('Combined Products (Main + Add-ons, No FOC):', JSON.stringify(this.selectedProducts, null, 2));
 
                         return null; // ไม่ต้องไป .then(focItems) แล้ว
                     }
 
-                    console.log('FOC ID ที่ได้:', focId);
+                    // console.log('FOC ID ที่ได้:', focId);
                     return fetchProductOrderItemFoc({ orderFocId: focId });
                 })
                 .then(focItems => {
                     if (!focItems) return;
 
-                    console.log('ข้อมูล FOC Add-ons:', JSON.stringify(focItems, null, 2));
+                    // console.log('ข้อมูล FOC Add-ons:', JSON.stringify(focItems, null, 2));
 
                     focItems.forEach(foc => {
                         const quantity = Number(foc.INID_Quantity__c) || 0;
@@ -301,13 +364,13 @@ export default class INID_OrderLine extends LightningElement {
 
                         if (hlItemNumber) {
                             addonProducts.push(addonObj);
-                            console.log(`ผูก FOC Add-on กับ Main Product (${hlItemNumber}) แล้ว`);
+                            // console.log(`ผูก FOC Add-on กับ Main Product (${hlItemNumber}) แล้ว`);
                         } else {
                             console.warn(`ไม่พบ Main Product ที่ตรงกับ Material Code: ${materialCode}`);
                         }
                     });
 
-                    console.log('🧩 Add-on Products (After FOC):', JSON.stringify(addonProducts, null, 2));
+                    // console.log('🧩 Add-on Products (After FOC):', JSON.stringify(addonProducts, null, 2));
 
                     mainProducts.forEach(main => {
                         const hasAddon = addonProducts.some(addon => addon.hlItemNumber === main.hlItemNumber);
@@ -327,7 +390,7 @@ export default class INID_OrderLine extends LightningElement {
                         showAddonBtn: !row.isAddOn
                     }));
 
-                    console.log('Combined Products (Main + Add-ons):', JSON.stringify(this.selectedProducts, null, 2));
+                    // console.log('Combined Products (Main + Add-ons):', JSON.stringify(this.selectedProducts, null, 2));
                 })
                 .catch(err => {
                     console.error('ดึงข้อมูล FOC ไม่สำเร็จ:', err);
@@ -342,7 +405,7 @@ export default class INID_OrderLine extends LightningElement {
     getOrderToOrderFoc({error , data}) {
         if(data) {
             this.orderFocDetail = data ;
-            console.log('order Foc Detail From order Id : ' + JSON.stringify(this.orderFocDetail , null ,2));
+            // console.log('order Foc Detail From order Id : ' + JSON.stringify(this.orderFocDetail , null ,2));
         } else {
             console.log('error is : ' + error) ;
         }
@@ -380,6 +443,7 @@ export default class INID_OrderLine extends LightningElement {
         const selectedId = event.currentTarget.dataset.id;
         const selectedProduct = this.productPriceBook.find(p => p.INID_Product_Price_Book__r.Id === selectedId);
 
+
         if (!selectedProduct) return;
         const isAlreadySelected = this.selectedProducts.some(p => p.id === selectedId);
         if (isAlreadySelected) {
@@ -388,18 +452,71 @@ export default class INID_OrderLine extends LightningElement {
             const newProduct = this.mapProduct(selectedProduct);
             this.selectedProducts = [...this.selectedProducts, newProduct];
 
-            console.log('this select product from handleSelectProduct Function : ' + JSON.stringify(this.selectedProducts , null ,2));
+            // console.log('this select product from handleSelectProduct Function : ' + JSON.stringify(this.selectedProducts , null ,2));
         }
+
+           // ตรวจสอบ Add-on
+        const matchedAddon = this.addonProductPriceBook.find(rule =>
+            rule.INID_Main_Quantity__c === 1 &&
+            rule.INID_Product_Price_Book__c === product.productPriceBookId
+        );
+
+        if (matchedAddon) {
+                const addonId = `${product.rowKey}_addon_auto_${Date.now()}`;
+                const addonProduct = {
+                    rowKey: addonId,
+                    id: addonId,
+                    code: matchedAddon.INID_Product_Price_Book__r.INID_Material_Code__c,
+                    description: matchedAddon.INID_Product_Price_Book__r.INID_SKU_Description__c,
+                    unitPrice: 0,
+                    salePrice: 0,
+                    quantity: matchedAddon.INID_Add_on_Quantity__c,
+                    unit: matchedAddon.INID_Product_Price_Book__r.INID_Unit__c,
+                    total: 0,
+                    productPriceBookId: matchedAddon.INID_Product_Price_Book__c,
+                    nameBtn: this.getAddonLabel('1'),
+                    variant: 'base',
+                    editableSalePrice: false,
+                    addOnText: matchedAddon.INID_Remark__c || 'ของแถม',
+                    hlItemNumber: product.hlItemNumber,
+                    isAddOn: true,
+                    productCode: product.code
+                };
+
+                const isAddonExists = this.selectedProducts.some(p =>
+                    p.code === addonProduct.code &&
+                    p.unitPrice === 0 &&
+                    p.hlItemNumber === product.hlItemNumber
+                );
+
+                console.log('is add on exist : ' + JSON.stringify(isAddonExists , null ,) )
+
+                if (!isAddonExists) {
+                    this.selectedProducts = [...this.selectedProducts, addonProduct];
+                    this.dispatchEvent(new ShowToastEvent({
+                        title: 'เพิ่มของแถมอัตโนมัติ',
+                        message: `${addonProduct.code} (${addonProduct.quantity} ${addonProduct.unit})`,
+                        variant: 'info'
+                    }));
+                }
+
+               
+            }
+
+        console.log('this select product ใน function select product คือ : ' + JSON.stringify(this.selectedProducts , null ,2 ));
         
         // Reset search state
         this.searchProductTerm = '';
         this.showProductDropdown = false;
     }
-
     //Map product for table row
     mapProduct(source) {
         const unitPrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
         const quantity = 1;
+        const productPriceBookId = source.INID_Product_Price_Book__r.Id;
+        const editableSalePrice = this.productBuIds && this.productBuIds.has(productPriceBookId);
+
+        
 
         return {
             rowKey: source.INID_Product_Price_Book__r.Id,
@@ -414,7 +531,8 @@ export default class INID_OrderLine extends LightningElement {
             total: unitPrice * quantity,
             nameBtn: '+',
             variant: 'brand',
-            addonDisabled: false  
+            addonDisabled: false, 
+            editableSalePrice: editableSalePrice
         };
     }
 
@@ -503,36 +621,132 @@ export default class INID_OrderLine extends LightningElement {
     }
 
     // Save edited rows
+    // handleSaveEditedRows(event) {
+    //     const updatedValues = event.detail.draftValues;
+
+    //     this.selectedProducts = this.selectedProducts.map(product => {
+    //         const updated = updatedValues.find(d => d.rowKey === product.rowKey);            
+    //         if (updated) {
+    //             const qty = Number(updated.quantity ?? product.quantity);
+
+    //             let rawPrice = updated.salePrice ?? product.salePrice;
+
+    //             // ล้างสัญลักษณ์ ฿ และ comma
+    //             if (typeof rawPrice === 'string') {
+    //                 rawPrice = rawPrice.replace(/[฿,]/g, '');
+    //             }
+
+    //             const price = Number(parseFloat(rawPrice).toFixed(2));
+    //             const total = Number((qty * price).toFixed(2));
+
+    //             return {
+    //                 ...product,
+    //                 ...updated,
+    //                 quantity: qty,
+    //                 salePrice: price,
+    //                 total: total  
+    //             };
+    //         }
+    //         return product; 
+    //     });
+
+    //     this.draftValues = []; 
+    //     this.dispatchEvent(
+    //         new ShowToastEvent({
+    //             title: 'Success',
+    //             message: 'Edit field successfully',
+    //             variant: 'success'
+    //         })
+    //     );
+    // }
+
     handleSaveEditedRows(event) {
         const updatedValues = event.detail.draftValues;
+        const newSelectedProducts = [...this.selectedProducts]; // clone list
+        const matchedAddons = [];
 
-        this.selectedProducts = this.selectedProducts.map(product => {
-            const updated = updatedValues.find(d => d.rowKey === product.rowKey);            
-            if (updated) {
-                const qty = Number(updated.quantity ?? product.quantity);
+        console.log('เริ่มอัปเดต Products...');
 
-                let rawPrice = updated.salePrice ?? product.salePrice;
+        updatedValues.forEach(updated => {
+            const index = newSelectedProducts.findIndex(p => p.rowKey === updated.rowKey);
+            if (index === -1) {
+                console.warn(`ไม่พบ rowKey: ${updated.rowKey} ใน selectedProducts`);
+                return;
+            }
 
-                // ล้างสัญลักษณ์ ฿ และ comma
-                if (typeof rawPrice === 'string') {
-                    rawPrice = rawPrice.replace(/[฿,]/g, '');
+            const product = newSelectedProducts[index];
+            const qty = Number(updated.quantity ?? product.quantity);
+            const price = Number(updated.salePrice ?? product.salePrice);
+
+            const updatedProduct = {
+                ...product,
+                ...updated,
+                quantity: qty,
+                salePrice: price,
+                total: qty * price
+            };
+
+            newSelectedProducts[index] = updatedProduct;
+
+            console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
+
+            const matchedRule = this.addonProductPriceBook.find(rule =>
+                rule.INID_Product_Price_Book__c === updatedProduct.productPriceBookId &&
+                rule.INID_Main_Quantity__c === qty
+            );
+
+            if (matchedRule) {
+                console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
+
+                // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง
+                const hasAddon = newSelectedProducts.some(p =>
+                    p.isAddOn === true && p.parentRowKey === updatedProduct.rowKey
+                );
+
+                if (hasAddon) {
+                    console.log(`❗️ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
+                    return; 
                 }
 
-                const price = Number(parseFloat(rawPrice).toFixed(2));
-                const total = Number((qty * price).toFixed(2));
+                console.log(`✅ แทรก Add-on ถัดจากแถว ${updatedProduct.code}`);
 
-                return {
-                    ...product,
-                    ...updated,
-                    quantity: qty,
-                    salePrice: price,
-                    total: total  
+                // mark main product ว่า addonDisabled = true
+                updatedProduct.addonDisabled = true;
+
+                const addonProduct = {
+                    rowKey: `addon_${Date.now()}`,
+                    code: matchedRule.INID_Product_Price_Book__r.INID_Material_Code__c,
+                    productPriceBookId: matchedRule.INID_Product_Price_Book__c,
+                    description: matchedRule.INID_Product_Price_Book__r.INID_SKU_Description__c,
+                    unitPrice: matchedRule.INID_Product_Price_Book__r.INID_Unit_Price__c,
+                    quantity: matchedRule.INID_Add_on_Quantity__c,
+                    salePrice: 0,
+                    total: 0,
+                    isAddOn: true,
+                    parentRowKey: updatedProduct.rowKey,
+                    nameBtn: matchedRule.INID_Remark__c,
+                    variant: 'base',
+                    editableSalePrice: false,
+                    productCode: updatedProduct.code,
+                    // addonDisabled: true
                 };
+
+                console.log('➕ Add-on ที่แทรก:', JSON.stringify(addonProduct, null, 2));
+
+                newSelectedProducts[index] = updatedProduct;
+                newSelectedProducts.splice(index + 1, 0, addonProduct);
+                matchedAddons.push({ product: updatedProduct, addon: addonProduct });
             }
-            return product; 
+
         });
 
-        this.draftValues = []; 
+        this.selectedProducts = newSelectedProducts;
+        this.draftValues = [];
+        console.log(`✅ สรุป: พบ Add-ons ทั้งหมด ${matchedAddons.length} รายการ`);
+        matchedAddons.forEach((item, i) => {
+            console.log(`🧩 [${i + 1}] ${item.addon.code} for ${item.product.code}`);
+        });
+
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'Success',
@@ -543,17 +757,6 @@ export default class INID_OrderLine extends LightningElement {
     }
 
     
-    handletest (){
-        getPromotion({ orderId: this.recordId })
-        .then(result => {
-            console.log('Promotion Data:', result);
-            this.showToast('ข้อมูลโปรโมชั่น', JSON.stringify(result), 'info');
-        })
-        .catch(error => {
-            console.error('Error fetching promotion data:', error);
-            this.showToast('Error', 'ไม่สามารถดึงข้อมูลโปรโมชั่นได้', 'error');
-        });
-    }
 
     handleCancel() {
         this.dispatchEvent(new CloseActionScreenEvent());
@@ -631,7 +834,7 @@ export default class INID_OrderLine extends LightningElement {
             return;
         }
 
-        console.log('select detail item : ' + JSON.stringify(this.selectedDetailItems , null ,2));
+        // console.log('select detail item : ' + JSON.stringify(this.selectedDetailItems , null ,2));
 
         const deleteKeys = new Set(this.selectedDetailItems.map(item => item.rowKey));
 
@@ -659,16 +862,16 @@ export default class INID_OrderLine extends LightningElement {
         }
 
         // ลบออกจากข้อมูลหลัก
-        console.log('select product from delete function (Before) : ' + JSON.stringify(this.selectedProducts , null , 2)); 
+        // console.log('select product from delete function (Before) : ' + JSON.stringify(this.selectedProducts , null , 2)); 
         this.selectedProducts = this.selectedProducts.filter(p => !deleteKeys.has(p.rowKey));
-        console.log('select product from delete function (After) : ' + JSON.stringify(this.selectedProducts , null , 2)); 
+        // console.log('select product from delete function (After) : ' + JSON.stringify(this.selectedProducts , null , 2)); 
 
         addOnItems.forEach(deletedAddon => {
             const relatedMain = this.selectedProducts.find(main =>
                 !main.isAddOn && main.code === deletedAddon.code
             );
 
-            console.log('relate Main : ' + JSON.stringify(relatedMain ,  null , 2));
+            // console.log('relate Main : ' + JSON.stringify(relatedMain ,  null , 2));
 
             if (relatedMain) {
                 const hasOtherAddon = this.selectedProducts.some(item =>
@@ -825,7 +1028,7 @@ export default class INID_OrderLine extends LightningElement {
             let recordsToInsert = [];
             let itemIndex = 1;
 
-            console.log('this.selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
+            // console.log('this.selectedProducts:', JSON.stringify(this.selectedProducts, null, 2));
 
             const focProducts = this.selectedProducts.filter(
                 p => p.salePrice === 0 && p.nameBtn === 'ของแถมนอกบิล (FOC)'
@@ -835,9 +1038,9 @@ export default class INID_OrderLine extends LightningElement {
                 p => p.salePrice === 0 && p.nameBtn !== 'ของแถมนอกบิล (FOC)'
             );
 
-            console.log(`พบของแถมนอกบิล (FOC) ทั้งหมด: ${focProducts.length} รายการ`);
+            // console.log(`พบของแถมนอกบิล (FOC) ทั้งหมด: ${focProducts.length} รายการ`);
             focProducts.forEach((item, index) => {
-                console.log(`FOC #${index + 1}:`, JSON.stringify(item, null, 2));
+                // console.log(`FOC #${index + 1}:`, JSON.stringify(item, null, 2));
             });
 
             // รวมยอด quantity ของ FOC ที่ซ้ำกันโดย productPriceBookId + nameBtn
@@ -872,7 +1075,7 @@ export default class INID_OrderLine extends LightningElement {
 
             this.selectedProducts.forEach((prod) => {
 
-                console.log('this product selected from save function : ' + JSON.stringify(this.selectedProducts , null ,2));
+                // console.log('this product selected from save function : ' + JSON.stringify(this.selectedProducts , null ,2));
 
                 const isFoc = prod.nameBtn === 'ของแถมนอกบิล (FOC)';
                 const isAddon = prod.nameBtn !== '+';
@@ -895,14 +1098,14 @@ export default class INID_OrderLine extends LightningElement {
                     INID_Item_Number__c: formattedNumber,
                 });
 
-                console.log('record to insert data , ' + JSON.stringify(recordsToInsert ,null ,2));
+                // console.log('record to insert data , ' + JSON.stringify(recordsToInsert ,null ,2));
 
                 itemIndex++;
             });
 
             // ถ้าไม่มี FOC แล้วเคยมี orderFocId ก็ลบ FOC เดิมทิ้ง
             if (uniqueFocProducts.length === 0 && this.orderFocId) {
-                console.log('foc product ไม่มีแล้ว จะลบที่ id = ' + this.orderFocId);
+                // console.log('foc product ไม่มีแล้ว จะลบที่ id = ' + this.orderFocId);
                 await this.deleteFocItemsOnly(this.orderFocId);
             }
 
@@ -920,11 +1123,11 @@ export default class INID_OrderLine extends LightningElement {
                 try {
                     // 1. สร้าง Order FOC
                     const createdOrderFoc = await insertOrderFocById({ orderFocList: newOrderFocDetail });
-                    console.log('create order foc : ' + JSON.stringify(createdOrderFoc, null , 2));
+                    // console.log('create order foc : ' + JSON.stringify(createdOrderFoc, null , 2));
 
                     if (createdOrderFoc && Array.isArray(createdOrderFoc) && createdOrderFoc.length > 0) {
                         this.orderFocId = createdOrderFoc[0].Id;
-                        console.log(' สร้าง Order FOC สำเร็จ, orderFocId:', this.orderFocId);
+                        // console.log(' สร้าง Order FOC สำเร็จ, orderFocId:', this.orderFocId);
 
                         // 2. อัพเดต focRecordsToInsert ด้วย orderFocId ใหม่
                         const focItemsWithOrderFocId = focRecordsToInsert.map(item => ({
@@ -938,7 +1141,7 @@ export default class INID_OrderLine extends LightningElement {
                             orderItemList: focItemsWithOrderFocId
                         });
 
-                        console.log('Insert FOC items สำเร็จ');
+                        // console.log('Insert FOC items สำเร็จ');
                     } else {
                         console.warn('insertOrderFocById คืนค่าผิดปกติ:', createdOrderFoc);
                         this.orderFocId = null;
@@ -954,7 +1157,7 @@ export default class INID_OrderLine extends LightningElement {
                     orderFocId: this.orderFocId,
                     orderItemList: focRecordsToInsert
                 });
-                console.log('insert order item foc success');
+                // console.log('insert order item foc success');
             }
 
             // Insert รายการ Main + Add-on
@@ -987,7 +1190,7 @@ export default class INID_OrderLine extends LightningElement {
             if (selectedBenefitItems.length > 0) {
                 try {
                     await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
-                    console.log('✔️ Insert Promotion สำเร็จ');
+                    // console.log('✔️ Insert Promotion สำเร็จ');
                 } catch (error) {
                     console.error('❌ Insert Promotion Error:', error);
                     this.showToast('ผิดพลาด', 'ไม่สามารถบันทึก Promotion ได้', 'error');
@@ -998,9 +1201,9 @@ export default class INID_OrderLine extends LightningElement {
             this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
             
-            // setTimeout(() => {
-            //     window.location.reload();
-            // }, 200);
+            setTimeout(() => {
+                window.location.reload();
+            }, 200);
 
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error.message));
@@ -1013,7 +1216,7 @@ export default class INID_OrderLine extends LightningElement {
     async deleteFocItemsOnly(orderFocId) {
         try {
             await deleteFocFromOrder({ orderFocId });
-            console.log('FOC items deleted successfully');
+            // console.log('FOC items deleted successfully');
         } catch (error) {
             console.error('Error deleting FOC items:', error);
         }
@@ -1037,10 +1240,10 @@ export default class INID_OrderLine extends LightningElement {
                 };
             });
 
-        console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
+        // console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
         try {
             const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
-            console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
+            // console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
     
             this.comboGroups = getPromotions.promotions.map(promo => {
                 // แยก benefits ตาม conditionType
@@ -1115,7 +1318,7 @@ export default class INID_OrderLine extends LightningElement {
                 };
             });
    
-            console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
+            // console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
 
         } catch(error) {
             console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
@@ -1144,7 +1347,7 @@ export default class INID_OrderLine extends LightningElement {
     }
 
     handleToggleBenefit(event) {
-        console.log('handle toggle Benefit');
+        // console.log('handle toggle Benefit');
         const promoId = event.currentTarget.dataset.promoid;
         const benefitId = event.currentTarget.dataset.benefitid;
 
@@ -1152,9 +1355,9 @@ export default class INID_OrderLine extends LightningElement {
             if (group.promotionId !== promoId) return group;
 
             const updatedGrouped = group.groupedBenefits.map(bg => {
-                console.log('bg.benefits is : ' + JSON.stringify(group.groupedBenefits , null ,2));
+                // console.log('bg.benefits is : ' + JSON.stringify(group.groupedBenefits , null ,2));
                 const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
-                console.log('benefit in group  ' + JSON.stringify(isBenefitInGroup , null ,2));
+                // console.log('benefit in group  ' + JSON.stringify(isBenefitInGroup , null ,2));
 
                 if (!isBenefitInGroup) {
                     const isConflict =
@@ -1176,7 +1379,7 @@ export default class INID_OrderLine extends LightningElement {
                     const isAllSelected = bg.benefits.every(b => b.selected);
                     const newSelected = !isAllSelected;
 
-                    console.log('is all selected : ' + JSON.stringify(isAllSelected, null ,2)) ;
+                    // console.log('is all selected : ' + JSON.stringify(isAllSelected, null ,2)) ;
 
                     const updatedBenefits = bg.benefits.map(b => ({
                         ...b,
@@ -1243,7 +1446,7 @@ export default class INID_OrderLine extends LightningElement {
                 });
             });
         });
-        console.log('selectedBenefits: ' + JSON.stringify(this.selectedBenefits , null ,2)) ;
+        // console.log('selectedBenefits: ' + JSON.stringify(this.selectedBenefits , null ,2)) ;
 
         this.comboGroups = this.comboGroups.map(group => {
             const hasSelectedBenefit = group.groupedBenefits.some(bg =>
@@ -1343,7 +1546,7 @@ export default class INID_OrderLine extends LightningElement {
 
         // 1) สรุปรายการสินค้า + Add-on
         const mainProducts = this.selectedProducts.filter(p => p.nameBtn === '+');
-        console.log('selectedProduct', JSON.stringify(this.selectedProducts, null, 2));
+        // console.log('selectedProduct', JSON.stringify(this.selectedProducts, null, 2));
 
         mainProducts.forEach(main => {
             const relatedAddons = this.selectedProducts.filter(
@@ -1383,15 +1586,15 @@ export default class INID_OrderLine extends LightningElement {
             return { focProduct: foc };
         });
         this.focProducts = focList;
-        console.log('FOC Mapping:', JSON.stringify(this.focProducts, null, 2));
+        // console.log('FOC Mapping:', JSON.stringify(this.focProducts, null, 2));
 
         // 3) รวมโปรโมชันแบบไม่ซ้ำ (แม้ไม่มี benefit ที่เลือกก็ใส่ได้)
         // console.log('selectedPromotions:', JSON.stringify(selectedPromotions, null, 2));
         // const selectedPromotions = this.comboGroups.filter(group => !group.isSelected);
         const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
 
-        console.log('comboGroups summary:', JSON.stringify(this.comboGroups, null, 2));
-        console.log('selectedPromotions summary:', JSON.stringify(selectedPromotions, null, 2));
+        // console.log('comboGroups summary:', JSON.stringify(this.comboGroups, null, 2));
+        // console.log('selectedPromotions summary:', JSON.stringify(selectedPromotions, null, 2));
         
 
         selectedPromotions.forEach(group => {
@@ -1442,13 +1645,13 @@ export default class INID_OrderLine extends LightningElement {
             });
         });
 
-        console.log("✅ promotionData สรุป:", JSON.stringify(this.promotionData, null, 2));
+        // console.log("✅ promotionData สรุป:", JSON.stringify(this.promotionData, null, 2));
 
         const totalNetPrice = this.summaryProducts
             .filter(p => !p.addOnText)
             .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
 
-        console.log(`💰 Net Price รวมทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
+        // console.log(`💰 Net Price รวมทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
     }
 
 
@@ -1461,7 +1664,7 @@ export default class INID_OrderLine extends LightningElement {
                 promotionDescription: p.promotionDescription
             }]
         }));
-        console.log('📦 promoList full:', JSON.stringify(result, null, 2));
+        // console.log('📦 promoList full:', JSON.stringify(result, null, 2));
         return result;
     }
 
