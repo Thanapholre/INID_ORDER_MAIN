@@ -363,8 +363,17 @@ export default class INID_OrderLine extends LightningElement {
                         };
 
                         if (hlItemNumber) {
-                            addonProducts.push(addonObj);
-                            // console.log(`ผูก FOC Add-on กับ Main Product (${hlItemNumber}) แล้ว`);
+                            const isDuplicate = addonProducts.some(existing =>
+                                existing.code === addonObj.code &&
+                                existing.hlItemNumber === addonObj.hlItemNumber &&
+                                existing.nameBtn === addonObj.nameBtn
+                            );
+
+                            if (!isDuplicate) {
+                                addonProducts.push(addonObj);
+                            } else {
+                                console.warn(`Add-on ซ้ำ: ${addonObj.code} (${addonObj.nameBtn})`);
+                            }
                         } else {
                             console.warn(`ไม่พบ Main Product ที่ตรงกับ Material Code: ${materialCode}`);
                         }
@@ -376,6 +385,7 @@ export default class INID_OrderLine extends LightningElement {
                         const hasAddon = addonProducts.some(addon => addon.hlItemNumber === main.hlItemNumber);
                         main.addonDisabled = hasAddon;
                     });
+                    
 
                     const combined = [];
                     mainProducts.forEach(main => {
@@ -480,7 +490,8 @@ export default class INID_OrderLine extends LightningElement {
                     addOnText: matchedAddon.INID_Remark__c || 'ของแถม',
                     hlItemNumber: product.hlItemNumber,
                     isAddOn: true,
-                    productCode: product.code
+                    productCode: product.code,
+                    parentRowKey: matchedMain.rowKey, 
                 };
 
                 const isAddonExists = this.selectedProducts.some(p =>
@@ -665,7 +676,8 @@ export default class INID_OrderLine extends LightningElement {
         const newSelectedProducts = [...this.selectedProducts]; // clone list
         const matchedAddons = [];
 
-        console.log('เริ่มอัปเดต Products...');
+        // console.log('เริ่มอัปเดต Products...');
+        console.log('update value : ' + JSON.stringify(updatedValues , null ,2));
 
         updatedValues.forEach(updated => {
             const index = newSelectedProducts.findIndex(p => p.rowKey === updated.rowKey);
@@ -699,9 +711,12 @@ export default class INID_OrderLine extends LightningElement {
                 console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
 
                 // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง
+                console.log('new Select product edit row : ' + JSON.stringify(newSelectedProducts , null , 2));
                 const hasAddon = newSelectedProducts.some(p =>
                     p.isAddOn === true && p.parentRowKey === updatedProduct.rowKey
                 );
+
+                console.log('hasAddon variable : ' + JSON.stringify(hasAddon));
 
                 if (hasAddon) {
                     console.log(`❗️ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
@@ -965,7 +980,11 @@ export default class INID_OrderLine extends LightningElement {
 
         const matchedMain = this.selectedProducts[matchedMainIndex];
         const addonId = matchedMain.id + '_addon_' + this.selectedValue;
-        const alreadyExists = this.selectedProducts.some(p => p.id === addonId);
+        const alreadyExists = this.selectedProducts.some(p =>
+            p.isAddOn === true &&
+            p.parentRowKey === matchedMain.rowKey &&
+            p.nameBtn === this.getAddonLabel(this.selectedValue)
+            );
 
         if (alreadyExists) {
             this.showToast('Warning', 'Add-on นี้ถูกเพิ่มไปแล้ว', 'warning');
@@ -974,6 +993,7 @@ export default class INID_OrderLine extends LightningElement {
 
         const addonProduct = {
             rowKey: addonId,
+            parentRowKey: matchedMain.rowKey,
             id: addonId,
             code: matchedMain.code,
             description: matchedMain.description,
@@ -1162,8 +1182,12 @@ export default class INID_OrderLine extends LightningElement {
 
             // Insert รายการ Main + Add-on
             // กรองเอาเฉพาะรายการที่ไม่ใช่ของแถมนอกบิล (FOC)
+            // const recordsToInsertFiltered = recordsToInsert.filter(
+            //     item => item.INID_Type__c !== 'Foc'
+            // );
+
             const recordsToInsertFiltered = recordsToInsert.filter(
-                item => item.INID_Type__c !== 'Foc'
+                item => !(item.INID_Type__c === 'FREE' && item.INID_Remark__c === 'ของแถมนอกบิล (FOC)')
             );
 
             await replaceProductItems({
@@ -1468,6 +1492,7 @@ export default class INID_OrderLine extends LightningElement {
     backtoProduct() {
         this.isShowApplyPromotion = false;
         this.isShowOrderLineItem = true;
+        this.isLoaded = false ;
     }
 
 
@@ -1543,6 +1568,7 @@ export default class INID_OrderLine extends LightningElement {
         this.summaryProducts = [];
         this.promotionData = []; 
         this.selectedPromotion = []; 
+        this.isLoaded = false;
 
         // 1) สรุปรายการสินค้า + Add-on
         const mainProducts = this.selectedProducts.filter(p => p.nameBtn === '+');

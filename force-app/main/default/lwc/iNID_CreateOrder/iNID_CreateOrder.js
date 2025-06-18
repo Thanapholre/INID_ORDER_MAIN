@@ -133,8 +133,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.accountLicenseData = data ;
             this.accountLicenseId = this.accountLicenseData.map(accLicenseId => accLicenseId.Id) ;
             this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
-            // console.log('Account License Id : ' + JSON.stringify(this.accountLicenseId , null , 2) );
-            // console.log('License:' + JSON.stringify(this.accountLicense, null, 2));
         } else {
             console.log(error) ;
         }
@@ -143,12 +141,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @wire(fetchProductLicenseExclude , {accountLicenseId: '$accountLicenseId'})
     wirefetchProductLicenseExclude({error , data}) {
         if(data) {
-
             this.licenseExcludeData = data ;
             this.productLicenseExclude = this.licenseExcludeData.map(prodId => prodId.INID_Product_Price_Book__c);
-            // console.log('product license exclude มี ' + JSON.stringify(this.licenseExcludeData , null , 2));
-            // console.log('product price book ที่มี license exclude คือ product : ' + JSON.stringify(this.productLicenseExclude , null ,))
-
         } else if(error) {
             console.log('message error from fetch product license exclude is : ' + JSON.stringify(error , null ,2)) ;
         }
@@ -158,8 +152,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     wiredProductLicense({ error, data }) {
         if (data) {
             this.productPriceBook = data;
-            // this.productPriceBook = this.productLicenseData.map(productLicense => productLicense.INID_Product_Price_Book__c );
-            // console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -643,9 +635,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.showProductDropdown = false;
 
         } catch (error) {
-            console.error('❌ error from handleSelectProduct:', error);
-            console.error('❌ error.message:', error.message);
-            console.error('❌ error.stack:', error.stack);
+            console.error(' error from handleSelectProduct:', error);
+            console.error('error.message:', error.message);
+            console.error(' error.stack:', error.stack);
         }
     }
 
@@ -833,7 +825,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 );
 
                 if (hasAddon) {
-                    console.log(`❗️ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
+                    console.log(`ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
                     return; 
                 }
 
@@ -871,9 +863,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         this.selectedProducts = newSelectedProducts;
         this.draftValues = [];
-        console.log(`✅ สรุป: พบ Add-ons ทั้งหมด ${matchedAddons.length} รายการ`);
+        console.log(`สรุป: พบ Add-ons ทั้งหมด ${matchedAddons.length} รายการ`);
         matchedAddons.forEach((item, i) => {
-            console.log(`🧩 [${i + 1}] ${item.addon.code} for ${item.product.code}`);
+            console.log(`[${i + 1}] ${item.addon.code} for ${item.product.code}`);
         });
 
         this.dispatchEvent(
@@ -1687,15 +1679,72 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             })
         );
 
-        this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: {
-                recordId: this.orderId,
-                objectApiName: 'Order',
-                actionName: 'view'
-            }
-        });
+        try {
+        // Get current tabId
+            const { tabId } = await getFocusedTabInfo();
+
+            //  Navigate to Order record in new tab
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: this.orderId,
+                    objectApiName: 'Order',
+                    actionName: 'view'
+                }
+            }, true); // true = open in new tab
+
+            // Wait a moment then close current tab
+            setTimeout(async () => {
+                if (this.isConsoleNavigation?.data === true) {
+                    await closeTab(tabId);
+                }
+            }, 1000); // 0.5-1s is usually enough
+        } catch (err) {
+            console.error('handleSaveSuccess error:', err);
+        }
     }
+
+    // async handleSaveSuccess() {
+    //     // 1️⃣ แสดง Toast
+    //     this.dispatchEvent(
+    //         new ShowToastEvent({
+    //             title: 'รายการแจ้งเตือน',
+    //             message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+    //             variant: 'success',
+    //         })
+    //     );
+
+    //     try {
+    //         // 2️⃣ ปิด tab ปัจจุบัน (ถ้าอยู่ Console App)
+    //         const workspaceApi = getWorkspaceApi();
+    //         const tabInfo = await workspaceApi.getFocusedTabInfo();
+    //         await workspaceApi.closeTab({ tabId: tabInfo.tabId });
+
+    //         // 3️⃣ Navigate ไป view ของ Order
+    //         this[NavigationMixin.Navigate]({
+    //             type: 'standard__recordPage',
+    //             attributes: {
+    //                 recordId: this.orderId,
+    //                 objectApiName: 'Order',
+    //                 actionName: 'view'
+    //             }
+    //         });
+    //     } catch (error) {
+    //         console.error('ไม่สามารถปิด tab หรือ navigate ได้', error);
+
+    //         // fallback: แค่ navigate ไป view
+    //         this[NavigationMixin.Navigate]({
+    //             type: 'standard__recordPage',
+    //             attributes: {
+    //                 recordId: this.orderId,
+    //                 objectApiName: 'Order',
+    //                 actionName: 'view'
+    //             }
+    //         });
+    //     }
+    // }
+
+
 
 
     async insertOrderFoc(orderId) {
