@@ -1844,7 +1844,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 INID_Quantity__c: foc.focProduct.quantity ,
                 INID_Sale_Price__c: foc.focProduct.salePrice ,
                 INID_Product_Price_Book__c: foc.focProduct.productPriceBookId ,
-                INID_Type__c: 'Add-on',
+                INID_Type__c: 'FREE',
                 INID_Remark__c: foc.focProduct.addOnText || '',
                 INID_Order_Foc__c: orderFocId ,
                 INID_HL_Number__c: currentHLNumber,

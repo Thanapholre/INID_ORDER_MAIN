@@ -1066,7 +1066,7 @@ export default class INID_OrderLine extends LightningElement {
                     INID_Quote__c: this.recordId,
                     INID_Order_Foc__c: this.orderFocId, // จะอัพเดตใหม่ถ้าสร้าง Order FOC
                     INID_Product_Price_Book__c: prod.productPriceBookId,
-                    INID_Type__c: 'Foc',
+                    INID_Type__c: 'FREE',
                     INID_Remark__c: prod.nameBtn,
                     INID_HL_Number__c: index + 1,
                     INID_Item_Number__c: formattedNumber,
@@ -1092,7 +1092,7 @@ export default class INID_OrderLine extends LightningElement {
                     INID_Quote__c: this.recordId,
                     INID_Order__c: this.orderId,
                     INID_Product_Price_Book__c: (isFoc || isAddon) ? prod.productPriceBookId : prod.id,
-                    INID_Type__c: isFoc ? 'Foc' : isAddon ? 'Add On' : 'Main',
+                    INID_Type__c: isFoc ? 'FREE' : isAddon ? 'FREE' : 'SALE',
                     INID_Remark__c: (isFoc || isAddon) ? prod.nameBtn : null,
                     INID_HL_Number__c: hlNumber,
                     INID_Item_Number__c: formattedNumber,
