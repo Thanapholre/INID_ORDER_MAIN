@@ -704,16 +704,17 @@ export default class INID_OrderLine extends LightningElement {
 
             const matchedRule = this.addonProductPriceBook.find(rule =>
                 rule.INID_Product_Price_Book__c === updatedProduct.productPriceBookId &&
-                rule.INID_Main_Quantity__c === qty
+                rule.INID_Main_Quantity__c === qty && updatedProduct.nameBtn === '+'
             );
 
             if (matchedRule) {
                 console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
 
-                // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง
-                console.log('new Select product edit row : ' + JSON.stringify(newSelectedProducts , null , 2));
+                // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง (ระบุ parentRowKey ให้ชัด)
                 const hasAddon = newSelectedProducts.some(p =>
-                    p.isAddOn === true && p.parentRowKey === updatedProduct.rowKey
+                    p.isAddOn === true &&
+                    p.parentRowKey === updatedProduct.rowKey &&
+                    p.productPriceBookId === matchedRule.INID_Product_Price_Book__c
                 );
 
                 console.log('hasAddon variable : ' + JSON.stringify(hasAddon));
@@ -742,8 +743,7 @@ export default class INID_OrderLine extends LightningElement {
                     nameBtn: matchedRule.INID_Remark__c,
                     variant: 'base',
                     editableSalePrice: false,
-                    productCode: updatedProduct.code,
-                    // addonDisabled: true
+                    productCode: updatedProduct.code
                 };
 
                 console.log('➕ Add-on ที่แทรก:', JSON.stringify(addonProduct, null, 2));

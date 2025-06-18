@@ -809,11 +809,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             newSelectedProducts[index] = updatedProduct;
 
-            console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
+            // console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
+            console.log('this addon product : ' + JSON.stringify(this.addonProductPriceBook , null , 2));
+            console.log('update product : ' + JSON.stringify(updatedProduct , null ,2));
 
             const matchedRule = this.addonProductPriceBook.find(rule =>
                 rule.INID_Product_Price_Book__c === updatedProduct.productPriceBookId &&
-                rule.INID_Main_Quantity__c === qty
+                rule.INID_Main_Quantity__c === qty && updatedProduct.nameBtn === '+'
             );
 
             if (matchedRule) {
@@ -841,6 +843,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     description: matchedRule.INID_Product_Price_Book__r.INID_SKU_Description__c,
                     unitPrice: matchedRule.INID_Product_Price_Book__r.INID_Unit_Price__c,
                     quantity: matchedRule.INID_Add_on_Quantity__c,
+                    unit: matchedRule.INID_Product_Price_Book__r.INID_Unit__c ,
                     salePrice: 0,
                     total: 0,
                     isAddOn: true,
