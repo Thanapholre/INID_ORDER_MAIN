@@ -349,4 +349,51 @@ public with sharing class INID_OrderController {
         ];
     }
 
+    
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Order_Sale_Promotion__c>  fetchOrderSalePromotion(Id orderId){
+        return[
+            SELECT INID_Sale_Promotion_Benefit_Product__c FROM INID_Order_Sale_Promotion__c WHERE INID_Order__C = :orderId
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Sale_Promotion_Benefit_Product__c> fetchSalePromotionBenefitProduct(List<Id> salePromotionBenefitProduct) {
+        return [
+            SELECT Id , INID_Sale_Promotion_Benefit__c	
+            FROM INID_Sale_Promotion_Benefit_Product__c
+            WHERE Id IN :salePromotionBenefitProduct
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Sale_Promotion_Benefit__c  > fetchSalePromotionTier(List<Id> salePromotionBenefitId) {
+        return [
+            SELECT Id , INID_Sale_Promotion_Tier__c	
+            FROM INID_Sale_Promotion_Benefit__c
+            WHERE Id IN :salePromotionBenefitId
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Sale_Promotion_Tier__c> fetchSalePromotionId(List<Id> salePromotionTierId) {
+        return [
+            SELECT Id , INID_Sale_Promotion__c	
+            FROM INID_Sale_Promotion_Tier__c
+            WHERE Id IN :salePromotionTierId
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Sale_Promotion__c > fetchSalePromotionData(List<Id> salePromotionId) {
+        return [
+            SELECT Id , Name , INID_Total_Promotion_Quota__c , INID_Quota_Per_Customer__c , INID_Description__c 
+            FROM INID_Sale_Promotion__c
+            WHERE Id IN :salePromotionId
+        ];
+    }
+
+
+
+
 }

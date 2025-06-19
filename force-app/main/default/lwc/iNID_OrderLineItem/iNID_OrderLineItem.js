@@ -23,6 +23,11 @@ import getAccountId from '@salesforce/apex/INID_OrderController.getAccountId' ;
 import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetchProductsByBuGroups'
 import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
+import fetchOrderSalePromotion from '@salesforce/apex/INID_OrderController.fetchOrderSalePromotion';
+import fetchSalePromotionTier from '@salesforce/apex/INID_OrderController.fetchSalePromotionTier'
+import fetchSalePromotionBenefitProduct from '@salesforce/apex/INID_OrderController.fetchSalePromotionBenefitProduct';
+import fetchSalePromotionId from '@salesforce/apex/INID_OrderController.fetchSalePromotionId' ;
+import fetchSalePromotionData from '@salesforce/apex/INID_OrderController.fetchSalePromotionData';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 
@@ -72,6 +77,16 @@ export default class INID_OrderLine extends LightningElement {
     @track accountLicenseData = [] ;
     @track accountLicense = [] ;
     @track productLicenseExclude = [] ;
+    @track orderSalePromotionData = [] ;
+    @track orderSalePromotionId ;
+    @track salePromotionBenefitProduct = [] ;
+    @track salePromotionBenefitProductId ;
+    @track salePromotionTier = [];
+    @track salePromotionData = [] ;
+    @track salePromotionId ;
+    @track fetchAllSalePromotionData = [] ;
+    
+     
 
     columns = [
         { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
@@ -140,7 +155,7 @@ export default class INID_OrderLine extends LightningElement {
     wireaddonProductPriceBook({error, data}) {
         if(data){
             this.addonProductPriceBook = data;
-            console.log('this Addon Product Price Books '+ JSON.stringify(this.addonProductPriceBook , null ,2));
+            // console.log('this Addon Product Price Books '+ JSON.stringify(this.addonProductPriceBook , null ,2));
         }else if(error){
             console.log(' error fetch addonProductPriceBook : ', error)
         }
@@ -151,7 +166,7 @@ export default class INID_OrderLine extends LightningElement {
     wireUserGroup({ error, data }) {
         if (data) {
             this.userGroup = data
-            console.log('userGroup' + JSON.stringify(this.userGroup, null, 2))
+            // console.log('userGroup' + JSON.stringify(this.userGroup, null, 2))
         } else {
             console.log(error);
         }
@@ -163,7 +178,7 @@ export default class INID_OrderLine extends LightningElement {
         if (data) {
             this.buGroupData = data;
             this.buGroupId = this.buGroupData.map(r => r.INID_BU_Group__c);
-            console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
+            // console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -175,7 +190,7 @@ export default class INID_OrderLine extends LightningElement {
             this.productsByBuGroups = data;
             this.productBuGroupId = this.productsByBuGroups.map(r => r.INID_Product_Price_Book__c);
             this.productBuIds = new Set(this.productBuGroupId); 
-            console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
+            // console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -188,8 +203,8 @@ export default class INID_OrderLine extends LightningElement {
             this.accountLicenseData = data ;
             this.accountLicenseId = this.accountLicenseData.map(accLicenseId => accLicenseId.Id) ;
             this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
-            console.log('Account License Id : ' + JSON.stringify(this.accountLicenseId , null , 2) );
-            console.log('License:' + JSON.stringify(this.accountLicense, null, 2));
+            // console.log('Account License Id : ' + JSON.stringify(this.accountLicenseId , null , 2) );
+            // console.log('License:' + JSON.stringify(this.accountLicense, null, 2));
         } else {
             console.log(error) ;
         }
@@ -201,8 +216,8 @@ export default class INID_OrderLine extends LightningElement {
 
             this.licenseExcludeData = data ;
             this.productLicenseExclude = this.licenseExcludeData.map(prodId => prodId.INID_Product_Price_Book__c);
-            console.log('product license exclude มี ' + JSON.stringify(this.licenseExcludeData , null , 2));
-            console.log('product price book ที่มี license exclude คือ product : ' + JSON.stringify(this.productLicenseExclude , null ,))
+            // console.log('product license exclude มี ' + JSON.stringify(this.licenseExcludeData , null , 2));
+            // console.log('product price book ที่มี license exclude คือ product : ' + JSON.stringify(this.productLicenseExclude , null ,))
 
         } else if(error) {
             console.log('message error from fetch product license exclude is : ' + JSON.stringify(error , null ,2)) ;
@@ -213,7 +228,7 @@ export default class INID_OrderLine extends LightningElement {
     wiredProductLicense({ error, data }) {
         if (data) {
             this.productPriceBook = data;
-            console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
+            // console.log('Product License' + JSON.stringify(this.productPriceBook, null, 2))
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -248,6 +263,68 @@ export default class INID_OrderLine extends LightningElement {
             console.error(' เกิดข้อผิดพลาดในการดึง FOC ID:', error);
         }
     }
+
+    @wire(fetchOrderSalePromotion , {orderId: '$orderId'})
+    wiredfetchOrderSalePromotion({error , data}) {
+        if(data) {
+            this.orderSalePromotionData = data ;
+            this.orderSalePromotionId = this.orderSalePromotionData.map(promo => promo.INID_Sale_Promotion_Benefit_Product__c)
+
+            console.log('order sale promotion data from fetch order sale promotion Id : ' + JSON.stringify(this.orderSalePromotionId , null , 2));
+        } else if(error) {
+            console.log('error from fetchOrderSalePromotion function ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+    @wire(fetchSalePromotionBenefitProduct , {salePromotionBenefitProduct: '$orderSalePromotionId'})
+    wiredfetchSalePromotionBenefitProduct({error , data}) {
+        if(data) {
+            this.salePromotionBenefitProduct = data ;
+            this.salePromotionBenefitProductId = this.salePromotionBenefitProduct.map(saleBenefitProd => saleBenefitProd.INID_Sale_Promotion_Benefit__c);
+            console.log('order sale promotion benefit product Id : ' + JSON.stringify(this.salePromotionBenefitProductId , null , 2));
+            
+        } else if(error) {
+            console.log('error from fetchOrderSalePromotion function ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+    @wire(fetchSalePromotionTier , {salePromotionBenefitId: '$salePromotionBenefitProductId'})
+    wiredfetchSalePromotionTier({error , data}) {
+        if(data) {
+            this.salePromotionTier = data ;
+             this.salePromotionTierId = this.salePromotionTier.map(tier => tier.INID_Sale_Promotion_Tier__c);
+            console.log('order sale promotion Tier Id : ' + JSON.stringify(this.salePromotionTierId , null , 2));
+            
+        } else if(error) {
+            console.log('error from fetchOrderSalePromotion function ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+    @wire(fetchSalePromotionId , {salePromotionTierId: '$salePromotionTierId'})
+    wiredfetchSalePromotion({error , data}) {
+        if(data) {
+            this.salePromotionData = data ;
+             this.salePromotionId = this.salePromotionData.map(tier => tier.INID_Sale_Promotion__c);
+            console.log('order sale promotion Id : ' + JSON.stringify(this.salePromotionId , null , 2));
+            
+        } else if(error) {
+            console.log('error from fetchOrderSalePromotion function ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+    @wire(fetchSalePromotionData , {salePromotionId: '$salePromotionId'})
+    wiredfetchSalePromotionData({error , data}) {
+        if(data) {
+            this.fetchAllSalePromotionData = data ;
+            console.log('order All sale promotion Data : ' + JSON.stringify(this.fetchAllSalePromotionData , null , 2));
+            
+        } else if(error) {
+            console.log('error from fetchOrderSalePromotion function ' + JSON.stringify(error , null ,2)) ;
+        }
+    }
+
+
+
 
     @wire(fetchProductOrderItem, { orderId: '$recordId' })
     getDataProductOrderItem({ error, data }) {
@@ -500,7 +577,7 @@ export default class INID_OrderLine extends LightningElement {
                     p.hlItemNumber === product.hlItemNumber
                 );
 
-                console.log('is add on exist : ' + JSON.stringify(isAddonExists , null ,) )
+                // console.log('is add on exist : ' + JSON.stringify(isAddonExists , null ,) )
 
                 if (!isAddonExists) {
                     this.selectedProducts = [...this.selectedProducts, addonProduct];
@@ -514,7 +591,7 @@ export default class INID_OrderLine extends LightningElement {
                
             }
 
-        console.log('this select product ใน function select product คือ : ' + JSON.stringify(this.selectedProducts , null ,2 ));
+        // console.log('this select product ใน function select product คือ : ' + JSON.stringify(this.selectedProducts , null ,2 ));
         
         // Reset search state
         this.searchProductTerm = '';
@@ -677,7 +754,7 @@ export default class INID_OrderLine extends LightningElement {
         const matchedAddons = [];
 
         // console.log('เริ่มอัปเดต Products...');
-        console.log('update value : ' + JSON.stringify(updatedValues , null ,2));
+        // console.log('update value : ' + JSON.stringify(updatedValues , null ,2));
 
         updatedValues.forEach(updated => {
             const index = newSelectedProducts.findIndex(p => p.rowKey === updated.rowKey);
@@ -700,7 +777,7 @@ export default class INID_OrderLine extends LightningElement {
 
             newSelectedProducts[index] = updatedProduct;
 
-            console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
+            // console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
 
             const matchedRule = this.addonProductPriceBook.find(rule =>
                 rule.INID_Product_Price_Book__c === updatedProduct.productPriceBookId &&
@@ -708,7 +785,7 @@ export default class INID_OrderLine extends LightningElement {
             );
 
             if (matchedRule) {
-                console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
+                // console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
 
                 // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง (ระบุ parentRowKey ให้ชัด)
                 const hasAddon = newSelectedProducts.some(p =>
@@ -717,14 +794,14 @@ export default class INID_OrderLine extends LightningElement {
                     p.productPriceBookId === matchedRule.INID_Product_Price_Book__c
                 );
 
-                console.log('hasAddon variable : ' + JSON.stringify(hasAddon));
+                // console.log('hasAddon variable : ' + JSON.stringify(hasAddon));
 
                 if (hasAddon) {
-                    console.log(`❗️ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
+                    // console.log(`❗️ข้ามการเพิ่ม Add-on เพราะมีอยู่แล้วสำหรับ ${updatedProduct.code}`);
                     return; 
                 }
 
-                console.log(`✅ แทรก Add-on ถัดจากแถว ${updatedProduct.code}`);
+                // console.log(`✅ แทรก Add-on ถัดจากแถว ${updatedProduct.code}`);
 
                 // mark main product ว่า addonDisabled = true
                 updatedProduct.addonDisabled = true;
@@ -746,7 +823,7 @@ export default class INID_OrderLine extends LightningElement {
                     productCode: updatedProduct.code
                 };
 
-                console.log('➕ Add-on ที่แทรก:', JSON.stringify(addonProduct, null, 2));
+                // console.log('➕ Add-on ที่แทรก:', JSON.stringify(addonProduct, null, 2));
 
                 newSelectedProducts[index] = updatedProduct;
                 newSelectedProducts.splice(index + 1, 0, addonProduct);
@@ -757,9 +834,9 @@ export default class INID_OrderLine extends LightningElement {
 
         this.selectedProducts = newSelectedProducts;
         this.draftValues = [];
-        console.log(`✅ สรุป: พบ Add-ons ทั้งหมด ${matchedAddons.length} รายการ`);
+        // console.log(`✅ สรุป: พบ Add-ons ทั้งหมด ${matchedAddons.length} รายการ`);
         matchedAddons.forEach((item, i) => {
-            console.log(`🧩 [${i + 1}] ${item.addon.code} for ${item.product.code}`);
+            // console.log(`🧩 [${i + 1}] ${item.addon.code} for ${item.product.code}`);
         });
 
         this.dispatchEvent(
@@ -1267,7 +1344,7 @@ export default class INID_OrderLine extends LightningElement {
         // console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
         try {
             const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
-            // console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
+            console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
     
             this.comboGroups = getPromotions.promotions.map(promo => {
                 // แยก benefits ตาม conditionType
