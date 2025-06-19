@@ -374,303 +374,314 @@
         <lightning-quick-action-panel header="Apply Promotions" class="title_product">
             <div style="width: 90vw; height: auto" class="main_order" >
                 <!--Table Apply Promotion -->
-                <lightning-card>
-                    <div class="slds-p-around_medium">
-                        <template for:each={comboGroups} for:item="group">
-                            <div key={group.promotionId} class="slds-m-bottom_medium"
-                                style="background-color: #fff; border: 1px solid rgb(118, 118, 118); margin-bottom: 20px; border-radius: 12px;">
+                <template if:true={isShowApplyPromotionData} >
+                    <lightning-card>
+                        <div class="slds-p-around_medium">
+                            <template for:each={comboGroups} for:item="group">
+                                <div key={group.promotionId} class="slds-m-bottom_medium"
+                                    style="background-color: #fff; border: 1px solid rgb(118, 118, 118); margin-bottom: 20px; border-radius: 12px;">
 
-                                <!-- Promotion Header -->
-                                <div class={group.className} onclick={handleTogglePromotion} data-promoid={group.promotionId}>
-                                    <span>{group.promotionName}</span>
-                                    <i class={group.arrowIconClass} style="margin-left: 10px; color: #933B06"></i>
-                                </div>
+                                    <!-- Promotion Header -->
+                                    <div class={group.className} onclick={handleTogglePromotion} data-promoid={group.promotionId}>
+                                        <span>{group.promotionName}</span>
+                                        <i class={group.arrowIconClass} style="margin-left: 10px; color: #933B06"></i>
+                                    </div>
 
-                                <!-- Benefits Grouped -->
-                                <template if:true={group.isExpanded}>
-                                    <template for:each={group.groupedBenefits} for:item="gBenefit">
-                                        <div key={gBenefit.conditionType} class="slds-m-bottom_large" style="margin: 20px 20px 20px 20px;">
-                                            <template for:each={gBenefit.benefits} for:item="item">
-                                                <div key={item.id} class={item.className} data-promoid={group.promotionId} data-benefitid={item.Id} onclick={handleToggleBenefit} style="position: relative; margin: 20px 20px 20px 20px; display: flex; flex-direction: row;">
-                                                
-                                                    <!-- Benefit Fields -->
-                                                    <div class="slds-grid slds-wrap" style="margin: 20px 10px 20px 10px">
-                                                        <!-- Benefit Type -->
-                                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_medium">
-                                                            <lightning-input
-                                                                style="width: 30vw;"
-                                                                type="text"
-                                                                label="Benefit Type"
-                                                                value={item.benefitType}
-                                                                options={benefitTypeOptions}
-                                                                data-id={item.id}
-                                                                name="benefitType"
-                                                                onchange={handleBenefitTypeChange}
-                                                                disabled>
-                                                            </lightning-input>
-                                                        </div>
-
-                                                        <!-- item.isFreeProductFix} -->
-                                                        <template if:true={item.isFreeProductFix}>
-                                                            <!-- ซ้าย: Free Product (Fix) -->
-                                                            <div class="slds-col slds-size_1-of-2"  style="margin-right: 15px; display: flex; ">
+                                    <!-- Benefits Grouped -->
+                                    <template if:true={group.isExpanded}>
+                                        <template for:each={group.groupedBenefits} for:item="gBenefit">
+                                            <div key={gBenefit.conditionType} class="slds-m-bottom_large" style="margin: 20px 20px 20px 20px;">
+                                                <template for:each={gBenefit.benefits} for:item="item">
+                                                    <div key={item.id} class={item.className} data-promoid={group.promotionId} data-benefitid={item.Id} onclick={handleToggleBenefit} style="position: relative; margin: 20px 20px 20px 20px; display: flex; flex-direction: row;">
+                                                    
+                                                        <!-- Benefit Fields -->
+                                                        <div class="slds-grid slds-wrap" style="margin: 20px 10px 20px 10px">
+                                                            <!-- Benefit Type -->
+                                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_medium">
                                                                 <lightning-input
-                                                                    style="width: 58.9580vw; margin-right: 20px  ;"
+                                                                    style="width: 30vw;"
                                                                     type="text"
-                                                                    label="Free Product (Fix)"
-                                                                    value={item.freeProductLabelFix}
+                                                                    label="Benefit Type"
+                                                                    value={item.benefitType}
+                                                                    options={benefitTypeOptions}
                                                                     data-id={item.id}
-                                                                    data-type="fix"
-                                                                    disabled>
-                                                                </lightning-input>
-
-                                                                <lightning-input
-                                                                    style="width: 58.9580vw;"
-                                                                    type="number"
-                                                                    label="Free Product Quantity (Fix)"
-                                                                    value={item.freeProductQuantityFix}
-                                                                    data-id={item.id}
-                                                                    name="freeProductQuantityFix"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    placeholder="Enter Quantity"
+                                                                    name="benefitType"
+                                                                    onchange={handleBenefitTypeChange}
                                                                     disabled>
                                                                 </lightning-input>
                                                             </div>
 
-                                                            <!-- Row 2: Batch -->
-                                                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Batch"
-                                                                    value={item.batch}
-                                                                    data-id={item.id}
-                                                                    name="batch"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    placeholder="Enter Batch"
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-
-                                                            <!-- Row 3: Remark -->
-                                                            <div class="slds-col slds-size_1-of-1">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Remark"
-                                                                    value={item.remark}
-                                                                    data-id={item.id}
-                                                                    name="remark"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-                                                        </template>
-
-                                                        <!-- item.isFreeProductRatio} -->
-                                                        <template if:true={item.isFreeProductRatio}>
-                                                            <!-- ซ้าย: Free Product (Ratio) -->
-                                                            <div class="slds-col slds-size_1-of-2"  style="margin-right: 15px; ">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Free Product (Ratio)"
-                                                                    value={item.freeProductLabelFix}
-                                                                    data-id={item.id}
-                                                                    data-type="fix"
-                                                                    disabled>
-                                                                </lightning-input>
-
-                                                                <div style="display: flex;" >
+                                                            <!-- item.isFreeProductFix} -->
+                                                            <template if:true={item.isFreeProductFix}>
+                                                                <!-- ซ้าย: Free Product (Fix) -->
+                                                                <div class="slds-col slds-size_1-of-2"  style="margin-right: 15px; display: flex; ">
                                                                     <lightning-input
-                                                                        style="width: 58.9580vw; margin-right: 20px;"
-                                                                        type="number"
-                                                                        label="Free Product Quantity Denominator"
-                                                                        value={item.freeProductQuantityRatioDenominator}
+                                                                        style="width: 58.9580vw; margin-right: 20px  ;"
+                                                                        type="text"
+                                                                        label="Free Product (Fix)"
+                                                                        value={item.freeProductLabelFix}
                                                                         data-id={item.id}
-                                                                        name="Free Product Quantity Denominator"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        placeholder="Enter Quantity"
+                                                                        data-type="fix"
                                                                         disabled>
                                                                     </lightning-input>
-                                                                    
+
                                                                     <lightning-input
                                                                         style="width: 58.9580vw;"
                                                                         type="number"
-                                                                        label="Free Product Quantity Numerator"
-                                                                        value={item.freeProductQuantityRatioNumerator}
+                                                                        label="Free Product Quantity (Fix)"
+                                                                        value={item.freeProductQuantityFix}
                                                                         data-id={item.id}
-                                                                        name="Free Product Quantity Numerator"
+                                                                        name="freeProductQuantityFix"
                                                                         onchange={handleBenefitFieldChange}
                                                                         placeholder="Enter Quantity"
                                                                         disabled>
                                                                     </lightning-input>
                                                                 </div>
-                                                               
-                                                            </div>
 
-                                                            <!-- Row 2: Batch -->
-                                                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Batch"
-                                                                    value={item.batch}
-                                                                    data-id={item.id}
-                                                                    name="batch"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    placeholder="Enter Batch"
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-
-                                                            <!-- Row 3: Remark -->
-                                                            <div class="slds-col slds-size_1-of-1">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Remark"
-                                                                    value={item.remark}
-                                                                    data-id={item.id}
-                                                                    name="remark"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-                                                        </template>
-
-                                                        <!-- Discount (Amount) -->
-                                                        <template if:true={item.isDiscountAmount}>
-                                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_medium" style="margin: auto;">
-                                                                <lightning-input
-                                                                    type="number"
-                                                                    label="Discount (Amount)"
-                                                                    value={item.discountAmount}
-                                                                    data-id={item.id}
-                                                                    name="discountAmount"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-
-                                                            <div class="slds-col slds-size_1-of-1">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Remark"
-                                                                    value={item.remark}
-                                                                    data-id={item.id}
-                                                                    name="remark"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-                                                        </template>
-
-                                                        <!-- Discount (%) -->
-                                                        <template if:true={item.isDiscountPercent}>
-                                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_medium" style="margin: auto;">
-                                                                <lightning-input
-                                                                    type="number"
-                                                                    label="Discount (%)"
-                                                                    value={item.discountPercent}
-                                                                    data-id={item.id}
-                                                                    name="discountPercent"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-
-                                                             <div class="slds-col slds-size_1-of-1">
-                                                                <lightning-input
-                                                                    style="width: 60vw;"
-                                                                    type="text"
-                                                                    label="Remark"
-                                                                    value={item.remark}
-                                                                    data-id={item.id}
-                                                                    name="remark"
-                                                                    onchange={handleBenefitFieldChange}
-                                                                    disabled>
-                                                                </lightning-input>
-                                                            </div>
-                                                        </template>
-
-                                                          <!-- Set Price -->
-                                                        <template if:true={item.isSetPrice}>
-                                                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
-                                                                <lightning-input
-                                                                    type="search"
-                                                                    label="Search Product Code"
-                                                                    value={item.setPriceQuery}
-                                                                    data-id={item.id}
-                                                                    onchange={handleSetPriceSearchChange}>
-                                                                </lightning-input>
-
-                                                                <!-- Table -->
-                                                                <template if:true={item.setPriceSelections.length}>
-                                                                    <lightning-datatable
-                                                                        key-field="id"
-                                                                        data={item.paginatedSetPriceProducts}
-                                                                        columns={columnsSetPriceNew}
+                                                                <!-- Row 2: Batch -->
+                                                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Batch"
+                                                                        value={item.batch}
                                                                         data-id={item.id}
-                                                                        onrowaction={handleRemoveSetPriceRow}
-                                                                        onsave={handleSetPriceSave}
-                                                                        onrowselection={handleSetPriceRowSelection}
-                                                                        hide-checkbox-column
-                                                                        show-row-number-column>
-                                                                    </lightning-datatable>
+                                                                        name="batch"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        placeholder="Enter Batch"
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
 
-                                                                    <!-- ✅ Pagination -->
-                                                                    <div class="slds-grid slds-grid_align-spread slds-m-top_small">
-                                                                        <div class="slds-col">
-                                                                            <p>Total: {item.setPriceSelections.length} records</p>
-                                                                        </div>
-                                                                        <div class="slds-col slds-text-align_right">
-                                                                            <lightning-button-group>
-                                                                                <lightning-button
-                                                                                    label="Prev"
-                                                                                    onclick={handlePrevSetPrice}
-                                                                                    data-id={item.id}
-                                                                                    disabled={item.isFirstPage}>
-                                                                                </lightning-button>
-                                                                                <lightning-button
-                                                                                    label="Next"
-                                                                                    onclick={handleNextSetPrice}
-                                                                                    data-id={item.id}
-                                                                                    disabled={item.isLastPage}>
-                                                                                </lightning-button>
-                                                                            </lightning-button-group>
-                                                                            <span class="slds-m-left_small">
-                                                                                Page {item.currentPage} of {item.totalPages}
-                                                                            </span>
-                                                                        </div>
+                                                                <!-- Row 3: Remark -->
+                                                                <div class="slds-col slds-size_1-of-1">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Remark"
+                                                                        value={item.remark}
+                                                                        data-id={item.id}
+                                                                        name="remark"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+                                                            </template>
+
+                                                            <!-- item.isFreeProductRatio} -->
+                                                            <template if:true={item.isFreeProductRatio}>
+                                                                <!-- ซ้าย: Free Product (Ratio) -->
+                                                                <div class="slds-col slds-size_1-of-2"  style="margin-right: 15px; ">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Free Product (Ratio)"
+                                                                        value={item.freeProductLabelFix}
+                                                                        data-id={item.id}
+                                                                        data-type="fix"
+                                                                        disabled>
+                                                                    </lightning-input>
+
+                                                                    <div style="display: flex;" >
+                                                                        <lightning-input
+                                                                            style="width: 58.9580vw; margin-right: 20px;"
+                                                                            type="number"
+                                                                            label="Free Product Quantity Denominator"
+                                                                            value={item.freeProductQuantityRatioDenominator}
+                                                                            data-id={item.id}
+                                                                            name="Free Product Quantity Denominator"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            placeholder="Enter Quantity"
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                        
+                                                                        <lightning-input
+                                                                            style="width: 58.9580vw;"
+                                                                            type="number"
+                                                                            label="Free Product Quantity Numerator"
+                                                                            value={item.freeProductQuantityRatioNumerator}
+                                                                            data-id={item.id}
+                                                                            name="Free Product Quantity Numerator"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            placeholder="Enter Quantity"
+                                                                            disabled>
+                                                                        </lightning-input>
                                                                     </div>
-                                                                </template>
-                                                            </div>
-                                                        </template>
+                                                                
+                                                                </div>
 
-                                                        <!-- Remark -->
-                                                        <template if:true={item.showRemark}>
-                                                            <div class="slds-col slds-size_1-of-1">
-                                                                <lightning-textarea
-                                                                    label="Remark"
-                                                                    value={item.remark}
-                                                                    data-id={item.id}
-                                                                    name="remark"
-                                                                    onchange={handleBenefitFieldChange}>
-                                                                </lightning-textarea>
-                                                            </div>
-                                                        </template>
+                                                                <!-- Row 2: Batch -->
+                                                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Batch"
+                                                                        value={item.batch}
+                                                                        data-id={item.id}
+                                                                        name="batch"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        placeholder="Enter Batch"
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+
+                                                                <!-- Row 3: Remark -->
+                                                                <div class="slds-col slds-size_1-of-1">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Remark"
+                                                                        value={item.remark}
+                                                                        data-id={item.id}
+                                                                        name="remark"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+                                                            </template>
+
+                                                            <!-- Discount (Amount) -->
+                                                            <template if:true={item.isDiscountAmount}>
+                                                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_medium" style="margin: auto;">
+                                                                    <lightning-input
+                                                                        type="number"
+                                                                        label="Discount (Amount)"
+                                                                        value={item.discountAmount}
+                                                                        data-id={item.id}
+                                                                        name="discountAmount"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+
+                                                                <div class="slds-col slds-size_1-of-1">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Remark"
+                                                                        value={item.remark}
+                                                                        data-id={item.id}
+                                                                        name="remark"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+                                                            </template>
+
+                                                            <!-- Discount (%) -->
+                                                            <template if:true={item.isDiscountPercent}>
+                                                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_medium" style="margin: auto;">
+                                                                    <lightning-input
+                                                                        type="number"
+                                                                        label="Discount (%)"
+                                                                        value={item.discountPercent}
+                                                                        data-id={item.id}
+                                                                        name="discountPercent"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+
+                                                                <div class="slds-col slds-size_1-of-1">
+                                                                    <lightning-input
+                                                                        style="width: 60vw;"
+                                                                        type="text"
+                                                                        label="Remark"
+                                                                        value={item.remark}
+                                                                        data-id={item.id}
+                                                                        name="remark"
+                                                                        onchange={handleBenefitFieldChange}
+                                                                        disabled>
+                                                                    </lightning-input>
+                                                                </div>
+                                                            </template>
+
+                                                            <!-- Set Price -->
+                                                            <template if:true={item.isSetPrice}>
+                                                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                                                    <lightning-input
+                                                                        type="search"
+                                                                        label="Search Product Code"
+                                                                        value={item.setPriceQuery}
+                                                                        data-id={item.id}
+                                                                        onchange={handleSetPriceSearchChange}>
+                                                                    </lightning-input>
+
+                                                                    <!-- Table -->
+                                                                    <template if:true={item.setPriceSelections.length}>
+                                                                        <lightning-datatable
+                                                                            key-field="id"
+                                                                            data={item.paginatedSetPriceProducts}
+                                                                            columns={columnsSetPriceNew}
+                                                                            data-id={item.id}
+                                                                            onrowaction={handleRemoveSetPriceRow}
+                                                                            onsave={handleSetPriceSave}
+                                                                            onrowselection={handleSetPriceRowSelection}
+                                                                            hide-checkbox-column
+                                                                            show-row-number-column>
+                                                                        </lightning-datatable>
+
+                                                                        <!-- ✅ Pagination -->
+                                                                        <div class="slds-grid slds-grid_align-spread slds-m-top_small">
+                                                                            <div class="slds-col">
+                                                                                <p>Total: {item.setPriceSelections.length} records</p>
+                                                                            </div>
+                                                                            <div class="slds-col slds-text-align_right">
+                                                                                <lightning-button-group>
+                                                                                    <lightning-button
+                                                                                        label="Prev"
+                                                                                        onclick={handlePrevSetPrice}
+                                                                                        data-id={item.id}
+                                                                                        disabled={item.isFirstPage}>
+                                                                                    </lightning-button>
+                                                                                    <lightning-button
+                                                                                        label="Next"
+                                                                                        onclick={handleNextSetPrice}
+                                                                                        data-id={item.id}
+                                                                                        disabled={item.isLastPage}>
+                                                                                    </lightning-button>
+                                                                                </lightning-button-group>
+                                                                                <span class="slds-m-left_small">
+                                                                                    Page {item.currentPage} of {item.totalPages}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+
+                                                            <!-- Remark -->
+                                                            <template if:true={item.showRemark}>
+                                                                <div class="slds-col slds-size_1-of-1">
+                                                                    <lightning-textarea
+                                                                        label="Remark"
+                                                                        value={item.remark}
+                                                                        data-id={item.id}
+                                                                        name="remark"
+                                                                        onchange={handleBenefitFieldChange}>
+                                                                    </lightning-textarea>
+                                                                </div>
+                                                            </template>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </template>
-                                        </div>
+                                                </template>
+                                            </div>
+                                        </template>
                                     </template>
-                                </template>
-                            </div>
-                        </template>
-                    </div>
-                </lightning-card>
+                                </div>
+                            </template>
+                        </div>
+                    </lightning-card>
+                </template>
+
+                <template if:false={isShowApplyPromotionData} >
+                    <lightning-card>
+                        <div style="height: 150px; display: flex; justify-content: center; align-items: center; "  >
+                            <p style="text-align: center; font-size: 14px; " >ไม่มี Promotion ให้เลือก</p>
+                        </div>  
+                    </lightning-card>
+                </template>
+                
             </div>
 
             <!-- Footer -->
@@ -714,7 +725,7 @@
 
                 <div style="margin-top: 50px;" >
                     <lightning-card class="slds-m-top_medium">
-                        <h1 style="text-align: center; margin-bottom: 10px; color: #00101e; " >Summary Apply Promotion</h1>
+                        <h1 style="text-align: center; margin-bottom: 10px; color: #00101e; " >{titleSummary}</h1>
                         <div>
                             <div class="datatable-container slds-m-top_medium main_product">
                             <template for:each={promoList} for:item="promo">

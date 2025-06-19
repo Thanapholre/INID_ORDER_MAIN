@@ -100,6 +100,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track accountLicenseId = [] ;
     @track licenseExcludeData = [] ;
     @track productLicenseExclude = [] ;
+    @track titleSummary = 'Select Type Create Order test' ;
 
   
     columns = [
@@ -485,6 +486,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     billtoHandleChange(event) {
         this.billto = event.detail.value ;
+    }
+
+    handleShiptoChange(event) {
+        this.shipto = event.detail.value ;
     }
 
     purchaseOrderNumberHandleChange(event) {
@@ -1183,27 +1188,36 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
 
     @track comboGroups = [];
+    @track isShowApplyPromotionData = true
 
     async showApplyPromotion() {
-        this.isShowApplyPromotion = true ;
-        this.isShowAddProduct = false ;
-        this.isShowOrder = false ;
+        this.isShowApplyPromotion = true;
+        this.isShowAddProduct = false;
+        this.isShowOrder = false;
 
-        const orderItemList = this.selectedProducts.map((item) => {
-
-            return {
+        try {
+            const orderItemList = this.selectedProducts.map((item) => ({
                 INID_Quantity__c: item.quantity,
                 INID_Sale_Price__c: item.salePrice,
-                INID_Product_Price_Book__c: item.productPriceBookId, 
+                INID_Product_Price_Book__c: item.productPriceBookId,
                 INID_Total__c: item.total,
-                };
-            });
+            }));
 
-        console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
-        try {
-            const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId })
-            console.log('getPromotion'+ JSON.stringify(getPromotions,null,2));
-    
+            console.log('ส่ง orderItemList เข้า getPromotion:', JSON.stringify(orderItemList, null, 2));
+
+            const getPromotions = await getPromotion({ orderList: orderItemList, accountId: this.accountId });
+            console.log('getPromotion', JSON.stringify(getPromotions, null, 2));
+
+            // ตรวจสอบว่ามี promotions หรือไม่
+            if (!getPromotions || !Array.isArray(getPromotions.promotions) || getPromotions.promotions.length === 0) {
+                this.isShowApplyPromotionData = false;
+                console.log('ไม่มี promotions ที่ได้จาก API');
+                this.comboGroups = [];
+                return;
+            } else {
+                this.isShowApplyPromotionData = true;
+            }
+
             this.comboGroups = getPromotions.promotions.map(promo => {
                 // แยก benefits ตาม conditionType
                 const benefitGroups = {};
@@ -1223,9 +1237,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         selected: false,
                         className: 'benefit-box',
                         benefitType: b.INID_Benefit_Type__c,
-                        isExpanded: false  ,
+                        isExpanded: false,
 
-                        //Show Input
                         discountAmount: b.INID_Discount_Amount__c || null,
                         discountPercent: b.INID_Discount__c || null,
                         freeProductQuantityFix: b.INID_Free_Product_Quantity_Fix__c || null,
@@ -1234,11 +1247,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         batch: b.INID_Batch_Lot_No__c || null,
                         setPrice: b.INID_SetPrice__c || null,
                         remark: b.INID_Remark__c || '',
+
                         freeProductLabelFix: b.INID_Product_Price_Book__r
                             ? `${b.INID_Product_Price_Book__r.INID_Material_Code__c || ''} - ${b.INID_Product_Price_Book__r.INID_SKU_Description__c || ''}`.trim()
                             : '',
 
-                        // Add these flags for conditional rendering
                         isDiscountAmount: b.INID_Benefit_Type__c === 'Discount Amount',
                         isDiscountPercent: b.INID_Benefit_Type__c === 'Discount(%)',
                         isFreeProductFix: b.INID_Benefit_Type__c === 'Free Product (Fix Quantity)',
@@ -1273,45 +1286,59 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     isSelected: false,
                     arrowSymbol: 'fa-solid fa-circle-chevron-down',
                     className: 'promotion-box',
-                    groupedBenefits: groupedBenefits // แทนที่ benefits เดิม
+                    groupedBenefits: groupedBenefits
                 };
             });
-   
-            console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
 
-        } catch(error) {
+            console.log('combo group : ', JSON.stringify(this.comboGroups, null, 2));
+        } catch (error) {
             console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
-            alert('error\n'+ (error.body?.message || error.message || JSON.stringify(error)));
-        }   
+            alert('error\n' + (error.body?.message || error.message || JSON.stringify(error)));
+        }
     }
+
 
     handleTogglePromotion(event) {
         console.log('--------------------------------------------------------------------------------');
         console.log('handle toggle promotion');
         console.log('selected combogroup before : ' + JSON.stringify(this.comboGroups , null ,2));
 
-
         const promoId = event.currentTarget.dataset.promoid;
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId === promoId) {
+                // เช็คว่ามี benefit ที่เลือกอยู่มั้ย
+                const hasSelectedBenefit = group.groupedBenefits.some(bg =>
+                    bg.benefits.some(b => b.selected)
+                );
+
+                const newExpanded = !group.isExpanded;
+
                 const updated = {
                     ...group,
-                    isSelected: !group.isSelected,
-                    isExpanded: !group.isExpanded
+                    isExpanded: newExpanded,
+                    isSelected: hasSelectedBenefit, // ✅ sync isSelected กับ benefit จริง
+                    className: hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box',
+                    arrowIconClass: newExpanded
+                        ? 'fa-solid fa-circle-chevron-up'
+                        : 'fa-solid fa-circle-chevron-down'
                 };
-                console.log('selected combogroup after : ' + JSON.stringify(this.comboGroups , null ,2));
-                updated.className = updated.isSelected ? 'promotion-box selected' : 'promotion-box';
-                updated.arrowIconClass = updated.isSelected
-                    ? 'fa-solid fa-circle-chevron-up'
-                    : 'fa-solid fa-circle-chevron-down';
 
+                console.log('selected combogroup after : ' + JSON.stringify(updated , null ,2));
                 return updated;
             }
             return group;
         });
-        console.log('--------------------------------------------------------------------------------');
 
+        // ✅ เช็คจำนวน promotion ที่เลือก
+        const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
+        if (selectedPromotionsCount < 1) {
+            this.titleSummary = 'ไม่มีการเลือก promotion';
+        }
+
+        console.log('--------------------------------------------------------------------------------');
     }
+
+
 
     handleToggleBenefit(event) {
         console.log('handle toggle Benefit');
@@ -1322,42 +1349,23 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             if (group.promotionId !== promoId) return group;
 
             const updatedGrouped = group.groupedBenefits.map(bg => {
-                console.log('bg.benefits is : ' + JSON.stringify(group.groupedBenefits , null ,2));
                 const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
-                console.log('benefit in group  ' + JSON.stringify(isBenefitInGroup , null ,2));
 
                 if (!isBenefitInGroup) {
-                    const isConflict =
-                        (bg.conditionType === 'AND') ||
-                        (bg.conditionType === 'OR');
-
-                    if (isConflict) {
-                        const clearedBenefits = bg.benefits.map(b => ({
-                            ...b,
-                            selected: false,
-                            className: 'benefit-box'
-                        }));
-                        return { ...bg, benefits: clearedBenefits };
-                    }
-
-                    return bg; 
+                    return bg;
                 }
+
                 if (bg.conditionType === 'AND') {
                     const isAllSelected = bg.benefits.every(b => b.selected);
                     const newSelected = !isAllSelected;
-
-                    console.log('is all selected : ' + JSON.stringify(isAllSelected, null ,2)) ;
-
                     const updatedBenefits = bg.benefits.map(b => ({
                         ...b,
                         selected: newSelected,
                         className: newSelected ? 'benefit-box selected' : 'benefit-box'
                     }));
-
                     return { ...bg, benefits: updatedBenefits };
                 } else {
                     const isAlreadySelected = bg.benefits.find(b => b.Id === benefitId)?.selected;
-
                     const updatedBenefits = bg.benefits.map(b => {
                         if (b.Id === benefitId) {
                             const newSelected = !isAlreadySelected;
@@ -1373,18 +1381,29 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                             className: 'benefit-box'
                         };
                     });
-
                     return { ...bg, benefits: updatedBenefits };
                 }
             });
+
+            // ✅ ตรวจสอบผลการเลือก benefit แล้วปรับ promotion
+            const hasSelectedBenefit = updatedGrouped.some(bg =>
+                bg.benefits.some(b => b.selected)
+            );
+
             return {
                 ...group,
-                groupedBenefits: updatedGrouped
+                groupedBenefits: updatedGrouped,
+                isSelected: hasSelectedBenefit,
+                className: hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box',
+                arrowIconClass: group.isExpanded
+                    ? 'fa-solid fa-circle-chevron-up'
+                    : 'fa-solid fa-circle-chevron-down'
             };
         });
 
         this.updateSelectedBenefits();
     }
+
 
     //select Benefit
     updateSelectedBenefits() {
@@ -2154,6 +2173,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
 
         console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
+
+        const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
+        if (selectedPromotionsCount < 1) {
+            this.titleSummary = '';
+        } else {
+            this.titleSummary = 'สรุปโปรโมชั่นที่เลือก';
+        }
     }
 
             
