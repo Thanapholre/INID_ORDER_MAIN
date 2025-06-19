@@ -270,7 +270,7 @@ export default class INID_OrderLine extends LightningElement {
             this.orderSalePromotionData = data ;
             this.orderSalePromotionId = this.orderSalePromotionData.map(promo => promo.INID_Sale_Promotion_Benefit_Product__c)
 
-            console.log('order sale promotion data from fetch order sale promotion Id : ' + JSON.stringify(this.orderSalePromotionId , null , 2));
+            console.log('fetchOrderSalePromotion function ' + JSON.stringify(this.orderSalePromotionId , null ,2))
         } else if(error) {
             console.log('error from fetchOrderSalePromotion function ' + JSON.stringify(error , null ,2)) ;
         }
@@ -1352,6 +1352,7 @@ export default class INID_OrderLine extends LightningElement {
 
                 promo.benefits.forEach(b => {
                     const condType = b.INID_Sale_Promotion_Benefit__r?.INID_Condition_Type__c || 'OR';
+                    const isSelectPromotionBenefit = this.orderSalePromotionId?.includes(b.Id);
 
                     if (!benefitGroups[condType]) {
                         benefitGroups[condType] = [];
@@ -1362,10 +1363,13 @@ export default class INID_OrderLine extends LightningElement {
                         id: b.Id,
                         Name: b.Name,
                         BenefitProduct: b.INID_Product_Price_Book__c,
-                        selected: false,
-                        className: 'benefit-box',
                         benefitType: b.INID_Benefit_Type__c,
                         isExpanded: false  ,
+
+
+                        //set select Promotion Benefit
+                        selected: isSelectPromotionBenefit,
+                        className: isSelectPromotionBenefit ? 'benefit-box selected' : 'benefit-box',
 
                         //Show Input
                         discountAmount: b.INID_Discount_Amount__c || null,
@@ -1549,13 +1553,23 @@ export default class INID_OrderLine extends LightningElement {
         });
         // console.log('selectedBenefits: ' + JSON.stringify(this.selectedBenefits , null ,2)) ;
 
+        //เช็คจาก is select
         this.comboGroups = this.comboGroups.map(group => {
-            const hasSelectedBenefit = group.groupedBenefits.some(bg =>
-                bg.benefits.some(b => b.selected)
+            const isSelected = group.groupedBenefits?.some(bg =>
+                bg.benefits?.some(b => b.selected)
             );
+
             return {
                 ...group,
-                hasSelectedBenefit
+                isSelected,
+                isExpanded: isSelected,
+                arrowSymbol: isSelected
+                    ? 'fa-solid fa-circle-chevron-up'
+                    : 'fa-solid fa-circle-chevron-down',
+                arrowIconClass: isSelected
+                    ? 'fa-solid fa-circle-chevron-up'
+                    : 'fa-solid fa-circle-chevron-down',
+                className: isSelected ? 'promotion-box selected' : 'promotion-box'
             };
         });
     }
