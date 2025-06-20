@@ -133,11 +133,79 @@ public with sharing class INID_OrderController {
         }
     }
 
+    // @AuraEnabled
+    // public static void insertOrderSalePromotion(List<INID_Order_Sale_Promotion__c> orderSalePromotionList ) {
+    //     upsert orderSalePromotionList ;
+    //     System.debug('orderSalePromotionList : ' + orderSalePromotionList) ;
+    // }
+
+    // @AuraEnabled
+    // public static void insertOrderSalePromotion(List<INID_Order_Sale_Promotion__c> orderSalePromotionList) {
+    //     // if (orderSalePromotionList == null || orderSalePromotionList.isEmpty()) return;
+
+    //     // ดึง OrderId จากรายการแรก (ทุก record ใน list นี้มี Order เดียวกัน)
+    //     Id orderId = orderSalePromotionList[0].INID_Order__c;
+
+    //     // 1. ลบของเดิมทั้งหมดใน order นี้
+    //     List<INID_Order_Sale_Promotion__c> existingRecords = [
+    //         SELECT Id 
+    //         FROM INID_Order_Sale_Promotion__c 
+    //         WHERE INID_Order__c = :orderId
+    //     ];
+        
+    //     if (!existingRecords.isEmpty()) {
+    //         delete existingRecords;
+    //     }
+
+    //     // 2. Insert ใหม่เข้าไป
+    //     insert orderSalePromotionList;
+
+    //     System.debug('✅ Inserted new promotions: ' + orderSalePromotionList.size());
+    // }
+
     @AuraEnabled
-    public static void insertOrderSalePromotion(List<INID_Order_Sale_Promotion__c> orderSalePromotionList ) {
-        insert orderSalePromotionList ;
-        System.debug('orderSalePromotionList : ' + orderSalePromotionList) ;
+    public static void insertOrderSalePromotion(List<INID_Order_Sale_Promotion__c> orderSalePromotionList) {
+        if (orderSalePromotionList == null || orderSalePromotionList.isEmpty()) {
+            System.debug('⚠️ ไม่มี Promotion ใหม่ที่เลือกมา จะทำแค่ลบของเก่า');
+
+            // ต้องการลบ Promotion เดิมที่มีอยู่
+            // สมมุติว่า front-end ส่ง orderId มาแยกในกรณีนี้ หรือมี logic ตรวจสอบไว้
+            return;
+        }
+
+        // ✅ ดึง OrderId จากรายการแรก (ทุก record มี order เดียวกัน)
+        Id orderId = orderSalePromotionList[0].INID_Order__c;
+
+        // 🔁 ลบ Promotion เดิมทั้งหมด
+        List<INID_Order_Sale_Promotion__c> existingRecords = [
+            SELECT Id 
+            FROM INID_Order_Sale_Promotion__c 
+            WHERE INID_Order__c = :orderId
+        ];
+
+        if (!existingRecords.isEmpty()) {
+            delete existingRecords;
+        }
+
+        // ➕ Insert Promotion ใหม่ (ถ้ามี)
+        if (!orderSalePromotionList.isEmpty()) {
+            insert orderSalePromotionList;
+        }
+
+        System.debug('🟢 Promotion ใหม่ถูกบันทึกเรียบร้อย');
     }
+
+     @AuraEnabled
+    public static void deletePromotionById(Id orderId ) {
+         List<INID_Order_Sale_Promotion__c> deletePromotion = [
+            SELECT Id 
+            FROM INID_Order_Sale_Promotion__c 
+            WHERE INID_Order__c = :orderId
+        ];
+         delete deletePromotion;
+    }
+
+
 
     @AuraEnabled(cacheable=true)
     public static Id getAccountId(Id orderId) {
@@ -393,7 +461,19 @@ public with sharing class INID_OrderController {
         ];
     }
 
+    
+    @AuraEnabled
+    public static void updateTotalNetPrice(Id orderId , Decimal totalNetPrice){
+        // Order order = new Order(
+        //     Id = orderId,
+        //     INID_NetAmount__c = totalNetPrice
+        // );
 
+        Order order = new Order(Id = orderId);
+        order.INID_NetAmount__c = totalNetPrice;
+        update order ;
+        // return order.INID_NetAmount__c ;
+    }
 
 
 }

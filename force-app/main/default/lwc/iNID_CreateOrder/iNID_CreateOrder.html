@@ -596,70 +596,38 @@
                                                                 </div>
                                                             </template>
 
-                                                            <!-- Set Price -->
+                                                            
                                                             <template if:true={item.isSetPrice}>
                                                                 <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
-                                                                    <lightning-input
-                                                                        type="search"
-                                                                        label="Search Product Code"
-                                                                        value={item.setPriceQuery}
-                                                                        data-id={item.id}
-                                                                        onchange={handleSetPriceSearchChange}>
-                                                                    </lightning-input>
-
-                                                                    <!-- Table -->
-                                                                    <template if:true={item.setPriceSelections.length}>
-                                                                        <lightning-datatable
-                                                                            key-field="id"
-                                                                            data={item.paginatedSetPriceProducts}
-                                                                            columns={columnsSetPriceNew}
+                                                                    <div style="display: flex;">   
+                                                                        <lightning-input
+                                                                            type="text"
+                                                                            style="width: 29vw; margin-right: 20px;"
+                                                                            label="Search Product Code"
+                                                                            value={item.freeProductLabelFix}
                                                                             data-id={item.id}
-                                                                            onrowaction={handleRemoveSetPriceRow}
-                                                                            onsave={handleSetPriceSave}
-                                                                            onrowselection={handleSetPriceRowSelection}
-                                                                            hide-checkbox-column
-                                                                            show-row-number-column>
-                                                                        </lightning-datatable>
+                                                                            disabled>
+                                                                        </lightning-input>
 
-                                                                        <!-- ✅ Pagination -->
-                                                                        <div class="slds-grid slds-grid_align-spread slds-m-top_small">
-                                                                            <div class="slds-col">
-                                                                                <p>Total: {item.setPriceSelections.length} records</p>
-                                                                            </div>
-                                                                            <div class="slds-col slds-text-align_right">
-                                                                                <lightning-button-group>
-                                                                                    <lightning-button
-                                                                                        label="Prev"
-                                                                                        onclick={handlePrevSetPrice}
-                                                                                        data-id={item.id}
-                                                                                        disabled={item.isFirstPage}>
-                                                                                    </lightning-button>
-                                                                                    <lightning-button
-                                                                                        label="Next"
-                                                                                        onclick={handleNextSetPrice}
-                                                                                        data-id={item.id}
-                                                                                        disabled={item.isLastPage}>
-                                                                                    </lightning-button>
-                                                                                </lightning-button-group>
-                                                                                <span class="slds-m-left_small">
-                                                                                    Page {item.currentPage} of {item.totalPages}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </template>
-                                                                </div>
-                                                            </template>
+                                                                        <lightning-input
+                                                                            type="text"
+                                                                            style="width: 29vw"
+                                                                            label="set Price"
+                                                                            value={item.setPrice}
+                                                                            data-id={item.id}
+                                                                            name="setPrice"
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                    
 
-                                                            <!-- Remark -->
-                                                            <template if:true={item.showRemark}>
-                                                                <div class="slds-col slds-size_1-of-1">
-                                                                    <lightning-textarea
+                                                                    <lightning-input
                                                                         label="Remark"
                                                                         value={item.remark}
                                                                         data-id={item.id}
                                                                         name="remark"
-                                                                        onchange={handleBenefitFieldChange}>
-                                                                    </lightning-textarea>
+                                                                        disabled>
+                                                                    </lightning-input>
                                                                 </div>
                                                             </template>
                                                         </div>

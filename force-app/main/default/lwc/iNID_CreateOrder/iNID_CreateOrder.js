@@ -101,6 +101,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track licenseExcludeData = [] ;
     @track productLicenseExclude = [] ;
     @track titleSummary = 'Select Type Create Order test' ;
+    @track totalNetPrice ;
 
   
     columns = [
@@ -1301,91 +1302,194 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     handleTogglePromotion(event) {
         console.log('--------------------------------------------------------------------------------');
         console.log('handle toggle promotion');
-        console.log('selected combogroup before : ' + JSON.stringify(this.comboGroups , null ,2));
 
-        const promoId = event.currentTarget.dataset.promoid;
-        this.comboGroups = this.comboGroups.map(group => {
-            if (group.promotionId === promoId) {
-                // เช็คว่ามี benefit ที่เลือกอยู่มั้ย
-                const hasSelectedBenefit = group.groupedBenefits.some(bg =>
-                    bg.benefits.some(b => b.selected)
-                );
+        try {
+            console.log('selected combogroup before : ' + JSON.stringify(this.comboGroups, null, 2));
 
-                const newExpanded = !group.isExpanded;
+            const promoId = event.currentTarget.dataset.promoid;
 
-                const updated = {
-                    ...group,
-                    isExpanded: newExpanded,
-                    isSelected: hasSelectedBenefit, // ✅ sync isSelected กับ benefit จริง
-                    className: hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box',
-                    arrowIconClass: newExpanded
-                        ? 'fa-solid fa-circle-chevron-up'
-                        : 'fa-solid fa-circle-chevron-down'
-                };
-
-                console.log('selected combogroup after : ' + JSON.stringify(updated , null ,2));
-                return updated;
+            if (!Array.isArray(this.comboGroups)) {
+                console.warn('comboGroups ยังไม่ถูกกำหนด');
+                return;
             }
-            return group;
-        });
 
-        // ✅ เช็คจำนวน promotion ที่เลือก
-        const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
-        if (selectedPromotionsCount < 1) {
-            this.titleSummary = 'ไม่มีการเลือก promotion';
+            this.comboGroups = this.comboGroups.map(group => {
+                if (group.promotionId === promoId) {
+                    // เช็คว่ามี benefit ที่เลือกอยู่มั้ย
+                    const hasSelectedBenefit = group.groupedBenefits.some(bg =>
+                        bg.benefits.some(b => b.selected)
+                    );
+
+                    const newExpanded = !group.isExpanded;
+
+                    const updated = {
+                        ...group,
+                        isExpanded: newExpanded,
+                        isSelected: hasSelectedBenefit, // ✅ sync isSelected กับ benefit จริง
+                        className: hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box',
+                        arrowIconClass: newExpanded
+                            ? 'fa-solid fa-circle-chevron-up'
+                            : 'fa-solid fa-circle-chevron-down'
+                    };
+
+                    console.log('selected combogroup after : ' + JSON.stringify(updated, null, 2));
+                    return updated;
+                }
+                return group;
+            });
+
+            // ✅ เช็คจำนวน promotion ที่เลือก
+            console.log('combo group from toggle benefit ' + JSON.stringify(this.comboGroups , null ,2));
+            const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
+
+            console.log('select promotion count ' + selectedPromotionsCount) ;
+            if (selectedPromotionsCount < 1) {
+                this.titleSummary = 'ไม่มีการเลือก promotion';
+            }
+
+
+        } catch (error) {
+            console.error('❌ handleTogglePromotion เกิด error:', error);
+            console.error('❌ handleTogglePromotion เกิด error message:', error.message);
+            // this.showToast?.('Error', error.message || 'เกิดข้อผิดพลาดขณะ toggle promotion', 'error');
         }
 
         console.log('--------------------------------------------------------------------------------');
     }
 
+    // handleTogglePromotion(event) {
+    //     console.log('--------------------------------------------------------------------------------');
+    //     console.log('handle toggle promotion');
+
+    //     try {
+    //         console.log('selected combogroup before :', JSON.stringify(this.comboGroups, null, 2));
+
+    //         const promoId = event?.currentTarget?.dataset?.promoid;
+    //         if (!promoId) {
+    //             console.warn('❗ ไม่พบ promoId จาก dataset');
+    //             return;
+    //         }
+
+    //         if (!Array.isArray(this.comboGroups)) {
+    //             console.warn('⚠ comboGroups ยังไม่ถูกกำหนด หรือไม่ใช่ array');
+    //             return;
+    //         }
+
+    //         this.comboGroups = this.comboGroups.map(group => {
+    //             if (!group || !group.promotionId) {
+    //                 console.warn('⚠ เจอ group ที่ format ผิด:', group);
+    //                 return {
+    //                     ...group,
+    //                     isExpanded: false,
+    //                     isSelected: false,
+    //                     className: 'promotion-box',
+    //                     arrowIconClass: 'fa-solid fa-circle-chevron-down'
+    //                 };
+    //             }
+
+    //             const isTarget = group.promotionId === promoId;
+
+    //             // ✅ ตรวจสอบว่ามี benefit ที่ selected อยู่หรือไม่
+    //             const hasSelectedBenefit = Array.isArray(group.groupedBenefits) &&
+    //                 group.groupedBenefits.some(bg =>
+    //                     Array.isArray(bg.benefits) &&
+    //                     bg.benefits.some(b => b.selected)
+    //                 );
+
+    //             const newExpanded = isTarget ? !group.isExpanded : false;
+
+    //             const updatedGroup = {
+    //                 ...group,
+    //                 isExpanded: newExpanded,
+    //                 isSelected: isTarget && hasSelectedBenefit,
+    //                 className: isTarget && hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box',
+    //                 arrowIconClass: newExpanded
+    //                     ? 'fa-solid fa-circle-chevron-up'
+    //                     : 'fa-solid fa-circle-chevron-down'
+    //             };
+
+    //             if (isTarget) {
+    //                 console.log('✅ updated group:', JSON.stringify(updatedGroup, null, 2));
+    //             }
+
+    //             return updatedGroup;
+    //         });
+
+    //     } catch (error) {
+    //         console.error('❌ handleTogglePromotion เกิด error:', error);
+    //         console.error('❌ error message:', error.message);
+    //         this.showToast?.('Error', error.message || 'เกิดข้อผิดพลาดขณะ toggle promotion', 'error');
+    //     }
+
+    //     console.log('--------------------------------------------------------------------------------');
+    // }
+
+
 
 
     handleToggleBenefit(event) {
         console.log('handle toggle Benefit');
+
         const promoId = event.currentTarget.dataset.promoid;
         const benefitId = event.currentTarget.dataset.benefitid;
 
         this.comboGroups = this.comboGroups.map(group => {
             if (group.promotionId !== promoId) return group;
 
+            // ค้นหา conditionType ของ benefit ที่ถูกคลิก
+            const currentGroupType = group.groupedBenefits.find(bg =>
+                bg.benefits.some(b => b.Id === benefitId)
+            )?.conditionType;
+
             const updatedGrouped = group.groupedBenefits.map(bg => {
                 const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
 
-                if (!isBenefitInGroup) {
-                    return bg;
+                // ✅ ล้างกลุ่มที่มี conditionType คนละฝั่ง (เช่น AND ↔ OR)
+                if (bg.conditionType !== currentGroupType) {
+                    const cleared = bg.benefits.map(b => ({
+                        ...b,
+                        selected: false,
+                        className: 'benefit-box'
+                    }));
+                    return { ...bg, benefits: cleared };
                 }
 
-                if (bg.conditionType === 'AND') {
-                    const isAllSelected = bg.benefits.every(b => b.selected);
-                    const newSelected = !isAllSelected;
-                    const updatedBenefits = bg.benefits.map(b => ({
-                        ...b,
-                        selected: newSelected,
-                        className: newSelected ? 'benefit-box selected' : 'benefit-box'
-                    }));
-                    return { ...bg, benefits: updatedBenefits };
-                } else {
-                    const isAlreadySelected = bg.benefits.find(b => b.Id === benefitId)?.selected;
-                    const updatedBenefits = bg.benefits.map(b => {
-                        if (b.Id === benefitId) {
-                            const newSelected = !isAlreadySelected;
+                // ✅ กรณีถูกคลิก
+                if (isBenefitInGroup) {
+                    if (bg.conditionType === 'AND') {
+                        const isAllSelected = bg.benefits.every(b => b.selected);
+                        const newSelected = !isAllSelected;
+                        const updatedBenefits = bg.benefits.map(b => ({
+                            ...b,
+                            selected: newSelected,
+                            className: newSelected ? 'benefit-box selected' : 'benefit-box'
+                        }));
+                        return { ...bg, benefits: updatedBenefits };
+                    } else {
+                        const isAlreadySelected = bg.benefits.find(b => b.Id === benefitId)?.selected;
+                        const updatedBenefits = bg.benefits.map(b => {
+                            if (b.Id === benefitId) {
+                                const newSelected = !isAlreadySelected;
+                                return {
+                                    ...b,
+                                    selected: newSelected,
+                                    className: newSelected ? 'benefit-box selected' : 'benefit-box'
+                                };
+                            }
                             return {
                                 ...b,
-                                selected: newSelected,
-                                className: newSelected ? 'benefit-box selected' : 'benefit-box'
+                                selected: false,
+                                className: 'benefit-box'
                             };
-                        }
-                        return {
-                            ...b,
-                            selected: false,
-                            className: 'benefit-box'
-                        };
-                    });
-                    return { ...bg, benefits: updatedBenefits };
+                        });
+                        return { ...bg, benefits: updatedBenefits };
+                    }
                 }
+
+                return bg;
             });
 
-            // ✅ ตรวจสอบผลการเลือก benefit แล้วปรับ promotion
+            // ✅ ปรับ UI promotion box (ไฮไลต์ + ไอคอน)
             const hasSelectedBenefit = updatedGrouped.some(bg =>
                 bg.benefits.some(b => b.selected)
             );
@@ -1405,11 +1509,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
 
+
     //select Benefit
     updateSelectedBenefits() {
         this.selectedBenefits = [];
-        
-
         this.comboGroups.forEach(group => {
             group.groupedBenefits.forEach(bg => {
                 bg.benefits.forEach(b => {
@@ -1704,8 +1807,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         try {
         // Get current tabId
             const { tabId } = await getFocusedTabInfo();
-
-            //  Navigate to Order record in new tab
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
                 attributes: {
@@ -1713,61 +1814,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     objectApiName: 'Order',
                     actionName: 'view'
                 }
-            }, true); // true = open in new tab
+            }, true);
 
-            // Wait a moment then close current tab
             setTimeout(async () => {
                 if (this.isConsoleNavigation?.data === true) {
                     await closeTab(tabId);
                 }
-            }, 1000); // 0.5-1s is usually enough
+            }, 1000);
         } catch (err) {
             console.error('handleSaveSuccess error:', err);
         }
     }
-
-    // async handleSaveSuccess() {
-    //     // 1️⃣ แสดง Toast
-    //     this.dispatchEvent(
-    //         new ShowToastEvent({
-    //             title: 'รายการแจ้งเตือน',
-    //             message: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
-    //             variant: 'success',
-    //         })
-    //     );
-
-    //     try {
-    //         // 2️⃣ ปิด tab ปัจจุบัน (ถ้าอยู่ Console App)
-    //         const workspaceApi = getWorkspaceApi();
-    //         const tabInfo = await workspaceApi.getFocusedTabInfo();
-    //         await workspaceApi.closeTab({ tabId: tabInfo.tabId });
-
-    //         // 3️⃣ Navigate ไป view ของ Order
-    //         this[NavigationMixin.Navigate]({
-    //             type: 'standard__recordPage',
-    //             attributes: {
-    //                 recordId: this.orderId,
-    //                 objectApiName: 'Order',
-    //                 actionName: 'view'
-    //             }
-    //         });
-    //     } catch (error) {
-    //         console.error('ไม่สามารถปิด tab หรือ navigate ได้', error);
-
-    //         // fallback: แค่ navigate ไป view
-    //         this[NavigationMixin.Navigate]({
-    //             type: 'standard__recordPage',
-    //             attributes: {
-    //                 recordId: this.orderId,
-    //                 objectApiName: 'Order',
-    //                 actionName: 'view'
-    //             }
-    //         });
-    //     }
-    // }
-
-
-
 
     async insertOrderFoc(orderId) {
         const orderFoc = {
@@ -1790,8 +1847,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         try {   
             if (this.focProducts && this.focProducts.length > 0) {
                 await insertOrderFocById({ orderFocList: [orderFoc] });
-                // console.log('FOC records inserted successfully');    
-                // return focOrderId ;
             } else {
                 console.log('ไม่มีของแถม FOC → ไม่สร้าง INID_Order_Foc__c');
             }
@@ -1817,6 +1872,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_ExcVAT__c: this.radioButtonOrderLabel2,
             INID_IncVAT__c: this.radioButtonOrderLabel1,
             INID_NoteAgent__c : this.noteAgent ,
+            INID_NetAmount__c: this.totalNetPrice,
         };
         try {
             const orderId = await insertOrder({ order: orderDetail });
@@ -2172,7 +2228,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             .filter(p => !p.addOnText) // กรองเฉพาะสินค้าหลัก
             .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
 
-        console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${totalNetPrice.toFixed(2)} บาท`);
+        this.totalNetPrice = totalNetPrice ;
+        console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${this.totalNetPrice.toFixed(2)} บาท`);
 
         const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
         if (selectedPromotionsCount < 1) {
