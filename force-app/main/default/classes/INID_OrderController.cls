@@ -376,16 +376,6 @@ public with sharing class INID_OrderController {
     }
 
 
-    
-    @AuraEnabled(cacheable=true)
-    public static List<INID_Account_License__c> fetchAccountLicense(Id accountId) {
-        return[
-            SELECT Id ,INID_License__c FROM INID_Account_License__c WHERE INID_Account__c = :accountId
-        ];
-    }
-
-
-
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_License__c> fetchProductLicense(List<String> licenseList , List<Id> productPriceBookIdList)  {
         return [
@@ -474,6 +464,23 @@ public with sharing class INID_OrderController {
         update order ;
         // return order.INID_NetAmount__c ;
     }
+
+
+    // classify here
+    
+    @AuraEnabled(cacheable=true)
+    public static List<Account> fetchAccountChannel(Id accountId) {
+        return [SELECT INID_Channel__c FROM Account WHERE Id = :accountId ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Account_License__c> fetchAccountLicense(Id accountId) {
+        return[
+            SELECT Id ,INID_License__c FROM INID_Account_License__c WHERE INID_Account__c = :accountId
+        ];
+    }
+
+
 
 
 }

@@ -4,6 +4,7 @@ import { getRecord, getFieldValue } from "lightning/uiRecordApi";
 import { NavigationMixin } from 'lightning/navigation';
 import { IsConsoleNavigation, getFocusedTabInfo, closeTab } from 'lightning/platformWorkspaceApi';
 import fetchCustomers from '@salesforce/apex/INID_OrderController.fetchCustomers';
+import fetchAccountChannel from '@salesforce/apex/INID_OrderController.fetchAccountChannel';
 import fetchDataBillto from '@salesforce/apex/INID_OrderController.fetchDataBillto';
 import fetchDataShipto from '@salesforce/apex/INID_OrderController.fetchDataShipto';
 import fetchProductLicense from '@salesforce/apex/INID_OrderController.fetchProductLicense';
@@ -102,6 +103,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track productLicenseExclude = [] ;
     @track titleSummary = 'Select Type Create Order test' ;
     @track totalNetPrice ;
+    @track accountChannelData = [] ;
+    @track accountChannel;
+
 
   
     columns = [
@@ -203,6 +207,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     wiredAccounts({ error, data }) {
         if (data) {
             this.accounts = data;
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+    @wire(fetchAccountChannel , {accountId: '$accountId'})
+    wiredAccountChannel({ error, data }) {
+        if (data) {
+            this.accountChannelData = data
+            this.accountChannel = this.accountChannelData.map(channel => channel.INID_Channel__c);
+
+            console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
