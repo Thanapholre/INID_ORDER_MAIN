@@ -70,11 +70,21 @@ public with sharing class INID_OrderController {
         ];
     }
 
+    // @AuraEnabled(cacheable=true)
+    // public static Id fetchAccountIdByQuote(Id quoteId) {
+    //     Quote accountId = [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1];
+    //     return accountId.AccountId;
+    // }   
+
     @AuraEnabled(cacheable=true)
     public static Id fetchAccountIdByQuote(Id quoteId) {
-        Quote accountId = [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1];
-        return accountId.AccountId;
-    }   
+        List<Quote> quotes = [SELECT AccountId FROM Quote WHERE Id = :quoteId LIMIT 1];
+        if (!quotes.isEmpty()) {
+            return quotes[0].AccountId;
+        }
+        return null; // หรือ throw custom error ถ้าคุณอยากแจ้งว่าไม่พบ
+    }
+
 
     @AuraEnabled(cacheable=true)
     public static List<INID_Product_Order_Item__c> fetchProductOrderItem(Id orderId) {
@@ -361,7 +371,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Group_Details__c> fetchBuGroupId(String userGroup) {
         return[
-            SELECT INID_BU_Group__c FROM INID_Group_Details__c WHERE Group__c = :userGroup 
+            SELECT INID_BU_Group__c , INID_All_BU__c FROM INID_Group_Details__c WHERE Group__c = :userGroup 
         ];
     }
 

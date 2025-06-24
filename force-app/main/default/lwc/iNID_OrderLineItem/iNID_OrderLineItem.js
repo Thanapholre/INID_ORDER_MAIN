@@ -12,15 +12,16 @@ import fetchProductOrderItemFoc from '@salesforce/apex/INID_OrderController.fetc
 import getPromotion from '@salesforce/apex/INID_getPromotionController.getPromotions';
 import fetchAccountLicense from '@salesforce/apex/INID_OrderController.fetchAccountLicense';
 import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude';
-// import fetchProductLicense from '@salesforce/apex/INID_OrderController.fetchProductLicense';
 import insertOrderSalePromotion from '@salesforce/apex/INID_OrderController.insertOrderSalePromotion'
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
 import fetchOrderToOrderFoc from '@salesforce/apex/INID_OrderController.fetchOrderToOrderFoc';
-import fetchUserGroup from '@salesforce/apex/INID_OrderController.fetchUserGroup';
+
 import insertOrderFocById from '@salesforce/apex/INID_OrderController.insertOrderFocById'
+import fetchUserGroup from '@salesforce/apex/INID_OrderController.fetchUserGroup';
 import fetchBuGroupId from '@salesforce/apex/INID_OrderController.fetchBuGroupId'
-import getAccountId from '@salesforce/apex/INID_OrderController.getAccountId' ;
 import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetchProductsByBuGroups'
+
+import getAccountId from '@salesforce/apex/INID_OrderController.getAccountId' ;
 import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import fetchOrderSalePromotion from '@salesforce/apex/INID_OrderController.fetchOrderSalePromotion';
@@ -38,6 +39,7 @@ import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 
 export default class INID_OrderLine extends LightningElement {
+    @track userId = USER_ID; 
     @api recordId;
     @track searchProductTerm = '';
     @track textareaValue = '';
@@ -50,13 +52,14 @@ export default class INID_OrderLine extends LightningElement {
     @track selectedValue ;
     @track selectedLabel;
     @track accountId ;
-    @track userGroup;
-    @track buGroupData;
+
+    @track userGroup ;
+    @track buGroupData = [];
     @track buGroupId;
-    @track productsByBuGroups;
-    @track productBuGroupId ;
-    @track productBuIds ;
-    @track userId = USER_ID;
+    @track productsByBuGroups = [] ;
+    @track productBuGroupId = [] ;
+    @track productBuIds;
+
     
     @track showProductDropdown = false;
     @track isPopupOpenFreeGood = false ;
@@ -102,6 +105,7 @@ export default class INID_OrderLine extends LightningElement {
     @track summaryClassifyId ;
     @track classifyType = [];
     @track sellableClassifyIds = [] ;
+    @track allBU ;
 
     
      
@@ -182,38 +186,6 @@ export default class INID_OrderLine extends LightningElement {
             
     }
 
-    @wire(fetchUserGroup, { userId: '$userId' })
-    wireUserGroup({ error, data }) {
-        if (data) {
-            this.userGroup = data
-        } else {
-            console.log(error);
-        }
-    }
-
-
-    @wire(fetchBuGroupId, {userGroup: '$userGroup'})
-    wiredBuGroupId({ error, data }) {
-        if (data) {
-            this.buGroupData = data;
-            this.buGroupId = this.buGroupData.map(r => r.INID_BU_Group__c);
-        } else if (error) {
-            console.error('Error fetching accounts:', error);
-        }
-    }
-    
-    @wire(fetchProductsByBuGroups, {buGroupIds: '$buGroupId'})
-    wiredproductsByBuGroups({ error, data }) {
-        if (data) {
-            this.productsByBuGroups = data;
-            this.productBuGroupId = this.productsByBuGroups.map(r => r.INID_Product_Price_Book__c);
-            this.productBuIds = new Set(this.productBuGroupId); 
-        } else if (error) {
-            console.error('Error fetching accounts:', error);
-        }
-    }
-
-
     @wire(fetchAccountLicense , {accountId: '$accountId'})
     wiredFetchAccountLicense({error , data}) {
         if(data) {
@@ -222,6 +194,41 @@ export default class INID_OrderLine extends LightningElement {
             this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
         } else {
             console.log(error) ;
+        }
+    }
+
+    @wire(fetchUserGroup, {userId: '$userId'})
+    wiredUserGroup({ error, data }) {
+        if (data) {
+            this.userGroup = data;
+            console.log('user Gruop : ' + JSON.stringify(this.userGroup, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+    @wire(fetchBuGroupId, {userGroup: '$userGroup'})
+    wiredBuGroupId({ error, data }) {
+        if (data) {
+            this.buGroupData = data;
+            this.buGroupId = this.buGroupData.map(r => r.INID_BU_Group__c);
+            this.allBU = this.buGroupData.map(r => r.INID_All_BU__c).join(', ');
+            console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
+            console.log('All BU Gruop : ' + JSON.stringify(this.allBU, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+    @wire(fetchProductsByBuGroups, {buGroupIds: '$buGroupId'})
+    wiredproductsByBuGroups({ error, data }) {
+        if (data) {
+            this.productsByBuGroups = data;
+            this.productBuGroupId = this.productsByBuGroups.map(r => r.INID_Product_Price_Book__c);
+            this.productBuIds = new Set(this.productBuGroupId); 
+            console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
         }
     }
 
@@ -242,7 +249,7 @@ export default class INID_OrderLine extends LightningElement {
                 // this.accountChannel = this.accountChannelData.map(channel => channel.INID_Channel__c);
                 this.accountChannel = this.accountChannelData[0]?.INID_Channel__c || '';
     
-                console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
+                // console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
             } else if (error) {
                 console.error('Error fetching accounts:', error);
        }
@@ -263,8 +270,8 @@ export default class INID_OrderLine extends LightningElement {
                     this.classifyLicense.map(record => record.INID_Classify__c)
                 )];
     
-                console.log('classify license Id:', JSON.stringify(this.classifyLicenseId , null , 2));
-                console.log('Clean classifyLicense:', JSON.stringify(this.classifyLicense, null, 2));
+                // console.log('classify license Id:', JSON.stringify(this.classifyLicenseId , null , 2));
+                // console.log('Clean classifyLicense:', JSON.stringify(this.classifyLicense, null, 2));
     
                 if (this.classifyLicenseId.length > 0) {
                     fetchClassifyType({ classifyId: this.classifyLicenseId })
@@ -353,19 +360,19 @@ export default class INID_OrderLine extends LightningElement {
                                 });
     
                                 // ✅ แสดง log
-                                console.log(`👉 Classify: ${classify}`);
-                                console.log(`   🔧 ต้องตรวจ license? : ${requireLicense}`);
-                                console.log(`   📌 License ของ Account: ${JSON.stringify(this.accountLicense)}`);
-                                console.log(`   📌 License ของ Classify: ${JSON.stringify(allLicenses)}`);
+                                // console.log(`👉 Classify: ${classify}`);
+                                // console.log(`   🔧 ต้องตรวจ license? : ${requireLicense}`);
+                                // console.log(`   📌 License ของ Account: ${JSON.stringify(this.accountLicense)}`);
+                                // console.log(`   📌 License ของ Classify: ${JSON.stringify(allLicenses)}`);
     
                                 if (groupNumbers.length === 1) {
                                     const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
-                                    console.log(`   กลุ่มเลข: ${groupNumbers[0]} License ที่ต้องมีครบ: ${JSON.stringify(groupLicenses)}`);
+                                    // console.log(`   กลุ่มเลข: ${groupNumbers[0]} License ที่ต้องมีครบ: ${JSON.stringify(groupLicenses)}`);
                                 } else {
                                     console.log(`   กลุ่มทั้งหมดและ license ในแต่ละกลุ่ม:`);
                                     groupNumbers.forEach(groupNo => {
                                         const groupLicenses = groups[groupNo].map(r => r.INID_License__c);
-                                        console.log(`      - กลุ่ม ${groupNo}: ${JSON.stringify(groupLicenses)}`);
+                                        // console.log(`      - กลุ่ม ${groupNo}: ${JSON.stringify(groupLicenses)}`);
                                     });
                                 }
     
@@ -530,7 +537,15 @@ export default class INID_OrderLine extends LightningElement {
                 const salePrice = Number(row.INID_Sale_Price__c) || 0;
                 const total = parseFloat((quantity * salePrice).toFixed(2));
 
+                let editableSalePrice = false;
+                if (this.allBU === "true") {
+                    editableSalePrice = true;
+                } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+                    editableSalePrice = true;
+                }
+
                 const productObj = {
+
                     rowKey: row.Id,
                     code: row.INID_Material_Code__c,
                     hlItemNumber: row.INID_HL_Item_Number__c,
@@ -547,6 +562,7 @@ export default class INID_OrderLine extends LightningElement {
                     addonDisabled: false,
                     isAddOn: isAddon,
                     productPriceBookId: row.INID_Product_Price_Book__r?.Id,
+                    editableSalePrice
                 };
 
                 if (isAddon) {
@@ -770,7 +786,14 @@ export default class INID_OrderLine extends LightningElement {
         const unitPrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
         const quantity = 1;
         const productPriceBookId = source.INID_Product_Price_Book__r.Id;
-        const editableSalePrice = this.productBuIds && this.productBuIds.has(productPriceBookId);
+        let editableSalePrice = false;
+
+        if (this.allBU === "true") {
+            editableSalePrice = true;
+        } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+            editableSalePrice = true;
+        }
+
 
         
 
@@ -788,7 +811,7 @@ export default class INID_OrderLine extends LightningElement {
             nameBtn: '+',
             variant: 'brand',
             addonDisabled: false, 
-            editableSalePrice: editableSalePrice
+            editableSalePrice
         };
     }
 
@@ -843,6 +866,14 @@ export default class INID_OrderLine extends LightningElement {
                 } else {
                     const unitPrice = match.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
                     const quantity = 1;
+
+                    let editableSalePrice = false;
+                    if (this.allBU === "true") {
+                        editableSalePrice = true;
+                    } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+                        editableSalePrice = true;
+                    }
+
                    added.push({
                         rowKey: productId,
                         id: productId,
@@ -855,7 +886,7 @@ export default class INID_OrderLine extends LightningElement {
                         unit: match.INID_Product_Price_Book__r.INID_Unit__c,
                         unitPrice,
                         total: unitPrice * quantity,
-                        editableSalePrice: true,
+                        editableSalePrice,
                         nameBtn: '+',
                         variant: 'brand',
                         addonDisabled: false

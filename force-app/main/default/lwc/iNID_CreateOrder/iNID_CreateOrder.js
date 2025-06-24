@@ -96,6 +96,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track buGroupData ;
     @track productsByBuGroups = [] ;
     @track productBuGroupId = [] ;
+    @track allBU ;
     @track accountLicenseData = [] ;
     @track accountLicense ;
     @track productLicenseData = [] ;
@@ -383,10 +384,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-
-
     // fetch Auto Field Ship To 
-   fetchShipto(accountId) {
+    fetchShipto(accountId) {
     fetchDataShipto({ accountId: accountId })
         .then(data => {
             if (data && data.length > 0) {
@@ -428,27 +427,53 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     // fetch Auto Field Bill To
-    @wire(fetchDataBillto)
-    fetchBillTo(accountId) {
-    fetchDataBillto({ accountId: accountId })
-        .then(data => {
-            if (data && data.length > 0) {
-                this.billto = data[0].Name;
-            } else {
-                this.billto = '';
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching Bill To:', error);
-        });
-    }
+    // @wire(fetchDataBillto)
+    // fetchBillTo(accountId) {
+    // fetchDataBillto({ accountId: accountId }) 
+    //     .then(data => {
+    //         if (data && data.length > 0) {
+    //             this.billto = data[0].Name;
+    //         } else {
+    //             this.billto = '';
+    //         }
+    //     })
+    //     .catch(error => {
+    //         console.error('Error fetching Bill To:', error);
+    //     });
+    // }
     
+
+    // @wire(fetchShipto, { accountId: '$accountId' }) 
+    // fetchetchShipto({ error, data }) {
+    //     if (data) {
+    //         this.billto = data;
+    //         // เอาเฉพาะ Name แล้ว join เป็น string
+    //         this.billto = this.billto.map(billto => billto.Name).join(', ');
+
+    //         console.log('Bill to:', this.billto);
+    //     } else if (error) {
+    //         console.error('Error Bill to', error);
+    //     }
+    // }
+
+    @wire(fetchDataBillto, { accountId: '$accountId' }) 
+    fetchBillTo({ error, data }) {
+        if (data) {
+            this.billto = data;
+            // เอาเฉพาะ Name แล้ว join เป็น string
+            this.billto = this.billto.map(billto => billto.Name).join(', ');
+
+            console.log('Bill to:', this.billto);
+        } else if (error) {
+            console.error('Error Bill to', error);
+        }
+    }
 
     @wire(fetchUserGroup, {userId: '$userId'})
     wiredUserGroup({ error, data }) {
         if (data) {
             this.userGroup = data;
-            console.log('user Gruop : ' + JSON.stringify(this.userGroup, null, 2) );
+            console.log('user Group ??? : ' + JSON.stringify(this.userGroup, null, 2) );
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -459,7 +484,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (data) {
             this.buGroupData = data;
             this.buGroupId = this.buGroupData.map(r => r.INID_BU_Group__c);
+            this.allBU = this.buGroupData.map(r => r.INID_All_BU__c).join(', ');
             console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
+            console.log('All BU Gruop : ' + JSON.stringify(this.allBU, null, 2) );
+            console.log('All BU Gruop : ' + typeof(this.allBU));
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
@@ -824,44 +852,44 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-    mapProduct(source, addedAddons = [] , hlNumber) {
-        // const isMainProduct = source.INID_Sale_Price__c > 0;
+    mapProduct(source, addedAddons = [], hlNumber) {
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
         const salePrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
         const quantity = 1;
         const total = salePrice * quantity;
         hlNumber += 1;
-        this.hlNumber = hlNumber ;
+        this.hlNumber = hlNumber;
 
-        console.log('sorce in map product function : ' + JSON.stringify(source , null ,2));
-
+        console.log('source in mapProduct function:', JSON.stringify(source, null, 2));
         const productPriceBookId = source.INID_Product_Price_Book__r.Id;
-        const editableSalePrice = this.productBuIds && this.productBuIds.has(productPriceBookId);
-        console.log('editable saleprice : ' + JSON.stringify(editableSalePrice , null ,2));
+        console.log('editable by BU group:', this.productBuIds?.has(productPriceBookId));
+
+        let editableSalePrice = false;
+        if (this.allBU === "true") {
+            editableSalePrice = true;
+        } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+            editableSalePrice = true;
+        }
 
         return {
             rowKey: source.Id,
             id: source.Id,
-            // productPriceBookId: source.Id,
-            productPriceBookId: source.INID_Product_Price_Book__r.Id,
+            productPriceBookId: productPriceBookId,
             code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
-            description: source.INID_Product_Price_Book__r.INID_SKU_Description__c ,
-            unitPrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
-            quantity: 1,
-            salePrice: source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0,
+            description: source.INID_Product_Price_Book__r.INID_SKU_Description__c,
+            unitPrice: salePrice,
+            quantity,
+            salePrice,
             unit: source.INID_Product_Price_Book__r.INID_Unit__c || '',
-            total: total,
-            // addOnButton: isMainProduct ? 'Add On' : null,
-            addOnText: '+',
-            // addOn: isMainProduct ? 'true' : 'false',
-            nameBtn:  '+' ,
+            total,
+            nameBtn: '+',
             variant: 'brand',
-            editableSalePrice: editableSalePrice,
+            editableSalePrice,
             addonDisabled: false,
-            hlItemNumber: this.hlNumber,
-
+            hlItemNumber: this.hlNumber
         };
     }
+
 
     
     handleSaveAddon() {
@@ -1185,7 +1213,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     addProductToTable() {
-        if (!this.enteredProductCodes || this.enteredProductCodes.length === 0) {
+        if (!this.enteredProductCodes?.length) {
             this.dispatchEvent(new ShowToastEvent({
                 title: 'ไม่มีข้อมูล',
                 message: 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ',
@@ -1208,22 +1236,47 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 return;
             }
 
-            const productId = matched.INID_Product_Price_Book__r.Id;
+            const product = matched.INID_Product_Price_Book__r;
+            const productId = product.Id;
             const isExcluded = this.productLicenseExclude.includes(productId);
 
-            if(isExcluded) {
-                failedCodes.push(code) ;
-                return
+            if (isExcluded) {
+                failedCodes.push(code);
+                return;
             }
 
             const alreadyAdded = this.selectedProducts.some(p => p.code === code && p.unitPrice !== 0);
             if (alreadyAdded) {
-                duplicatedCodes.push(code); 
+                duplicatedCodes.push(code);
                 return;
             }
 
-            const mappedProduct = this.mapProduct(matched, [], this.hlNumber);
-            addedProducts.push(mappedProduct);
+            const unitPrice = product.INID_Unit_Price__c || 0;
+            const quantity = 1;
+
+            let editableSalePrice = false;
+            if (this.allBU === "true") {
+                editableSalePrice = true;
+            } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+                editableSalePrice = true;
+            }
+            addedProducts.push({
+                rowKey: productId,
+                id: productId,
+                productPriceBookId: productId,
+                code: product.INID_Material_Code__c,
+                Name: matched.Name,
+                description: product.INID_SKU_Description__c,
+                quantity,
+                salePrice: unitPrice,
+                unit: product.INID_Unit__c,
+                unitPrice,
+                total: unitPrice * quantity,
+                editableSalePrice,
+                nameBtn: '+',
+                variant: 'brand',
+                addonDisabled: false
+            });
         });
 
         if (addedProducts.length > 0) {
@@ -1242,7 +1295,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (failedCodes.length > 0) {
             this.dispatchEvent(new ShowToastEvent({
                 title: 'ไม่สามารถเพิ่มสินค้าได้',
-                message: `ขออภัยไม่พบสินค้า : ${failedCodes.join(', ')} นี้`,
+                message: `ขออภัยไม่พบหรือไม่สามารถเพิ่มสินค้า: ${failedCodes.join(', ')}`,
                 variant: 'error'
             }));
         }
@@ -1255,6 +1308,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             textarea.value = '';
         }
     }
+
 
 
     // ---------------------------------------------------------------------------
@@ -1336,6 +1390,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 input.addEventListener('change', this.handleSalePriceChange.bind(this));
             });
         });
+
+        console.log('user id : ' + this.userId);
     }
 
     // ---------------------------------------------------------------------------
