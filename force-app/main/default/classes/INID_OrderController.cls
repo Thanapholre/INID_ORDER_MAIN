@@ -467,7 +467,7 @@ public with sharing class INID_OrderController {
 
 
     // classify here
-    
+
     @AuraEnabled(cacheable=true)
     public static List<Account> fetchAccountChannel(Id accountId) {
         return [SELECT INID_Channel__c FROM Account WHERE Id = :accountId ];
@@ -480,7 +480,32 @@ public with sharing class INID_OrderController {
         ];
     }
 
+    @AuraEnabled(cacheable=true)
+    public static String fetchClassifyLicense(String accountChannel) {
+        List<INID_Classify_License__c> records = [
+            SELECT INID_Classify__c, INID_Channel__c, INID_License__c, INID_License_Group__c 
+            FROM INID_Classify_License__c 
+            WHERE INID_Channel__c = :accountChannel
+        ];
+        return JSON.serialize(records);
+    }
 
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Classify__c> fetchClassifyType(List<Id> classifyId) {
+        return[
+            SELECT Id, INID_Classify_Type__c, INID_Require_License__c FROM INID_Classify__c WHERE Id IN :classifyId
+        ];
+    }
 
-
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Classify_Product__c > fetchClassifyProduct(List<Id> sellableClassifyIds ){
+        return [
+            SELECT 	INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , 
+            INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
+            INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c  
+            FROM INID_Classify_Product__c 
+            WHERE INID_Classify__c  
+            IN :sellableClassifyIds
+        ] ;
+    }
 }

@@ -30,6 +30,7 @@ import fetchSalePromotionId from '@salesforce/apex/INID_OrderController.fetchSal
 import fetchSalePromotionData from '@salesforce/apex/INID_OrderController.fetchSalePromotionData';
 import updateTotalNetPrice from '@salesforce/apex/INID_OrderController.updateTotalNetPrice';
 import deletePromotionById from '@salesforce/apex/INID_OrderController.deletePromotionById' ;
+import fetchAccountChannel from '@salesforce/apex/INID_OrderController.fetchAccountChannel' ;
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 
@@ -246,8 +247,21 @@ export default class INID_OrderLine extends LightningElement {
             console.error('Error fetching accounts:', error);
         }
     }
+
+    @wire(fetchAccountChannel , {accountId: '$accountId'})
+    wiredAccountChannel({ error, data }) {
+        if (data) {
+            this.accountChannelData = data
+            // this.accountChannel = this.accountChannelData.map(channel => channel.INID_Channel__c);
+            this.accountChannel = this.accountChannelData[0]?.INID_Channel__c || '';
+
+            console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
     
- 
+
     @wire(fetchOrderFocId, { orderId: '$recordId' })
     wiredFocId({ error, data }) {
         if (data) {

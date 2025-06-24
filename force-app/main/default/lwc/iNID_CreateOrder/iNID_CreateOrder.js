@@ -27,7 +27,10 @@ import fetchProductsByBuGroups from '@salesforce/apex/INID_OrderController.fetch
 import insertOrderItemFoc from '@salesforce/apex/INID_OrderController.insertOrderItemFoc'
 import fetchAddonProductPriceBook from '@salesforce/apex/INID_OrderController.fetchAddonProductPriceBook'
 import fetchAccountLicense from '@salesforce/apex/INID_OrderController.fetchAccountLicense'
+import fetchClassifyLicense from '@salesforce/apex/INID_OrderController.fetchClassifyLicense' ;
+import fetchClassifyProduct from '@salesforce/apex/INID_OrderController.fetchClassifyProduct' ;
 import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude' ;
+import fetchClassifyType from '@salesforce/apex/INID_OrderController.fetchClassifyType' ;
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
@@ -105,6 +108,14 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track totalNetPrice ;
     @track accountChannelData = [] ;
     @track accountChannel;
+    @track classifyLicense = [] ;
+    @track classifyLicenseId ;
+    @track summaryClassify = [] ;
+    @track summaryClassifyId ;
+    @track classifyType = [];
+    @track sellableClassifyIds = [] ;
+
+
 
 
   
@@ -139,29 +150,34 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.accountLicenseData = data ;
             this.accountLicenseId = this.accountLicenseData.map(accLicenseId => accLicenseId.Id) ;
             this.accountLicense = this.accountLicenseData.map(acc => acc.INID_License__c);
+            console.log('account License : ' + JSON.stringify(this.accountLicense , null ,2)) ;
         } else {
             console.log(error) ;
         }
     }
 
+    
     @wire(fetchProductLicenseExclude , {accountLicenseId: '$accountLicenseId'})
     wirefetchProductLicenseExclude({error , data}) {
         if(data) {
             this.licenseExcludeData = data ;
             this.productLicenseExclude = this.licenseExcludeData.map(prodId => prodId.INID_Product_Price_Book__c);
+            
+            console.log('license Exclude data : ' + JSON.stringify(this.licenseExcludeData,null, 2)); 
+            console.log('Product Exclude' + JSON.stringify(this.productLicenseExclude, null, 2))
         } else if(error) {
             console.log('message error from fetch product license exclude is : ' + JSON.stringify(error , null ,2)) ;
         }
     }
 
-    @wire(fetchProductLicense, {licenseList: '$accountLicense' , productPriceBookIdList: '$productLicenseExclude'})
-    wiredProductLicense({ error, data }) {
-        if (data) {
-            this.productPriceBook = data;
-        } else if (error) {
-            console.error('Error fetching accounts:', error);
-        }
-    }
+    // @wire(fetchProductLicense, {licenseList: '$accountLicense' , productPriceBookIdList: '$productLicenseExclude'})
+    // wiredProductLicense({ error, data }) {
+    //     if (data) {
+    //         this.productPriceBook = data;
+    //     } else if (error) {
+    //         console.error('Error fetching accounts:', error);
+    //     }
+    // }
 
     //closeTab
     @wire(IsConsoleNavigation) isConsoleNavigation;
@@ -211,17 +227,344 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error fetching accounts:', error);
         }
     }
+
     @wire(fetchAccountChannel , {accountId: '$accountId'})
     wiredAccountChannel({ error, data }) {
         if (data) {
             this.accountChannelData = data
-            this.accountChannel = this.accountChannelData.map(channel => channel.INID_Channel__c);
+            // this.accountChannel = this.accountChannelData.map(channel => channel.INID_Channel__c);
+            this.accountChannel = this.accountChannelData[0]?.INID_Channel__c || '';
 
             console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
         } else if (error) {
             console.error('Error fetching accounts:', error);
         }
     }
+
+    // @wire(fetchClassifyLicense, { accountChannel: '$accountChannel' })
+    // wiredFetchClassifyLicense({ error, data }) {
+    //     if (data) {
+    //         this.classifyLicense = JSON.parse(data);
+
+    //         this.classifyLicense = this.classifyLicense.map(record => {
+    //             const { attributes, ...clean } = record;
+    //             return clean;
+    //         });
+
+    //         // ดึง INID_Classify__c ไม่ซ้ำ
+    //         this.classifyLicenseId = [...new Set(
+    //             this.classifyLicense.map(record => record.INID_Classify__c)
+    //         )];
+
+    //         console.log('✅ classify license Id :', JSON.stringify(this.classifyLicenseId, null, 2));
+    //         console.log('✅ Clean classifyLicense:', JSON.stringify(this.classifyLicense, null, 2));
+
+    //         if (this.classifyLicenseId.length > 0) {
+    //             fetchClassifyType({ classifyId: this.classifyLicenseId })
+    //                 .then(result => {
+    //                     this.classifyType = result;
+    //                     console.log('✅ classify type:', JSON.stringify(this.classifyType, null, 2));
+
+    //                     // แยก classify ว่าขายได้เลยหรือรอ process
+    //                     this.classifyCanSellNow = [];
+    //                     this.classifyNeedProcess = [];
+
+    //                     this.classifyType.forEach(c => {
+    //                         if (c.INID_Require_License__c === false) {
+    //                             this.classifyCanSellNow.push(c.Id);
+    //                         } else {
+    //                             this.classifyNeedProcess.push(c.Id);
+    //                         }
+    //                     });
+
+    //                     // LOG แยกชัดเจน
+    //                     console.log('🎯 Classify ที่ขายได้เลย (INID_Require_License__c = false):', JSON.stringify(this.classifyCanSellNow, null, 2));
+    //                     console.log('🕒 Classify ที่ต้อง process ตรวจ license เพิ่ม (INID_Require_License__c = true):', JSON.stringify(this.classifyNeedProcess, null, 2));
+    //                 })
+    //                 .catch(err => {
+    //                     console.error('❌ Error fetching classify type:', err);
+    //                 });
+    //         }
+
+    //     } else if (error) {
+    //         console.error('❌ Error fetching classify license:', error);
+    //     }
+    // }
+
+    @wire(fetchClassifyLicense, { accountChannel: '$accountChannel' })
+    wiredFetchClassifyLicense({ error, data }) {
+        if (data) {
+            this.classifyLicense = JSON.parse(data);
+
+            this.classifyLicense = this.classifyLicense.map(record => {
+                const { attributes, ...clean } = record;
+                return clean;
+            });
+
+            // ✅ ดึง INID_Classify__c ไม่ซ้ำ
+            this.classifyLicenseId = [...new Set(
+                this.classifyLicense.map(record => record.INID_Classify__c)
+            )];
+
+            console.log('📌 classify license Id:', JSON.stringify(this.classifyLicenseId , null , 2));
+            console.log('✅ Clean classifyLicense:', JSON.stringify(this.classifyLicense, null, 2));
+
+            if (this.classifyLicenseId.length > 0) {
+                fetchClassifyType({ classifyId: this.classifyLicenseId })
+                    .then(result => {
+                        this.classifyType = result;
+                        console.log('✅ classify type:', JSON.stringify(this.classifyType, null, 2));
+
+                        this.summaryClassify = [];
+
+                        // 🔄 Map: ClassifyId → requireLicense
+                        const requireMap = {};
+                        this.classifyType.forEach(item => {
+                            requireMap[item.Id] = item.INID_Require_License__c;
+                        });
+
+                        // ✅ จัดกลุ่ม license ตาม classify/group
+                        const grouped = {};
+                        this.classifyLicense.forEach(record => {
+                            const classify = record.INID_Classify__c;
+                            const group = record.INID_License_Group__c;
+
+                            if (!grouped[classify]) {
+                                grouped[classify] = {};
+                            }
+                            if (!grouped[classify][group]) {
+                                grouped[classify][group] = [];
+                            }
+                            grouped[classify][group].push(record);
+                        });
+
+                        // ✅ ประมวลผลแต่ละ classify
+                        Object.keys(grouped).forEach(classify => {
+                            const requireLicense = requireMap[classify] === true;
+                            let canSell = false;
+                            let reason = '';
+                            let matchedGroup = null;
+
+                            const groups = grouped[classify];
+                            const groupNumbers = Object.keys(groups);
+
+                            const allLicenses = [];
+                            Object.values(groups).forEach(records => {
+                                records.forEach(r => {
+                                    if (!allLicenses.includes(r.INID_License__c)) {
+                                        allLicenses.push(r.INID_License__c);
+                                    }
+                                });
+                            });
+
+                            if (!requireLicense) {
+                                canSell = true;
+                                reason = 'ไม่ต้องใช้ license สามารถขายได้เลย';
+                            } else {
+                                if (groupNumbers.length === 1) {
+                                    const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
+                                    const hasAll = groupLicenses.every(lic => this.accountLicense.includes(lic));
+                                    canSell = hasAll;
+                                    reason = hasAll
+                                        ? 'ลูกค้ามี license ครบตามที่กลุ่มนี้กำหนด'
+                                        : 'ลูกค้าขาด license ที่จำเป็นในกลุ่มนี้';
+                                } else {
+                                    for (let groupNo of groupNumbers) {
+                                        const groupLicenses = groups[groupNo].map(r => r.INID_License__c);
+                                        const hasAll = groupLicenses.every(lic => this.accountLicense.includes(lic));
+                                        if (hasAll) {
+                                            canSell = true;
+                                            matchedGroup = groupNo;
+                                            reason = `ลูกค้ามี license ครบในกลุ่ม ${matchedGroup}`;
+                                            break;
+                                        }
+                                    }
+                                    if (!canSell) {
+                                        reason = 'ลูกค้าไม่มี license ครบในกลุ่มใดกลุ่มหนึ่ง';
+                                    }
+                                }
+                            }
+
+                            // ✅ เก็บสรุปผล
+                            this.summaryClassify.push({
+                                classifyId: classify,
+                                groups,
+                                reason,
+                                canSell,
+                                requireLicense,
+                                ...(matchedGroup ? { matchedGroup } : {})
+                            });
+
+                            // ✅ แสดง log
+                            console.log(`👉 Classify: ${classify}`);
+                            console.log(`   🔧 ต้องตรวจ license? : ${requireLicense}`);
+                            console.log(`   📌 License ของ Account: ${JSON.stringify(this.accountLicense)}`);
+                            console.log(`   📌 License ของ Classify: ${JSON.stringify(allLicenses)}`);
+
+                            if (groupNumbers.length === 1) {
+                                const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
+                                console.log(`   กลุ่มเลข: ${groupNumbers[0]} License ที่ต้องมีครบ: ${JSON.stringify(groupLicenses)}`);
+                            } else {
+                                console.log(`   กลุ่มทั้งหมดและ license ในแต่ละกลุ่ม:`);
+                                groupNumbers.forEach(groupNo => {
+                                    const groupLicenses = groups[groupNo].map(r => r.INID_License__c);
+                                    console.log(`      - กลุ่ม ${groupNo}: ${JSON.stringify(groupLicenses)}`);
+                                });
+                            }
+
+                            console.log(`   ขายได้หรือไม่: ${canSell ? ' ขายได้' : ' ขายไม่ได้'} (${reason})`);
+                            console.log('---------------------------------------------------');
+                        });
+
+                        // สร้างตัวแปรเฉพาะ Classify ที่ขายได้
+                        this.sellableClassifyIds = this.summaryClassify
+                            .filter(c => c.canSell)
+                            .map(c => c.classifyId);
+
+                        console.log('Sellable Classify Ids:', JSON.stringify(this.sellableClassifyIds));
+                    })
+                    .catch(err => {
+                        console.error(' Error fetching classify type:', err);
+                    });
+            }
+
+        } else if (error) {
+            console.error('Error fetching classify license:', error);
+        }
+    }
+
+    @wire(fetchClassifyProduct , {sellableClassifyIds: '$sellableClassifyIds'})
+    wireFetchClassifyProduct({error , data}) {
+        if(data) {
+            this.productPriceBook = data;
+            console.log('product price book ' + JSON.stringify(this.productPriceBook , null , 2));
+        } else if(error) {
+            console.error(error) ;
+        }
+    }
+
+    // @wire(fetchClassifyType , {classifyId: '$classifyLicenseId'})
+    // wireFetchClassifyType(error , data) {
+    //     if(data) {
+    //         this.classifyType = data ;
+    //         console.log('classify type ' + JSON.stringify(this.classifyType , null ,2));
+    //     } else if(error) {
+    //         console.log(error) ;
+    //     }
+    // }
+
+
+
+
+    // สมมติว่าคุณมี accountLicense ที่ลูกค้ามี
+    // @wire(fetchClassifyLicense, { accountChannel: '$accountChannel' })
+    // wiredFetchClassifyLicense({ error, data }) {
+    //     if (data) {
+    //         this.classifyLicense = JSON.parse(data);
+    //         this.summaryClassify = [];
+    //         this.summaryClassifyId = []; // ตัวแปรเก็บเฉพาะ classifyId ที่ขายได้
+
+    //         const grouped = {};
+
+    //         // จัดกลุ่มข้อมูลก่อนใช้งาน
+    //         this.classifyLicense.forEach(record => {
+    //             const classify = record.INID_Classify__c;
+    //             const group = record.INID_License_Group__c;
+
+    //             if (!grouped[classify]) {
+    //                 grouped[classify] = {};
+    //             }
+    //             if (!grouped[classify][group]) {
+    //                 grouped[classify][group] = [];
+    //             }
+    //             grouped[classify][group].push(record);
+    //         });
+
+    //         Object.keys(grouped).forEach(classify => {
+    //             const groups = grouped[classify];
+    //             const groupNumbers = Object.keys(groups);
+
+    //             const allLicenses = [];
+    //             Object.values(groups).forEach(records => {
+    //                 records.forEach(r => {
+    //                     if (!allLicenses.includes(r.INID_License__c)) {
+    //                         allLicenses.push(r.INID_License__c);
+    //                     }
+    //                 });
+    //             });
+
+    //             let canSell = false;
+    //             let reason = '';
+    //             let matchedGroup = null;
+
+    //             if (groupNumbers.length === 1) {
+    //                 const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
+    //                 const hasAll = groupLicenses.every(lic => this.accountLicense.includes(lic));
+
+    //                 canSell = hasAll;
+    //                 reason = hasAll 
+    //                     ? 'ลูกค้ามี license ครบตามที่กลุ่มนี้กำหนด'
+    //                     : 'ลูกค้าขาด license ที่จำเป็นในกลุ่มนี้';
+
+    //             } else {
+    //                 for (let groupNo of groupNumbers) {
+    //                     const groupLicenses = groups[groupNo].map(r => r.INID_License__c);
+    //                     const hasAll = groupLicenses.every(lic => this.accountLicense.includes(lic));
+    //                     if (hasAll) {
+    //                         canSell = true;
+    //                         matchedGroup = groupNo;
+    //                         reason = `ลูกค้ามี license ครบในกลุ่ม ${matchedGroup}`;
+    //                         break;
+    //                     }
+    //                 }
+    //                 if (!canSell) {
+    //                     reason = 'ลูกค้าไม่มี license ครบในกลุ่มใดกลุ่มหนึ่ง';
+    //                 }
+    //             }
+
+    //             // เก็บข้อมูลสรุป (เต็ม)
+    //             this.summaryClassify.push({
+    //                 classifyId: classify,
+    //                 groups: groups,
+    //                 reason: reason,
+    //                 canSell: canSell,
+    //                 ...(matchedGroup ? { matchedGroup } : {})
+    //             });
+
+    //             // เก็บเฉพาะ Id ถ้าขายได้
+    //             if (canSell) {
+    //                 this.summaryClassifyId.push(classify);
+    //             }
+
+    //             // LOG
+    //             console.log(`Classify: ${classify}`);
+    //             console.log(`   License ของ Account: ${JSON.stringify(this.accountLicense)}`);
+    //             console.log(`   License ของ Classify: ${JSON.stringify(allLicenses)}`);
+
+    //             if (groupNumbers.length === 1) {
+    //                 const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
+    //                 console.log(`   กลุ่มเลข: ${groupNumbers[0]} License ที่ต้องมีครบ: ${JSON.stringify(groupLicenses)}`);
+    //             } else {
+    //                 console.log(`   กลุ่มทั้งหมดและ license ในแต่ละกลุ่ม:`);
+    //                 groupNumbers.forEach(groupNo => {
+    //                     const groupLicenses = groups[groupNo].map(r => r.INID_License__c);
+    //                     console.log(`      - กลุ่ม ${groupNo}: ${JSON.stringify(groupLicenses)}`);
+    //                 });
+    //             }
+
+    //             console.log(`  ขายได้หรือไม่: ${canSell ? '✅ ขายได้' : '❌ ขายไม่ได้'} (${reason})`);
+    //             console.log('---------------------------------------------------');
+    //         });
+
+    //         // log เพิ่มเติม
+    //         console.log('🎯 สรุป Classify ที่ขายได้ (ID):', JSON.stringify(this.summaryClassifyId , null ,2));
+
+    //     } else if (error) {
+    //         console.error('❌ เกิดข้อผิดพลาดในการดึงข้อมูล classify license:', error);
+    //     }
+    // }
+
+
 
     // fetch Auto Field Ship To 
    fetchShipto(accountId) {
@@ -1809,7 +2152,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         return this.handleSelectCustomer.length === 0 ;
     }
 
-    // Start Handle Save
     async handleSaveSuccess() {
         this.dispatchEvent(
             new ShowToastEvent({
@@ -1820,8 +2162,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         );
 
         try {
-        // Get current tabId
-            const { tabId } = await getFocusedTabInfo();
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
                 attributes: {
@@ -1829,17 +2169,19 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     objectApiName: 'Order',
                     actionName: 'view'
                 }
-            }, true);
+            },true);
 
-            setTimeout(async () => {
-                if (this.isConsoleNavigation?.data === true) {
+            if (this.isConsoleNavigation?.data === true) {
+                const { tabId } = await getFocusedTabInfo();
+                setTimeout(async () => {
                     await closeTab(tabId);
-                }
-            }, 1000);
+                }, 1000);
+            }
         } catch (err) {
             console.error('handleSaveSuccess error:', err);
         }
     }
+
 
     async insertOrderFoc(orderId) {
         const orderFoc = {
