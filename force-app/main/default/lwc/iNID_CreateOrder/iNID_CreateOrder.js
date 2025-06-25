@@ -30,6 +30,7 @@ import fetchClassifyLicense from '@salesforce/apex/INID_OrderController.fetchCla
 import fetchClassifyProduct from '@salesforce/apex/INID_OrderController.fetchClassifyProduct' ;
 import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude' ;
 import fetchClassifyType from '@salesforce/apex/INID_OrderController.fetchClassifyType' ;
+import fetchAverage from '@salesforce/apex/INID_OrderController.fetchAverage' ;
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
@@ -115,6 +116,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track classifyType = [];
     @track sellableClassifyIds = [] ;
 
+    @track productAverage = [] ;
 
 
 
@@ -505,6 +507,18 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    @wire(fetchAverage, {accountId: '$accountId'})
+    wiredAverge({ error, data }) {
+        if (data) {
+            this.productAverage = data;
+
+            console.log('productAverage: ' + JSON.stringify(this.productAverage, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
+
+
     @wire(getRecord, {
         recordId: "$recordId",
         fields: [ACCOUNT_ID , PAYMENT_TYPE_FIELD, PAYMENT_TERM_FIELD, INID_Organization__c]
@@ -854,14 +868,20 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     mapProduct(source, addedAddons = [], hlNumber) {
         const hasAddon = addedAddons.includes(source.INID_Material_Code__c);
-        const salePrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
+        const productPriceBookId = source.INID_Product_Price_Book__r.Id;
+        
+        let salePrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
+        const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productPriceBookId);
+        if (matchedAverage) {
+            salePrice = matchedAverage.INID_Price__c;
+        }
+
         const quantity = 1;
         const total = salePrice * quantity;
         hlNumber += 1;
         this.hlNumber = hlNumber;
 
         console.log('source in mapProduct function:', JSON.stringify(source, null, 2));
-        const productPriceBookId = source.INID_Product_Price_Book__r.Id;
         console.log('editable by BU group:', this.productBuIds?.has(productPriceBookId));
 
         let editableSalePrice = false;
@@ -877,9 +897,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             productPriceBookId: productPriceBookId,
             code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
             description: source.INID_Product_Price_Book__r.INID_SKU_Description__c,
-            unitPrice: salePrice,
+            unitPrice:salePrice,
             quantity,
-            salePrice,
+            salePrice: salePrice,
             unit: source.INID_Product_Price_Book__r.INID_Unit__c || '',
             total,
             nameBtn: '+',
@@ -1260,6 +1280,14 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
                 editableSalePrice = true;
             }
+
+            // const productPriceBookId = product.INID_Product_Price_Book__r.Id;
+            let salePrice = product.INID_Unit_Price__c || 0;
+            const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productId);
+            if (matchedAverage) {
+                salePrice = matchedAverage.INID_Price__c;
+            }
+
             addedProducts.push({
                 rowKey: productId,
                 id: productId,
@@ -1268,9 +1296,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 Name: matched.Name,
                 description: product.INID_SKU_Description__c,
                 quantity,
-                salePrice: unitPrice,
+                unitPrice:salePrice,
+                salePrice:salePrice,
                 unit: product.INID_Unit__c,
-                unitPrice,
                 total: unitPrice * quantity,
                 editableSalePrice,
                 nameBtn: '+',
@@ -2411,7 +2439,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         const totalNetPrice = this.summaryProducts
             .filter(p => !p.addOnText) // กรองเฉพาะสินค้าหลัก
-            .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
+            .reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
 
         this.totalNetPrice = totalNetPrice ;
         console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${this.totalNetPrice.toFixed(2)} บาท`);

@@ -35,6 +35,7 @@ import fetchAccountChannel from '@salesforce/apex/INID_OrderController.fetchAcco
 import fetchClassifyLicense from '@salesforce/apex/INID_OrderController.fetchClassifyLicense' ;
 import fetchClassifyProduct from '@salesforce/apex/INID_OrderController.fetchClassifyProduct' ;
 import fetchClassifyType from '@salesforce/apex/INID_OrderController.fetchClassifyType' ;
+import fetchAverage from '@salesforce/apex/INID_OrderController.fetchAverage' ;
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 
@@ -106,6 +107,7 @@ export default class INID_OrderLine extends LightningElement {
     @track classifyType = [];
     @track sellableClassifyIds = [] ;
     @track allBU ;
+    @track productAverage = []  ;
 
     
      
@@ -521,7 +523,17 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+    
+    @wire(fetchAverage, {accountId: '$accountId'})
+    wiredAverge({ error, data }) {
+        if (data) {
+            this.productAverage = data;
 
+            console.log('productAverage: ' + JSON.stringify(this.productAverage, null, 2) );
+        } else if (error) {
+            console.error('Error fetching accounts:', error);
+        }
+    }
 
 
     @wire(fetchProductOrderItem, { orderId: '$recordId' })
@@ -530,13 +542,32 @@ export default class INID_OrderLine extends LightningElement {
             const mainProducts = [];
             const addonProducts = [];
 
+            console.log('data product order item : ' + JSON.stringify(data,null,2))
+
             data.forEach(row => {
                 const isAddon = row.INID_Remark__c != null ;
-                
                 const quantity = Number(row.INID_Quantity__c) || 0;
-                const salePrice = Number(row.INID_Sale_Price__c) || 0;
-                const total = parseFloat((quantity * salePrice).toFixed(2));
+                
+                let unitPrice = row.INID_Product_Price_Book__r?.INID_Unit_Price__c || 0;
+                const productPriceBookId = row.INID_Product_Price_Book__c;
 
+                    
+                console.log('product average : ' + JSON.stringify(this.productAverage, null ,2));
+                const matchedAverage = this.productAverage?.find(
+                     avg => avg.INID_Product_Price_Book__c === productPriceBookId
+                );
+
+                
+                console.log('match average : ' + JSON.stringify(matchedAverage, null ,2));
+
+                if (matchedAverage) {
+                    unitPrice = matchedAverage.INID_Price__c;
+                    console.log(`พบ average ของ ${productPriceBookId} = ${unitPrice}`);
+                }  
+                
+                let salePrice = row.INID_Sale_Price__c || 0;
+                const total = parseFloat((quantity * salePrice).toFixed(2));
+                                
                 let editableSalePrice = false;
                 if (this.allBU === "true") {
                     editableSalePrice = true;
@@ -544,15 +575,15 @@ export default class INID_OrderLine extends LightningElement {
                     editableSalePrice = true;
                 }
 
-                const productObj = {
 
+                const productObj = {
                     rowKey: row.Id,
                     code: row.INID_Material_Code__c,
                     hlItemNumber: row.INID_HL_Item_Number__c,
                     id: row.INID_Product_Price_Book__r?.Id,
                     productCode: row.INID_Material_Code__c || '' ,
                     description: row.INID_SKU_Decription__c,
-                    unitPrice: row.INID_Product_Price_Book__r?.INID_Unit_Price__c || 0,
+                    unitPrice,
                     quantity,
                     salePrice,
                     unit: row.INID_Product_Price_Book__r?.INID_Unit__c || '',
@@ -561,7 +592,7 @@ export default class INID_OrderLine extends LightningElement {
                     variant: isAddon ? 'base' : 'brand',
                     addonDisabled: false,
                     isAddOn: isAddon,
-                    productPriceBookId: row.INID_Product_Price_Book__r?.Id,
+                    productPriceBookId: row.INID_Product_Price_Book__c,
                     editableSalePrice
                 };
 
@@ -686,6 +717,8 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+    
+
     handleRowAction(event) {
         const addonAction = event.detail.action.name;
         const rowAction = event.detail.row;
@@ -788,14 +821,17 @@ export default class INID_OrderLine extends LightningElement {
         const productPriceBookId = source.INID_Product_Price_Book__r.Id;
         let editableSalePrice = false;
 
+        let salePrice = source.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
+        const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productPriceBookId);
+        if (matchedAverage) {
+            salePrice = matchedAverage.INID_Price__c;
+        }
+
         if (this.allBU === "true") {
             editableSalePrice = true;
         } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
             editableSalePrice = true;
         }
-
-
-        
 
         return {
             rowKey: source.INID_Product_Price_Book__r.Id,
@@ -803,9 +839,9 @@ export default class INID_OrderLine extends LightningElement {
             productPriceBookId: source.INID_Product_Price_Book__r.Id, 
             code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
             description: source.INID_Product_Price_Book__r.INID_SKU_Description__c,
-            unitPrice,
+            unitPrice: salePrice, 
             quantity,
-            salePrice: unitPrice,
+            salePrice,
             unit: source.INID_Product_Price_Book__r.INID_Unit__c || '',
             total: unitPrice * quantity,
             nameBtn: '+',
@@ -864,7 +900,12 @@ export default class INID_OrderLine extends LightningElement {
                 } else if (alreadyExists) {
                     duplicates.push(code);
                 } else {
-                    const unitPrice = match.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
+                    let unitPrice = match.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
+
+                    const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productId);
+                    if (matchedAverage) {
+                        unitPrice = matchedAverage.INID_Price__c;
+                    }
                     const quantity = 1;
 
                     let editableSalePrice = false;
@@ -1927,7 +1968,7 @@ export default class INID_OrderLine extends LightningElement {
 
         const totalNetPrice = this.summaryProducts
             .filter(p => !p.addOnText)
-            .reduce((sum, p) => sum + parseFloat(p.netPrice || 0), 0);
+            .reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
         
         this.totalNetPrice = totalNetPrice ;
 

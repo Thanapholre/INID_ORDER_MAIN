@@ -518,4 +518,14 @@ public with sharing class INID_OrderController {
             IN :sellableClassifyIds
         ] ;
     }
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Average_Product_Price__c> fetchAverage(Id accountId) {
+        return[
+            SELECT INID_Product_Price_Book__c, INID_Price__c 
+            FROM INID_Average_Product_Price__c 
+            WHERE INID_Account__c = :accountId
+        ]; 
+    }
+
 }
