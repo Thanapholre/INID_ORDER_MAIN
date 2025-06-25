@@ -528,4 +528,14 @@ public with sharing class INID_OrderController {
         ]; 
     }
 
+
+    @AuraEnabled(cacheable=true)
+    public static List<Account> fetchAccountDetail(Id accountId) {
+        return[
+            SELECT Id , AccountNumber , Name , INID_API_Status__c  
+            FROM Account 
+            WHERE Id = :accountId 
+        ]; 
+    }
+
 }

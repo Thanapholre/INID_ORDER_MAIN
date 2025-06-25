@@ -31,6 +31,7 @@ import fetchClassifyProduct from '@salesforce/apex/INID_OrderController.fetchCla
 import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fetchProductLicenseExclude' ;
 import fetchClassifyType from '@salesforce/apex/INID_OrderController.fetchClassifyType' ;
 import fetchAverage from '@salesforce/apex/INID_OrderController.fetchAverage' ;
+import fetchAccountDetail from '@salesforce/apex/INID_OrderController.fetchAccountDetail' ;
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
@@ -115,9 +116,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track summaryClassifyId ;
     @track classifyType = [];
     @track sellableClassifyIds = [] ;
-
+    @track accountDetail = [] ;
     @track productAverage = [] ;
-
+    @track totalFocPrice ;
+    @track accountName = '' ;
 
 
   
@@ -145,6 +147,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             }
         }
     ];
+
+
+
 
     @wire(fetchAccountLicense , {accountId: '$accountId'})
     wiredFetchAccountLicense({error , data}) {
@@ -543,8 +548,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-
-
+    @wire(fetchAccountDetail , {accountId: '$accountId'})
+    wiredFetchAccountDetail({error , data}) {
+        if(data) {
+            this.accountDetail = data ;
+            this.accountName = this.accountDetail[0]?.Name || '';
+            console.log('accountDetail:' + JSON.stringify(this.accountDetail,null,2));
+            console.log('account name :' + JSON.stringify(this.accountName , null ,2));
+        } else if(error) {
+            console.log('have error:' + error) ;
+        }
+    }
     
     get billToCodes() {
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
@@ -2042,20 +2056,22 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     async insertOrderFoc(orderId) {
         const orderFoc = {
             AccountId: this.accountId ,
+            INID_Account_Name__c: this.accountId ,
             Status: 'Draft' ,
             EffectiveDate: new Date().toISOString(),
             Type: this.typeOrderSecondValue ,
-            INID_PaymentType__c: this.paymentTypeValue,
-            INID_PaymentTerm__c: this.paymentTermValue,
-            INID_Bill_To_Code__c: this.billto,	
-            INID_Ship_To_Code__c: this.shipto,
-            INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
+            INID_Payment_Type__c: this.paymentTypeValue,
+            INID_Payment_term__c: this.paymentTermValue,
+            INID_Province_Bill_To__c: this.billto,	
+            INID_Province_Ship_To__c: this.shipto,
+            INID_Purchase_Order_Number__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
-            INID_NoteInternal__c: this.noteInternal,
+            INID_Note_Internal__c: this.noteInternal,
             INID_ExcVAT__c: this.radioButtonOrderLabel2,
             INID_IncVAT__c: this.radioButtonOrderLabel1,
-            INID_NoteAgent__c : this.noteAgent ,
-            INID_Original_Order__c: orderId
+            INID_Note_Agent__c : this.noteAgent ,
+            INID_Original_Order__c: orderId,
+            INID_Total_Amount__c:  this.totalFocPrice
         };
         try {   
             if (this.focProducts && this.focProducts.length > 0) {
@@ -2443,6 +2459,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
         this.totalNetPrice = totalNetPrice ;
         console.log(`ราคารวมเฉลี่ยสุทธิของสินค้าทั้งหมด: ${this.totalNetPrice.toFixed(2)} บาท`);
+
+        const totalFoc = this.summaryProducts
+            .filter(p => p.addOnText === 'ของแถมนอกบิล (FOC)') // กรองเฉพาะ Add-On Foc
+            .reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
+
+        this.totalFocPrice = totalFoc ;
+        console.log(`ราคารวมเฉลี่ยสุทธิของ FOC ทั้งหมด: ${this.totalFocPrice.toFixed(2)} บาท`);
+
+       
 
         const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
         if (selectedPromotionsCount < 1) {
