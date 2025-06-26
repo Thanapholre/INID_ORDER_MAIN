@@ -129,24 +129,51 @@
 
                             <!-- Check One Time -->
                             <template if:true={isOneTime}>
-                                <lightning-textarea class="main" label="Bill To" value={billto} onchange={billtoHandleChange}></lightning-textarea>
+                                <div style="border: 1px solid #ccc !important; border-radius: 10px; padding: 10px; margin-bottom: 4px;">
+                                    <h3>Bill to</h3>
+                                    <div style="padding: 10px 10px 10px 20px;">    
+                                        <lightning-input class="main" type="text" label="Address 1" value={billToAddress1} onchange={handleBillToAddress1Change} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="Address 2" value={billToAddress2} onchange={handleBillToAddress2Change}></lightning-input>
+                                        <lightning-input class="main" type="text" label="Street" value={billToStreet} onchange={handleBillToStreetChange} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="City" value={billToCity} onchange={handleBillToCityChange} required></lightning-input>
+                                        <lightning-combobox
+                                            name="province"
+                                            label="Selected Bill To Province"
+                                            value={billToProvince.value}
+                                            placeholder="เลือกจังหวัด"
+                                            options={provinceBillToOptions}
+                                            onchange={handleBillToProvinceChange}>
+                                        </lightning-combobox>                                        
+                                        <lightning-input class="main" type="text" label="PostCode" value={billToPostCode} onchange={handleBillToPostCodeChange} required></lightning-input>
+                                    </div>
+                                </div>
                             </template>
                             <template if:false={isOneTime}>
                                 <lightning-input class="main" label="Bill To" value={billto} onchange={billtoHandleChange} disabled required></lightning-input>
                             </template>
-                        
+
                             <template if:true={isOneTime}>
-                                <lightning-textarea class="main" label="Ship To" value={shipto} onchange={handleShiptoChange}></lightning-textarea>
+                                <div style="border: 1px solid #ccc !important; border-radius: 10px; padding: 10px; margin-bottom: 4px;">
+                                    <h3>Ship to</h3>
+                                    <div style="padding: 10px 10px 10px 20px;">
+                                        <lightning-input class="main" type="text" label="Address 1" value={shipToAddress1} onchange={handleShipToAddress1Change} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="Address 2" value={shipToAddress2} onchange={handleShipToAddress2Change}></lightning-input>
+                                        <lightning-input class="main" type="text" label="Street" value={shipToStreet} onchange={handleShipToStreetChange} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="City" value={shipToCity} onchange={handleShipToCityChange} required></lightning-input>
+                                        <lightning-combobox
+                                            name="province"
+                                            label="Selected Ship To Province"
+                                            value={shipToProvince.value}
+                                            placeholder="เลือกจังหวัด"
+                                            options={provinceShipToOptions}
+                                            onchange={handleShipToProvinceChange}>
+                                        </lightning-combobox>           
+                                        <lightning-input class="main" type="text" label="PostCode" value={shipToPostCode} onchange={handleShipToPostCodeChange} required></lightning-input>
+                                    </div>
+                                </div>
                             </template>
                             <template if:false={isOneTime}>
-                                <lightning-combobox
-                                    class="main"
-                                    label="Ship To"
-                                    value={shipto}
-                                    options={shiptoOptions}
-                                    onchange={handleShiptoChange}
-                                    required>
-                                </lightning-combobox>
+                                <lightning-combobox class="main" label="Ship To" value={shipto} options={shiptoOptions} onchange={handleShiptoChange} required></lightning-combobox>
                             </template>
                             <!-- End Check One Time -->
 

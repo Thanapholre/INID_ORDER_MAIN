@@ -32,6 +32,7 @@ import fetchProductLicenseExclude from '@salesforce/apex/INID_OrderController.fe
 import fetchClassifyType from '@salesforce/apex/INID_OrderController.fetchClassifyType' ;
 import fetchAverage from '@salesforce/apex/INID_OrderController.fetchAverage' ;
 import fetchAccountDetail from '@salesforce/apex/INID_OrderController.fetchAccountDetail' ;
+import getProvinces from '@salesforce/apex/INID_OrderController.getProvinces' ;
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
@@ -122,6 +123,20 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track accountName = '' ;
     @track raidoExclude = false ;
     @track raidoInclude = false ;
+    @track billToAddress1 = '';
+    @track billToAddress2 = '';
+    @track billToStreet = '';
+    @track billToCity = '';
+    @track billToProvince = '';
+    @track billToPostCode = '';
+    @track shipToAddress1 = '';
+    @track shipToAddress2 = '';
+    @track shipToStreet = '';
+    @track shipToCity = '';
+    @track shipToProvince = '';
+    @track shipToPostCode = '';
+    @track provinceBillToOptions = [] ;
+    @track provinceShipToOptions = [];
 
 
   
@@ -561,6 +576,34 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log('have error:' + error) ;
         }
     }
+ 
+    @wire(getProvinces)
+    wiredGetProvinces({error , data}) {
+        if (data) {
+            this.provinceBillToOptions = data.map(item => ({
+                label: item.label,
+                value: item.value
+            }));
+
+            this.provinceShipToOptions = data.map(item => ({
+                label: item.label,
+                value: item.value
+            }));
+
+            console.log('get province:' + JSON.stringify(this.provinceBillToOptions, null , 2)) ;
+        } else if(error) {
+            console.log('error province :' + JSON.stringify(error , null  ,2));
+        }
+    }
+
+    handleBillToProvinceChange(event) {
+        this.billToProvince = event.detail.value;
+    }
+
+    handleShipToProvinceChange(event) {
+        this.shipToProvince = event.detail.value;
+    }
+
     
     get billToCodes() {
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
@@ -622,6 +665,58 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             { value: 'Within 10 days Disc 4%, 20/2% due 30 day', label: 'ZB04 - Within 10 days Disc 4%, 20/2% due 30 day' },
             { value: 'ZB05 - Within 5 days Disc 2% due 10 day', label: 'ZB05 - Within 5 days Disc 2% due 10 day' }
         ];
+    }
+
+     handleBillToAddress1Change(event) {
+        this.billToAddress1 = event.target.value;
+    }
+
+    handleBillToAddress2Change(event) {
+        this.billToAddress2 = event.target.value;
+    }
+
+    handleBillToStreetChange(event) {
+        this.billToStreet = event.target.value;
+    }
+
+    handleBillToCityChange(event) {
+        this.billToCity = event.target.value;
+    }
+
+    handleBillToProvinceChange(event) {
+        this.billToProvince = event.target.value;
+    }
+
+    handleBillToPostCodeChange(event) {
+        this.billToPostCode = event.target.value;
+    }
+
+    handleShipToAddress1Change(event) {
+        this.shipToAddress1 = event.target.value;
+    }
+
+    handleShipToAddress2Change(event) {
+        this.shipToAddress2 = event.target.value;
+    }
+
+    handleShipToStreetChange(event) {
+        this.shipToStreet = event.target.value;
+    }
+
+    handleShipToCityChange(event) {
+        this.shipToCity = event.target.value;
+    }
+
+    handleShipToProvinceChange(event) {
+        this.shipToProvince = event.target.value;
+    }
+
+    handleShipToPostCodeChange(event) {
+        this.shipToPostCode = event.target.value;
+    }
+
+    billtoHandleChange(event) {
+        this.billto = event.target.value;
     }
     
     handleInput(event) {
@@ -1528,6 +1623,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             } else {
                 this.isShowApplyPromotionData = true;
             }
+        
 
             this.comboGroups = getPromotions.promotions.map(promo => {
                 // แยก benefits ตาม conditionType
@@ -1582,6 +1678,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                                 ? b.INID_Benefit_Type__c + ' : ' + b.INID_Discount__c + ' % '
                                 : 'N/A'
                     });
+
+
                 });
 
                 // สร้างกลุ่มที่แยก AND / OR
@@ -1602,6 +1700,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             });
 
             console.log('combo group : ', JSON.stringify(this.comboGroups, null, 2));
+
         } catch (error) {
             console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
             alert('error\n' + (error.body?.message || error.message || JSON.stringify(error)));
@@ -1746,6 +1845,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         });
 
         this.updateSelectedBenefits();
+        this.updateFreeProductPromotion();  
     }
 
 
@@ -1788,6 +1888,37 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             };
         });
     }
+
+    updateFreeProductPromotion() {
+        this.freeProductPromotion = [];
+
+        this.comboGroups.forEach(promoGroup => {
+            promoGroup.groupedBenefits.forEach(group => {
+                group.benefits.forEach(benefit => {
+                    const isSelected = benefit.selected === true;
+                    const isFreeProduct =
+                        benefit.benefitType === 'Free Product (Fix Quantity)';
+
+                    if (isSelected && isFreeProduct) {
+                        const [materialCode = '', skuDescription = ''] =
+                            (benefit.freeProductLabelFix || '').split(' - ');
+
+                        this.freeProductPromotion.push({
+                            productPriceBookId: benefit.BenefitProduct,
+                            materialCode,
+                            skuDescription,
+                            fixQty: benefit.freeProductQuantityFix || null,
+                            promotionId: promoGroup.promotionId,
+                            promotionName: promoGroup.promotionName
+                        });
+                    }
+                });
+            });
+        });
+
+        console.log(' Free Product :', JSON.stringify(this.freeProductPromotion, null, 2));
+    }
+
 
 
     handleBenefitTypeChange(event) {
@@ -2069,7 +2200,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const orderFoc = {
             AccountId: this.accountId ,
             INID_Account_Name__c: this.accountId ,
-            Status: 'Draft' ,
+            INID_Status__c: 'Draft' ,
             INID_Order_Start_Date__c: new Date().toISOString(),
             INID_Order_Type__c: this.typeOrderSecondValue ,
             INID_Payment_Type__c: this.paymentTypeValue,
@@ -2083,7 +2214,18 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_IncVAT__c: this.raidoInclude,
             INID_Note_Agent__c : this.noteAgent ,
             INID_Original_Order__c: orderId,
-            INID_Total_Amount__c:  this.totalFocPrice
+            INID_Total_Amount__c:  this.totalFocPrice ,
+            INID_Address_Bill_To__c: this.billToAddress1 ,
+            INID_Address_Ship_To__c: this.shipToAddress2 ,
+            INID_Address_Number_Bill_To__c: this.bill,
+            INID_ZIP_Code_Bill_To__c: this.billToPostCode,
+            INID_ZIP_Code_Ship_To__c: this.shipToPostCode ,
+            INID_Street_Bill_To__c: this.billToStreet ,
+            INID_Street_Ship_To__c: this.shipToStreet ,
+            INID_City_Billto__c: this.billToCity ,
+            INID_City_Shipto__c: this.shipToCity ,
+            INID_Province_Bill_To__c: this.billToProvince, 
+            INID_Province_Ship_To__c: this.shipToProvince 
         };
 
         console.log('Order Foc :' + JSON.stringify(orderFoc, null, 2))
@@ -2102,6 +2244,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         const orderDetail = {
             AccountId: this.accountId ,
             Status: 'Draft' ,
+            INID_Status__c : 'Draft' ,
             EffectiveDate: new Date().toISOString(),
             Type: this.typeOrderSecondValue ,
             INID_PaymentType__c: this.paymentTypeValue,
@@ -2115,7 +2258,23 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_IncVAT__c: this.radioButtonOrderLabel1,
             INID_NoteAgent__c : this.noteAgent ,
             INID_NetAmount__c: this.totalNetPrice,
+            INID_Address_Billto__c: this.billToAddress1 ,
+            INID_Address_Billto2__c: this.billToAddress2 ,
+            INID_Street_Billto__c: this.billToStreet ,
+            INID_City_Billto__c: this.billToCity ,
+            INID_Province_Billto__c: this.billToProvince ,
+            INID_PostCode_Billto__c: this.billToPostCode ,
+
+            INID_Address_Shipto__c: this.shipToAddress1 ,
+            INID_Address_Shipto2__c: this.shipToAddress2 ,
+            INID_Street_Shipto__c: this.shipToStreet ,
+            INID_City_Shipto__c: this.shipToCity ,
+            INID_Province_Shipto__c: this.shipToProvince ,
+            INID_PostCode_Shipto__c: this.shipToPostCode ,
         };
+
+        console.log('order Detail : ' + JSON.stringify(orderDetail, null, 2));
+
         try {
             const orderId = await insertOrder({ order: orderDetail });
             this.orderId = orderId;
@@ -2193,6 +2352,21 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             }
         });
 
+        if (Array.isArray(this.freeProductPromotion)) {
+            this.freeProductPromotion.forEach(free => {
+                orderItemList.push({
+                    INID_Quantity__c: free.fixQty || null,
+                    INID_Sale_Price__c: 0,
+                    INID_Product_Price_Book__c: free.productPriceBookId,
+                    INID_Type__c: 'FREE',
+                    INID_Order__c: orderId,
+                    INID_HL_Number__c: ++currentHLNumber,
+                    INID_Item_Number__c: free.itemNumber,
+                    INID_Remark__c: 'โปรโมชั่น',
+                });
+            });
+        }
+
         console.log('Order Item List (excluded FOC Add-ons):', JSON.stringify(orderItemList, null, 2));
 
         try {
@@ -2266,11 +2440,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             msg = error.message;
         }
 
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'Error saving data',
-            message: msg,
-            variant: 'error',
-        }));
+        // this.dispatchEvent(new ShowToastEvent({
+        //     title: 'Error saving data',
+        //     message: msg,
+        //     variant: 'error',
+        // }));
+
+        console.log('error from save error: ' + JSON.stringify(error, null , 2));
     }
 
     //End Handle Save 
@@ -2505,3 +2681,4 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
       
     }
 }
+

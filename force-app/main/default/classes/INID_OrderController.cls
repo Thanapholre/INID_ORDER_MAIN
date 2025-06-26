@@ -341,7 +341,11 @@ public with sharing class INID_OrderController {
             SELECT AccountId , Status , EffectiveDate , Type , INID_PaymentType__c , 
             INID_PaymentTerm__c , INID_Bill_To_Code__c , INID_Ship_To_Code__c , 
             INID_PurchaseOrderNumber__c , INID_Organization__c , INID_NoteInternal__c , 
-            INID_ExcVAT__c , INID_IncVAT__c , INID_NoteAgent__c , Account.Name
+            INID_ExcVAT__c , INID_IncVAT__c , INID_NoteAgent__c , Account.Name , INID_Address_Billto__c ,
+            INID_Address_Shipto__c , INID_Address_Billto2__c , INID_Address_Shipto2__c , 
+            INID_Street_Billto__c , INID_Street_Shipto__c , INID_City_Billto__c , 
+            INID_City_Shipto__c, INID_PostCode_Billto__c, INID_PostCode_Shipto__c , 
+            INID_Province_Billto__c , INID_Province_Shipto__c 
             FROM Order 
             WHERE Id = :orderId
         ] ;
@@ -536,6 +540,30 @@ public with sharing class INID_OrderController {
             FROM Account 
             WHERE Id = :accountId 
         ]; 
+    }
+
+    public class PicklistOption {
+        @AuraEnabled public String label;
+        @AuraEnabled public String value;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<PicklistOption> getProvinces() {
+        List<PicklistOption> results = new List<PicklistOption>();
+        
+        // แก้ Object/Field ให้ตรงของจริงนะ
+        Schema.DescribeFieldResult fieldResult = Order.INID_Province_Billto__c.getDescribe();
+        
+        for (Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+            if (entry.isActive()) {
+                PicklistOption option = new PicklistOption();
+                option.label = entry.getLabel(); // เช่น "กรุงเทพมหานคร"
+                option.value = entry.getValue(); // เช่น "10"
+                results.add(option);
+            }
+        }
+
+        return results;
     }
 
 }

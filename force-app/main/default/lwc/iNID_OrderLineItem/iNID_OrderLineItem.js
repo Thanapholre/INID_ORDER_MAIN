@@ -174,7 +174,6 @@ export default class INID_OrderLine extends LightningElement {
             { label: 'บริจาค', value: '4' },
             { label: 'ชดเชย', value: '5' },
             { label: 'สมนาคุณ', value: '6' },
-
         ];
     }
 
@@ -205,7 +204,7 @@ export default class INID_OrderLine extends LightningElement {
             this.userGroup = data;
             console.log('user Gruop : ' + JSON.stringify(this.userGroup, null, 2) );
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching user group:', error);
         }
     }
 
@@ -218,7 +217,7 @@ export default class INID_OrderLine extends LightningElement {
             console.log('BU Gruop : ' + JSON.stringify(this.buGroupId, null, 2) );
             console.log('All BU Gruop : ' + JSON.stringify(this.allBU, null, 2) );
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching BU Group:', error);
         }
     }
 
@@ -230,7 +229,7 @@ export default class INID_OrderLine extends LightningElement {
             this.productBuIds = new Set(this.productBuGroupId); 
             console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching Product BU Group:', error);
         }
     }
 
@@ -253,7 +252,7 @@ export default class INID_OrderLine extends LightningElement {
     
                 // console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
             } else if (error) {
-                console.error('Error fetching accounts:', error);
+                console.error('Error fetching accounts channel:', error);
        }
     }
 
@@ -437,7 +436,7 @@ export default class INID_OrderLine extends LightningElement {
         if (data) {
             this.accountId = data;
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching accounts Id:', error);
         }
     }
 
@@ -450,7 +449,7 @@ export default class INID_OrderLine extends LightningElement {
 
             console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching accounts Channel:', error);
         }
     }
     
@@ -531,7 +530,7 @@ export default class INID_OrderLine extends LightningElement {
 
             console.log('productAverage: ' + JSON.stringify(this.productAverage, null, 2) );
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching average:', error);
         }
     }
 
@@ -1289,6 +1288,34 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
+    freeProductInsertItems(hlcurrent = 0) {
+        let hlCounter = hlcurrent;
+        let itemIndex = hlcurrent + 1;
+        const result = [];
+
+        if (Array.isArray(this.freeProductPromotion)) {
+            this.freeProductPromotion.forEach((free) => {
+                const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
+
+                result.push({
+                    INID_Quantity__c: free.fixQty || null,
+                    INID_Sale_Price__c: 0,
+                    INID_Product_Price_Book__c: free.productPriceBookId,
+                    INID_Type__c: 'FREE',
+                    INID_Order__c: this.orderId,
+                    INID_HL_Number__c: ++hlCounter,
+                    INID_Item_Number__c: formattedNumber,
+                    INID_Remark__c: 'โปรโมชั่น'
+                });
+
+                itemIndex++;
+            });
+        }
+
+        return result;
+    }
+
+
     async handleSave() {
         try {
             const confirmed = await LightningConfirm.open({
@@ -1361,6 +1388,9 @@ export default class INID_OrderLine extends LightningElement {
                 itemIndex++;
             });
 
+            const freeProductItems = this.freeProductInsertItems(recordsToInsert.length);
+            recordsToInsert.push(...freeProductItems);
+
             // ถ้าไม่มี FOC แล้วเคยมี orderFocId ก็ลบ FOC เดิมทิ้ง
             if (uniqueFocProducts.length === 0 && this.orderFocId) {
                 await this.deleteFocItemsOnly(this.orderFocId);
@@ -1383,6 +1413,19 @@ export default class INID_OrderLine extends LightningElement {
                         INID_NoteInternal__c,
                         INID_NoteAgent__c,
                         Account ,
+                        INID_Address_Billto__c ,
+                        INID_Address_Billto2__c ,
+                        INID_Address_Shipto__c ,
+                        INID_Address_Number_Bill_To__c ,
+                        INID_PostCode_Billto__c ,
+                        INID_PostCode_Shipto__c ,
+                        INID_Street_Billto__c ,
+                        INID_Street_Shipto__c ,
+                        INID_Province_Billto__c ,
+                        INID_Province_Shipto__c ,
+                        INID_City_Billto__c ,
+                        INID_City_Shipto__c,
+                        INID_Purchase_Order_Number__c ,
                         ...rest 
                     } = item;
                     
@@ -1395,18 +1438,31 @@ export default class INID_OrderLine extends LightningElement {
                         INID_Order_Foc__c: this.orderFocId ,
                         INID_Order_Start_Date__c: new Date().toISOString(),
                         INID_Order_Type__c: Type ,
-                        INID_Payment_Type__c: this.INID_PaymentType__c,
-                        INID_Payment_term__c: this.INID_PaymentTerm__c,
                         INID_Bill_To_Code__c: INID_Bill_To_Code__c,	
                         INID_Ship_To_Code__c: INID_Ship_To_Code__c,
-                        INID_Purchase_Order_Number__c: this.purchaseOrderNumber,
-                        INID_Organization__c: this.organizationValue	,
+                        INID_Purchase_Order_Number__c: INID_Purchase_Order_Number__c,
                         INID_Note_Internal__c: INID_NoteInternal__c,
                         INID_ExcVAT__c: INID_ExcVAT__c,
                         INID_IncVAT__c: true,
                         INID_Note_Agent__c : INID_NoteAgent__c,
                         INID_Original_Order__c: this.orderId,
-                        INID_Total_Amount__c:  this.totalFocPrice
+                        INID_Total_Amount__c:  this.totalFocPrice,
+                        INID_Status__c: Status ,
+                        INID_Organization__c:INID_Organization__c ,
+                        INID_Payment_term__c:INID_PaymentTerm__c ,
+                        INID_Payment_Type__c:INID_PaymentType__c ,
+                        INID_Address_Bill_To__c: INID_Address_Billto__c,
+                        INID_Address_Billto2__c: INID_Address_Billto2__c ,
+                        INID_Address_Ship_To__c: INID_Address_Shipto__c ,
+                        INID_Address_Number_Bill_To__c:INID_Address_Number_Bill_To__c ,
+                        INID_ZIP_Code_Bill_To__c: INID_PostCode_Billto__c,
+                        INID_ZIP_Code_Ship_To__c: INID_PostCode_Shipto__c,
+                        INID_Street_Bill_To__c: INID_Street_Billto__c ,
+                        INID_Street_Ship_To__c: INID_Street_Shipto__c,
+                        INID_City_Billto__c: INID_City_Billto__c ,
+                        INID_City_Shipto__c: INID_City_Shipto__c ,
+                        INID_Province_Bill_To__c: INID_Province_Billto__c, 
+                        INID_Province_Ship_To__c: INID_Province_Shipto__c
 
                     };
                 });
@@ -1609,7 +1665,8 @@ export default class INID_OrderLine extends LightningElement {
                     groupedBenefits: groupedBenefits
                 };
             });
-   
+            
+            this.updateFreeProductPromotion(); 
             console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
 
         } catch(error) {
@@ -1645,74 +1702,6 @@ export default class INID_OrderLine extends LightningElement {
             return group;
         });
     }
-
-
-    // handleToggleBenefit(event) {
-    //     const promoId = event.currentTarget.dataset.promoid;
-    //     const benefitId = event.currentTarget.dataset.benefitid;
-
-    //     this.comboGroups = this.comboGroups.map(group => {
-    //         if (group.promotionId !== promoId) return group;
-            
-    //         const updatedGrouped = group.groupedBenefits.map(bg => {
-    //             const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
-
-    //             if (!isBenefitInGroup) {
-    //                 const isConflict =
-    //                     (bg.conditionType === 'AND') ||
-    //                     (bg.conditionType === 'OR');
-
-    //                 if (isConflict) {
-    //                     const clearedBenefits = bg.benefits.map(b => ({
-    //                         ...b,
-    //                         selected: false,
-    //                         className: 'benefit-box'
-    //                     }));
-    //                     return { ...bg, benefits: clearedBenefits };
-    //                 }
-
-    //                 return bg; 
-    //             }
-    //             if (bg.conditionType === 'AND') {
-    //                 const isAllSelected = bg.benefits.every(b => b.selected);
-    //                 const newSelected = !isAllSelected;
-    //                 const updatedBenefits = bg.benefits.map(b => ({
-    //                     ...b,
-    //                     selected: newSelected,
-    //                     className: newSelected ? 'benefit-box selected' : 'benefit-box'
-    //                 }));
-
-    //                 return { ...bg, benefits: updatedBenefits };
-    //             } else {
-    //                 const isAlreadySelected = bg.benefits.find(b => b.Id === benefitId)?.selected;
-
-    //                 const updatedBenefits = bg.benefits.map(b => {
-    //                     if (b.Id === benefitId) {
-    //                         const newSelected = !isAlreadySelected;
-    //                         return {
-    //                             ...b,
-    //                             selected: newSelected,
-    //                             className: newSelected ? 'benefit-box selected' : 'benefit-box'
-    //                         };
-    //                     }
-    //                     return {
-    //                         ...b,
-    //                         selected: false,
-    //                         className: 'benefit-box'
-    //                     };
-    //                 });
-
-    //                 return { ...bg, benefits: updatedBenefits };
-    //             }
-    //         });
-    //         return {
-    //             ...group,
-    //             groupedBenefits: updatedGrouped
-    //         };
-    //     });
-
-    //     this.updateSelectedBenefits();
-    // }
 
     handleToggleBenefit(event) {
         const promoId = event.currentTarget.dataset.promoid;
@@ -1782,6 +1771,7 @@ export default class INID_OrderLine extends LightningElement {
         });
 
         this.updateSelectedBenefits();
+        this.updateFreeProductPromotion();  
     }
 
 
@@ -1829,6 +1819,36 @@ export default class INID_OrderLine extends LightningElement {
                 className: hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box'
             };
         });
+    }
+
+    updateFreeProductPromotion() {
+        this.freeProductPromotion = [];
+
+        this.comboGroups.forEach(promoGroup => {
+            promoGroup.groupedBenefits.forEach(group => {
+                group.benefits.forEach(benefit => {
+                    const isSelected = benefit.selected === true;
+                    const isFreeProduct =
+                        benefit.benefitType === 'Free Product (Fix Quantity)';
+
+                    if (isSelected && isFreeProduct) {
+                        const [materialCode = '', skuDescription = ''] =
+                            (benefit.freeProductLabelFix || '').split(' - ');
+
+                        this.freeProductPromotion.push({
+                            productPriceBookId: benefit.BenefitProduct,
+                            materialCode,
+                            skuDescription,
+                            fixQty: benefit.freeProductQuantityFix || null,
+                            promotionId: promoGroup.promotionId,
+                            promotionName: promoGroup.promotionName
+                        });
+                    }
+                });
+            });
+        });
+
+        console.log(' Free Product :', JSON.stringify(this.freeProductPromotion, null, 2));
     }
 
     handleBack() {
