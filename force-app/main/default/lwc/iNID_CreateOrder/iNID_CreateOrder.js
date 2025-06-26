@@ -120,6 +120,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track productAverage = [] ;
     @track totalFocPrice ;
     @track accountName = '' ;
+    @track raidoExclude = false ;
+    @track raidoInclude = false ;
 
 
   
@@ -222,7 +224,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (data) {
             this.accounts = data;
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching Customer:', error);
         }
     }
 
@@ -235,7 +237,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching account channel :', error);
         }
     }
 
@@ -418,7 +420,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (data) {
             this.quotation = data;
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching quote:', error);
         }
     }
 
@@ -482,7 +484,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.userGroup = data;
             console.log('user Group ??? : ' + JSON.stringify(this.userGroup, null, 2) );
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching user gruop ', error);
         }
     }
 
@@ -496,7 +498,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log('All BU Gruop : ' + JSON.stringify(this.allBU, null, 2) );
             console.log('All BU Gruop : ' + typeof(this.allBU));
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching bu group:', error);
         }
     }
 
@@ -508,7 +510,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.productBuIds = new Set(this.productBuGroupId); 
             console.log('product price book by BU Group : ' + JSON.stringify(this.productBuGroupId, null, 2) );
         } else if (error) {
-            console.error('Error fetching accounts:', error);
+            console.error('Error fetching product bu:', error);
         }
     }
 
@@ -700,10 +702,20 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }, 200); 
     }
 
-    handleChangeRadioButton(event) {
-        const selectedRadioValue = event.target.value;
+    // handleChangeRadioButton(event) {
+    //     const selectedRadioValue = event.target.value;
+    //     const isChecked = event.target.checked;
+    //     this.radioCheckedValue = isChecked ? [...this.radioCheckedValue, selectedRadioValue] : this.value.filter(val => val !== selectedRadioValue);
+    // }
+
+    handleChangeRadioButton1(event) {
         const isChecked = event.target.checked;
-        this.radioCheckedValue = isChecked ? [...this.radioCheckedValue, selectedRadioValue] : this.value.filter(val => val !== selectedRadioValue);
+        isChecked ? this.raidoExclude = true : this.raidoExclude = false ;
+    }
+
+    handleChangeRadioButton2(event) {
+        const isChecked = event.target.checked;
+        isChecked ? this.raidoInclude = true : this.raidoInclude = false ;
     }
 
     organizationHandleChange(event) {
@@ -2058,21 +2070,23 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             AccountId: this.accountId ,
             INID_Account_Name__c: this.accountId ,
             Status: 'Draft' ,
-            EffectiveDate: new Date().toISOString(),
-            Type: this.typeOrderSecondValue ,
+            INID_Order_Start_Date__c: new Date().toISOString(),
+            INID_Order_Type__c: this.typeOrderSecondValue ,
             INID_Payment_Type__c: this.paymentTypeValue,
             INID_Payment_term__c: this.paymentTermValue,
-            INID_Province_Bill_To__c: this.billto,	
-            INID_Province_Ship_To__c: this.shipto,
+            INID_Bill_To_Code__c: this.billto,	
+            INID_Ship_To_Code__c: this.shipto,
             INID_Purchase_Order_Number__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
             INID_Note_Internal__c: this.noteInternal,
-            INID_ExcVAT__c: this.radioButtonOrderLabel2,
-            INID_IncVAT__c: this.radioButtonOrderLabel1,
+            INID_ExcVAT__c: this.raidoExclude,
+            INID_IncVAT__c: this.raidoInclude,
             INID_Note_Agent__c : this.noteAgent ,
             INID_Original_Order__c: orderId,
             INID_Total_Amount__c:  this.totalFocPrice
         };
+
+        console.log('Order Foc :' + JSON.stringify(orderFoc, null, 2))
         try {   
             if (this.focProducts && this.focProducts.length > 0) {
                 await insertOrderFocById({ orderFocList: [orderFoc] });
@@ -2083,7 +2097,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 console.error('Error:', error);
         }
     }
-
 
     async insertOrderDetailFunction() {
         const orderDetail = {

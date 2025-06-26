@@ -1368,13 +1368,51 @@ export default class INID_OrderLine extends LightningElement {
 
             if (!this.orderFocId && focRecordsToInsert.length > 0) {
                 const newOrderFocDetail = this.orderFocDetail.map(item => {
-                    const { Id, ...rest } = item;
+                    const { 
+                        Id,
+                        Status ,
+                        EffectiveDate ,
+                        Type , 
+                        INID_PaymentType__c,
+                        INID_PaymentTerm__c ,
+                        INID_Bill_To_Code__c ,
+                        INID_Ship_To_Code__c, 
+                        INID_Organization__c,
+                        INID_ExcVAT__c ,
+                        INID_IncVAT__c ,
+                        INID_NoteInternal__c,
+                        INID_NoteAgent__c,
+                        Account ,
+                        ...rest 
+                    } = item;
+                    
+                    const accountId = Account.Id ;
+
                     return {
                         ...rest,
+                        INID_Account_Name__c: accountId ,
                         INID_Original_Order__c: Id,
-                        INID_Order_Foc__c: this.orderFocId 
+                        INID_Order_Foc__c: this.orderFocId ,
+                        INID_Order_Start_Date__c: new Date().toISOString(),
+                        INID_Order_Type__c: Type ,
+                        INID_Payment_Type__c: this.INID_PaymentType__c,
+                        INID_Payment_term__c: this.INID_PaymentTerm__c,
+                        INID_Bill_To_Code__c: INID_Bill_To_Code__c,	
+                        INID_Ship_To_Code__c: INID_Ship_To_Code__c,
+                        INID_Purchase_Order_Number__c: this.purchaseOrderNumber,
+                        INID_Organization__c: this.organizationValue	,
+                        INID_Note_Internal__c: INID_NoteInternal__c,
+                        INID_ExcVAT__c: INID_ExcVAT__c,
+                        INID_IncVAT__c: true,
+                        INID_Note_Agent__c : INID_NoteAgent__c,
+                        INID_Original_Order__c: this.orderId,
+                        INID_Total_Amount__c:  this.totalFocPrice
+
                     };
                 });
+
+                console.log('order FOC Detail : ' + JSON.stringify(this.orderFocDetail, null ,2));
+                console.log('new order FOC Detail : ' + JSON.stringify(newOrderFocDetail, null ,2));
 
                 try {
                     const createdOrderFoc = await insertOrderFocById({ orderFocList: newOrderFocDetail });
@@ -1448,9 +1486,9 @@ export default class INID_OrderLine extends LightningElement {
             this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
             
-            setTimeout(() => {
-                window.location.reload();
-            }, 200);
+            // setTimeout(() => {
+            //     window.location.reload();
+            // }, 200);
 
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error.message));
