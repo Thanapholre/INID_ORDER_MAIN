@@ -110,6 +110,9 @@ export default class INID_OrderLine extends LightningElement {
     @track allBU ;
     @track productAverage = [];
     @track typeAddonOption = [];
+    @track mainProductMatched  = [];
+    @track mainProductPromotionId = [] ;
+    @track summaryRatioProduct = [] ;
 
     
      
@@ -284,7 +287,7 @@ export default class INID_OrderLine extends LightningElement {
                                 requireMap[item.Id] = item.INID_Require_License__c;
                             });
     
-                            // ✅ จัดกลุ่ม license ตาม classify/group
+                            // จัดกลุ่ม license ตาม classify/group
                             const grouped = {};
                             this.classifyLicense.forEach(record => {
                                 const classify = record.INID_Classify__c;
@@ -299,7 +302,7 @@ export default class INID_OrderLine extends LightningElement {
                                 grouped[classify][group].push(record);
                             });
     
-                            // ✅ ประมวลผลแต่ละ classify
+                            // ประมวลผลแต่ละ classify
                             Object.keys(grouped).forEach(classify => {
                                 const requireLicense = requireMap[classify] === true;
                                 let canSell = false;
@@ -1297,7 +1300,7 @@ export default class INID_OrderLine extends LightningElement {
                 if (free.benefitType === 'Free Product (Fix Quantity)') {
                     quantity = free.fixQty;
                 } else if (free.benefitType === 'Free Product (Ratio)') {
-                    quantity = free.summaryProduct || null;
+                    quantity = this.summaryRatioProduct || null;
                 }
 
                 result.push({
@@ -1394,6 +1397,7 @@ export default class INID_OrderLine extends LightningElement {
             const freeProductItems = this.freeProductInsertItems(recordsToInsert.length);
             recordsToInsert.push(...freeProductItems);
 
+            // ถ้าไม่มี FOC แล้วเคยมี o
             // ถ้าไม่มี FOC แล้วเคยมี orderFocId ก็ลบ FOC เดิมทิ้ง
             if (uniqueFocProducts.length === 0 && this.orderFocId) {
                 await this.deleteFocItemsOnly(this.orderFocId);
@@ -1428,44 +1432,46 @@ export default class INID_OrderLine extends LightningElement {
                         INID_Province_Shipto__c ,
                         INID_City_Billto__c ,
                         INID_City_Shipto__c,
-                        INID_Purchase_Order_Number__c ,
+                        INID_PurchaseOrderNumber__c ,
+                        
                         ...rest 
                     } = item;
                     
-                    const accountId = Account.Id ;
+                    const accountId = item.AccountId;
 
                     return {
                         ...rest,
-                        INID_Account_Name__c: accountId ,
+                        INID_AccountId__c: accountId ,
                         INID_Original_Order__c: Id,
                         INID_Order_Foc__c: this.orderFocId ,
-                        INID_Order_Start_Date__c: new Date().toISOString(),
-                        INID_Order_Type__c: Type ,
-                        INID_Bill_To_Code__c: INID_Bill_To_Code__c,	
-                        INID_Ship_To_Code__c: INID_Ship_To_Code__c,
-                        INID_Purchase_Order_Number__c: INID_Purchase_Order_Number__c,
-                        INID_Note_Internal__c: INID_NoteInternal__c,
+                        NID_EffectiveDate__c: new Date().toISOString(),
+                        INID_Type__c: Type ,
+                        // INID_Bill_To_Code__c: INID_Bill_To_Code__c,	
+                        // INID_Ship_To_Code__c: INID_Ship_To_Code__c,
+                        INID_PurchaseOrderNumber__c: INID_PurchaseOrderNumber__c,
+                        INID_NoteInternal__c: INID_NoteInternal__c,
+                        INID_NoteAgent__c : INID_NoteAgent__c,
                         INID_ExcVAT__c: INID_ExcVAT__c,
-                        INID_IncVAT__c: true,
-                        INID_Note_Agent__c : INID_NoteAgent__c,
-                        INID_Original_Order__c: this.orderId,
-                        INID_Total_Amount__c:  this.totalFocPrice,
+                        INID_IncVAT__c: INID_IncVAT__c,
+                
+                        INID_TotalAmount__c:  this.totalFocPrice,
                         INID_Status__c: Status ,
                         INID_Organization__c:INID_Organization__c ,
-                        INID_Payment_term__c:INID_PaymentTerm__c ,
-                        INID_Payment_Type__c:INID_PaymentType__c ,
-                        INID_Address_Bill_To__c: INID_Address_Billto__c,
+                        INID_PaymentTerm__c:INID_PaymentTerm__c ,
+                        INID_PaymentType__c:INID_PaymentType__c ,
+                        INID_Address_Billto__c: INID_Address_Billto__c,
                         INID_Address_Billto2__c: INID_Address_Billto2__c ,
-                        INID_Address_Ship_To__c: INID_Address_Shipto__c ,
+
+                        INID_Address_Shipto__c: INID_Address_Shipto__c ,
                         INID_Address_Number_Bill_To__c:INID_Address_Number_Bill_To__c ,
-                        INID_ZIP_Code_Bill_To__c: INID_PostCode_Billto__c,
-                        INID_ZIP_Code_Ship_To__c: INID_PostCode_Shipto__c,
-                        INID_Street_Bill_To__c: INID_Street_Billto__c ,
-                        INID_Street_Ship_To__c: INID_Street_Shipto__c,
+                        INID_PostCode_Billto__c: INID_PostCode_Billto__c,
+                        INID_PostCode_Shipto__c: INID_PostCode_Shipto__c,
+                        INID_Street_Billto__c: INID_Street_Billto__c ,
+                        INID_Street_Shipto__c: INID_Street_Shipto__c,
                         INID_City_Billto__c: INID_City_Billto__c ,
                         INID_City_Shipto__c: INID_City_Shipto__c ,
-                        INID_Province_Bill_To__c: INID_Province_Billto__c, 
-                        INID_Province_Ship_To__c: INID_Province_Shipto__c
+                        INID_Province_Billto__c: INID_Province_Billto__c, 
+                        INID_Province_Shipto__c: INID_Province_Shipto__c
 
                     };
                 });
@@ -1597,12 +1603,17 @@ export default class INID_OrderLine extends LightningElement {
                 this.isShowApplyPromotionData = true;
             }
 
-             const mainProductMatches = this.selectedProducts
-                .filter(prod => this.mainProductPromotionId.includes(prod.productPriceBookId))
-                .map(prod => ({
-                    id: prod.productPriceBookId,
-                    quantity: prod.quantity
-                }));
+            console.log('selected product: ' + JSON.stringify(this.selectedProducts , null ,2));
+
+            this.mainProductPromotionId = getPromotions.promotions.map(promo => promo.mainProduct);
+            console.log('main product promotion Id:', JSON.stringify(this.mainProductPromotionId, null, 2));
+
+            const mainProductMatches = this.selectedProducts
+            .filter(prod => this.mainProductPromotionId.includes(prod.productPriceBookId))
+            .map(prod => ({
+                id: prod.productPriceBookId,
+                quantity: prod.quantity
+            }));
 
             console.log('🟩 main product ที่ user เลือกพร้อม quantity:', JSON.stringify(mainProductMatches, null, 2));
             this.mainProductMatched = mainProductMatches;
@@ -1683,7 +1694,7 @@ export default class INID_OrderLine extends LightningElement {
             console.log('combo group : ' + JSON.stringify(this.comboGroups , null , 2)) ;
 
         } catch(error) {
-            console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
+            console.error('❌ Full error detail:', JSON.stringify(error.message, null, 2));
             alert('error\n'+ (error.body?.message || error.message || JSON.stringify(error)));
         }   
     }
@@ -1845,11 +1856,6 @@ export default class INID_OrderLine extends LightningElement {
                     const isRatio = benefit.benefitType === 'Free Product (Ratio)';
 
                     if (isSelected && (isFreeProduct || isRatio)) {
-
-                        const summaryProduct = isRatio 
-                            ? ((10 / benefit.freeProductQuantityRatioNumerator) * benefit.freeProductQuantityRatioDenominator)
-                            : null;
-
                         const [materialCode = '', skuDescription = ''] =
                             (benefit.freeProductLabelFix || '').split(' - ');
 
@@ -1863,7 +1869,7 @@ export default class INID_OrderLine extends LightningElement {
                             ratioDenominator: isRatio ? (benefit.freeProductQuantityRatioDenominator || null) : null,
                             promotionId: promoGroup.promotionId,
                             promotionName: promoGroup.promotionName,
-                            summaryProduct: summaryProduct,
+
                         };
                         console.log('Selected Free Product:', JSON.stringify(freeProductObj, null, 2));
                         this.freeProductPromotion.push(freeProductObj);
@@ -2015,6 +2021,8 @@ export default class INID_OrderLine extends LightningElement {
                 this.promotionData.push(targetGroup);
             }
 
+            console.log('selectedBenefits:' + JSON.stringify(selectedBenefits , null , 2))
+
             selectedBenefits.forEach(b => {
                 const type = b.INID_Benefit_Type__c;
                 const columnKey = JSON.stringify(this.getColumnsByType(type));
@@ -2032,6 +2040,33 @@ export default class INID_OrderLine extends LightningElement {
                     targetGroup.benefits.push(existingBenefitGroup);
                 }
 
+
+
+                const matchedMainProduct = this.mainProductMatched.find(p => this.mainProductPromotionId.includes(p.id));
+                const mainQty = matchedMainProduct ? matchedMainProduct.quantity : 0;
+                const numerator = b.INID_Free_Product_Quantity_Numerator__c || 1;
+                const denominator = b.INID_Free_Product_Quantity_Denominator__c || 0;
+
+                // console.log('matchedMainProduct:' + JSON.stringify(matchedMainProduct , null , 2));
+                // console.log('mainQty:' + JSON.stringify(mainQty , null , 2));
+                // console.log('numerator:' + JSON.stringify(numerator , null , 2));
+                // console.log('denominator:' + JSON.stringify(denominator , null , 2));
+
+                let devide = 0;                
+                if (mainQty >= numerator) {
+                    devide = (mainQty / numerator);
+                    if (devide % 1 < 0.5) {
+                        devide = Math.floor(devide);
+                    } else {
+                        devide = Math.ceil(devide);
+                    }
+                } else {
+                    devide = 0;
+                }
+
+                const summaryProduct = devide * denominator;
+                this.summaryRatioProduct = summaryProduct ;
+
                 existingBenefitGroup.data.push({
                     promotionMaterialCode: b.INID_Product_Price_Book__r?.INID_Material_Code__c || '',
                     promotionDescription: b.INID_Product_Price_Book__r?.INID_SKU_Description__c || '',
@@ -2043,6 +2078,7 @@ export default class INID_OrderLine extends LightningElement {
                     discountType: type,
                     discountPercent: b.INID_Discount__c,
                     setPrice: b.INID_SetPrice__c,
+                    summaryProduct:summaryProduct ,
                 });
             });
         });

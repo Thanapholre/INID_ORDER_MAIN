@@ -35,11 +35,14 @@ import fetchAccountDetail from '@salesforce/apex/INID_OrderController.fetchAccou
 import getProvinces from '@salesforce/apex/INID_OrderController.getProvinces' ;
 import getCustomerType from '@salesforce/apex/INID_OrderController.getCustomerType' ;
 import getRemarkType from '@salesforce/apex/INID_OrderController.getRemarkType' ;
+import fetchAccountAddressDetail from '@salesforce/apex/INID_OrderController.fetchAccountAddressDetail' ;
+import fetchAccountAddressDetailShipTo from '@salesforce/apex/INID_OrderController.fetchAccountAddressDetailShipTo' ;
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import getOrganization from '@salesforce/apex/INID_OrderController.getOrganization' ;
 import getPaymentType from '@salesforce/apex/INID_OrderController.getPaymentType' ;
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
+import fetchOrderToOrderFoc from '@salesforce/apex/INID_OrderController.fetchOrderToOrderFoc' ;
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
     
@@ -149,6 +152,20 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track mainProductPromotionId = [] ;
     @track mainProductMatched = [] ;
     @track summaryRatioProduct ;
+    @track accountAddressDetailData = [];
+    @track addressBillto2 = '' ;
+
+    @track accountAddressDetailShipToData = [];
+    @track addressShipto2 = '';
+    @track provinceShipto = '';
+    @track cityShipto = '';
+    @track zipCodeShipto = '';
+    @track provinceBillto = ''; 
+    @track cityBillto = '' ;
+    @track zipCodeBillto = '';
+    @track streetBillto = '' ;
+
+    
 
   
     columns = [
@@ -231,9 +248,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error('Error loading picklist:', error);
         }
     }
-
-
-
 
     @wire(fetchAccountLicense , {accountId: '$accountId'})
     wiredFetchAccountLicense({error , data}) {
@@ -475,25 +489,29 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+
+
+
+
     // fetch Auto Field Ship To 
-    fetchShipto(accountId) {
-    fetchDataShipto({ accountId: accountId })
-        .then(data => {
-            if (data && data.length > 0) {
-                this.shiptoOptions = data.map(addr => ({
-                    label: addr.Name,
-                    value: addr.Name
-                }));
-                this.shipto = data[0].Id;
-            } else {
-                this.shiptoOptions = [];
-                this.shipto = '';
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching Ship To:', error);
-        });
-    }
+    // fetchShipto(accountId) {
+    // fetchDataShipto({ accountId: accountId })
+    //     .then(data => {
+    //         if (data && data.length > 0) {
+    //             this.shiptoOptions = data.map(addr => ({
+    //                 label: addr.Name,
+    //                 value: addr.Name
+    //             }));
+    //             this.shipto = data[0].Id;
+    //         } else {
+    //             this.shiptoOptions = [];
+    //             this.shipto = '';
+    //         }
+    //     })
+    //     .catch(error => {
+    //         console.error('Error fetching Ship To:', error);
+    //     });
+    // }
 
     
     // fetchDataQuotation
@@ -547,10 +565,33 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //     }
     // }
 
+    @wire(fetchDataShipto, { accountId: '$accountId' })
+    wiredFetchDataShipto({ error, data }) {
+        if (data) {
+            this.shipto = data;
+            this.shiptoOptions = data.map(ship => ({
+                label: ship.Name,
+                value: ship.Name
+            }));
+
+            if(this.shiptoOptions.length > 0) {
+                this.shipto = this.shiptoOptions[0].value ;
+            } else {
+                this.shipto = '' ;
+            }
+
+            console.log('ShipTo Options:', JSON.stringify(this.shiptoOptions , null ,2));
+        } else if (error) {
+            console.error('Error fetching ShipTo:', error);
+        }
+    }
+
+
     @wire(fetchDataBillto, { accountId: '$accountId' }) 
     fetchBillTo({ error, data }) {
         if (data) {
             this.billto = data;
+            console.log('billto:' + JSON.stringify(this.billto , null ,2));
             // เอาเฉพาะ Name แล้ว join เป็น string
             this.billto = this.billto.map(billto => billto.Name).join(', ');
 
@@ -560,15 +601,65 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    
+
     @wire(fetchUserGroup, {userId: '$userId'})
     wiredUserGroup({ error, data }) {
         if (data) {
             this.userGroup = data;
+            if(this.userGroup === undefined || this.userGroup === null) {
+                console.log('not have user group')
+            }
             console.log('user Group ??? : ' + JSON.stringify(this.userGroup, null, 2) );
         } else if (error) {
-            console.error('Error fetching user gruop ', error);
+            // console.error('Error fetching user gruop ', error);
         }
     }
+     
+    @wire(fetchAccountAddressDetail , {accountId: '$accountId' , billtoName: '$billto'})
+    wiredAccountAddressDetail({ error, data }) {
+        if (data) {
+            this.accountAddressDetailData = data;
+            console.log('Account Billto Detail: ' + JSON.stringify(this.accountAddressDetailData, null, 2));
+
+            this.addressBillto2 = data.map(item => item.INID_Address2__c).join(', ');
+            this.provinceBillto = data.map(item => item.INID_Province__c).join(', ');
+            this.cityBillto = data.map(item => item.INID_City__c).join(', ');
+            this.zipCodeBillto = data.map(item => item.INID_ZIP_Code__c).join(', ');
+            this.streetBillto = data.map(address => address.INID_Street__c).join(', ');
+
+            console.log('addressBillTo2:', this.addressBillto2);
+            console.log('provinceBillto:', this.provinceBillto);
+            console.log('cityBillto:', this.cityBillto);
+            console.log('zipCodeBillto:', this.zipCodeBillto); // ✅ ตรงนี้แก้แล้ว
+        } else if (error) {
+            console.error('❌ Error fetching account address detail:', error);
+        }
+    }
+    
+    @wire(fetchAccountAddressDetailShipTo, { accountId: '$accountId', shiptoName: '$shipto' })
+    wiredAccountAddressDetailShipTo({ error, data }) {
+        if (data) {
+            this.accountAddressDetailShipToData = data;
+            console.log('Account Detail Ship To (raw data):', JSON.stringify(this.accountAddressDetailShipToData , null, 2));
+
+            this.addressShipto2 = data.map(address => address.INID_Address2__c).join(', ');
+            this.provinceShipto = data.map(address => address.INID_Province__c).join(', ');
+            this.cityShipto = data.map(address => address.INID_City__c).join(', ');
+            this.streetShipto = data.map(address => address. INID_Street__c).join(', ');
+            this.zipCodeShipto = data.map(address => address.INID_ZIP_Code__c).join(', ');
+            
+            console.log('AddressShipto2:', this.addressShipto2);
+            console.log('ProvinceShipto:', this.provinceShipto);
+            console.log('CityShipto:', this.cityShipto);
+            console.log('streetShipto:', this.streetShipto);
+            console.log('ZipCodeShipto:', this.zipCodeShipto);
+
+        } else if (error) {
+            console.error('❌ Error fetching AccountAddressDetailShipTo:', error);
+        }
+    }
+
 
     @wire(fetchBuGroupId, {userGroup: '$userGroup'})
     wiredBuGroupId({ error, data }) {
@@ -743,7 +834,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     handleBillToStreetChange(event) {
-        this.billToStreet = event.target.value;
+        this.streetBillto = event.target.value;
     }
 
     handleBillToCityChange(event) {
@@ -767,7 +858,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     handleShipToStreetChange(event) {
-        this.shipToStreet = event.target.value;
+        this.streetShipto = event.target.value;
     }
 
     handleShipToCityChange(event) {
@@ -910,10 +1001,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     noteInternalHandleChange(event) {
         this.noteInternal = event.detail.value;
-    }
-
-    shiptoHandleChange(event) {
-        this.shipto = event.detail.value;
     }
 
     validateOrder() {
@@ -1635,6 +1722,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     //Plain Text
     openAddProduct() {
+       
         if(!this.validateOrder()){
             return;
         }
@@ -1989,7 +2077,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                             ratioDenominator: isRatio ? (benefit.freeProductQuantityRatioDenominator || null) : null,
                             promotionId: promoGroup.promotionId,
                             promotionName: promoGroup.promotionName,
-                            summaryProduct:  this.summaryRatioProduct, //เหลือตรงนี้ๆ
+                            // summaryProduct:  this.summaryRatioProduct, 
                         };
                         console.log('Selected Free Product:', JSON.stringify(freeProductObj, null, 2));
                         this.freeProductPromotion.push(freeProductObj);
@@ -2113,6 +2201,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     async openOrder() {
+        console.log('open order');
         if (!this.validateInputs()) return;
 
         if (this.typeOrderFirstValue === 'Create New Order' && this.typeOrderSecondValue !== 'One Time Order') {
@@ -2136,8 +2225,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
                 this.paymentTermValue = matchedCustomer.Payment_term__c || '';
                 this.organizationValue = matchedCustomer.INID_Organization__c || '';
-                this.fetchBillTo(oneTimeCustomerId);
-                this.fetchShipto(oneTimeCustomerId);
+                // this.fetchBillTo(oneTimeCustomerId);
+                // this.fetchShipto(oneTimeCustomerId);
             }
         }
 
@@ -2253,58 +2342,65 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             })
         );
 
-        // try {
-        //     this[NavigationMixin.Navigate]({
-        //         type: 'standard__recordPage',
-        //         attributes: {
-        //             recordId: this.orderId,
-        //             objectApiName: 'Order',
-        //             actionName: 'view'
-        //         }
-        //     },true);
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: this.orderId,
+                    objectApiName: 'Order',
+                    actionName: 'view'
+                }
+            },true);
 
-        //     if (this.isConsoleNavigation?.data === true) {
-        //         const { tabId } = await getFocusedTabInfo();
-        //         setTimeout(async () => {
-        //             await closeTab(tabId);
-        //         }, 1000);
-        //     }
-        // } catch (err) {
-        //     console.error('handleSaveSuccess error:', err);
-        // }
+            if (this.isConsoleNavigation?.data === true) {
+                const { tabId } = await getFocusedTabInfo();
+                setTimeout(async () => {
+                    await closeTab(tabId);
+                }, 1000);
+            }
+        } catch (err) {
+            console.error('handleSaveSuccess error:', err);
+        }
     }
 
 
     async insertOrderFoc(orderId) {
         const orderFoc = {
             AccountId: this.accountId ,
-            INID_Account_Name__c: this.accountId ,
+            INID_AccountId__c: this.accountId ,
             INID_Status__c: 'Draft' ,
-            INID_Order_Start_Date__c: new Date().toISOString(),
-            INID_Order_Type__c: this.typeOrderSecondValue ,
-            INID_Payment_Type__c: this.paymentTypeValue,
-            INID_Payment_term__c: this.paymentTermValue,
-            INID_Bill_To_Code__c: this.billto,	
-            INID_Ship_To_Code__c: this.shipto,
-            INID_Purchase_Order_Number__c: this.purchaseOrderNumber,
-            INID_Organization__c: this.organizationValue	,
-            INID_Note_Internal__c: this.noteInternal,
+            INID_EffectiveDate__c: new Date().toISOString(),
+            INID_Type__c: this.typeOrderSecondValue ,
+            INID_PaymentType__c: this.paymentTypeValue,
+            INID_PaymentTerm__c: this.paymentTermValue,
+
+            INID_Address_Billto__c: this.billto,	
+            INID_Address_Shipto__c: this.shipto,
+
+            INID_Address_Billto2__c : this.addressBillto2,
+            INID_Address_Shipto2__c : this.addressShipto2,
+
+            INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
+            INID_Organization__c: this.organizationValue,
+            INID_NoteInternal__c: this.noteInternal,
             INID_ExcVAT__c: this.raidoExclude,
             INID_IncVAT__c: this.raidoInclude,
-            INID_Note_Agent__c : this.noteAgent ,
+            INID_NoteAgent__c : this.noteAgent ,
             INID_Original_Order__c: orderId,
             INID_Total_Amount__c:  this.totalFocPrice ,
             INID_Address_Bill_To__c: this.billToAddress1 ,
             INID_Address_Ship_To__c: this.shipToAddress2 ,
-            INID_Address_Number_Bill_To__c: this.bill,
-            INID_ZIP_Code_Bill_To__c: this.billToPostCode,
-            INID_ZIP_Code_Ship_To__c: this.shipToPostCode ,
-            INID_Street_Bill_To__c: this.billToStreet ,
-            INID_Street_Ship_To__c: this.shipToStreet ,
-            INID_City_Billto__c: this.billToCity ,
-            INID_City_Shipto__c: this.shipToCity ,
-            INID_Province_Bill_To__c: this.billToProvince, 
-            INID_Province_Ship_To__c: this.shipToProvince 
+            // INID_Address_Number_Bill_To__c: this.bill,
+            INID_PostCode_Billto__c: this.zipCodeBillto,
+            INID_PostCode_Shipto__c: this.zipCodeShipto ,
+
+            INID_Street_Billto__c: this.streetBillto ,
+            INID_Street_Shipto__c: this.streetShipto ,
+            INID_City_Billto__c: this.cityBillto  ,
+            INID_City_Shipto__c: this.cityShipto ,
+            INID_Province_Billto__c: this.provinceBillto, 
+            INID_Province_Shipto__c: this.provinceShipto ,
+            
         };
 
         console.log('Order Foc :' + JSON.stringify(orderFoc, null, 2))
@@ -2319,6 +2415,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+
+    @wire(fetchOrderToOrderFoc , {orderId: '$orderId'})
+    getOrderToOrderFoc({error , data}) {
+        if(data) {
+            this.orderFocDetail = data ;
+        } else {
+            console.log('error is : ' + error) ;
+        }
+    }
+
+
     async insertOrderDetailFunction() {
         const orderDetail = {
             AccountId: this.accountId ,
@@ -2328,28 +2435,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             Type: this.typeOrderSecondValue ,
             INID_PaymentType__c: this.paymentTypeValue,
             INID_PaymentTerm__c: this.paymentTermValue,
-            INID_Bill_To_Code__c: this.billto,	
-            INID_Ship_To_Code__c: this.shipto,
+            // INID_Bill_To__c: this.billto,	
+            // INID_Ship_To__c: this.shipto,
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
             INID_NoteInternal__c: this.noteInternal,
-            INID_ExcVAT__c: this.radioButtonOrderLabel2,
-            INID_IncVAT__c: this.radioButtonOrderLabel1,
+            INID_ExcVAT__c: this.raidoExclude,
+            INID_IncVAT__c: this.raidoInclude,
             INID_NoteAgent__c : this.noteAgent ,
             INID_NetAmount__c: this.totalNetPrice,
-            INID_Address_Billto__c: this.billToAddress1 ,
-            INID_Address_Billto2__c: this.billToAddress2 ,
-            INID_Street_Billto__c: this.billToStreet ,
-            INID_City_Billto__c: this.billToCity ,
-            INID_Province_Billto__c: this.billToProvince ,
-            INID_PostCode_Billto__c: this.billToPostCode ,
 
-            INID_Address_Shipto__c: this.shipToAddress1 ,
-            INID_Address_Shipto2__c: this.shipToAddress2 ,
-            INID_Street_Shipto__c: this.shipToStreet ,
-            INID_City_Shipto__c: this.shipToCity ,
-            INID_Province_Shipto__c: this.shipToProvince ,
-            INID_PostCode_Shipto__c: this.shipToPostCode ,
+            INID_Address_Billto__c: this.billto ,
+            INID_Address_Billto2__c: this.addressBillto2 ,
+            INID_Street_Billto__c: this.streetBillto ,
+            INID_City_Billto__c: this.cityBillto ,
+            INID_Province_Billto__c: this.provinceBillto ,
+            INID_PostCode_Billto__c: this.zipCodeBillto ,
+
+            INID_Address_Shipto__c: this.shipto ,
+            INID_Address_Shipto2__c: this.addressShipto2 ,
+            INID_Street_Shipto__c: this.streetShipto,
+            INID_City_Shipto__c: this.cityShipto,
+            INID_Province_Shipto__c: this.provinceShipto,
+            INID_PostCode_Shipto__c: this.zipCodeShipto,
+            
         };
 
         console.log('order Detail : ' + JSON.stringify(orderDetail, null, 2));
@@ -2451,7 +2560,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 if (free.benefitType === 'Free Product (Fix Quantity)') {
                     quantity = free.fixQty;
                 } else if (free.benefitType === 'Free Product (Ratio)') {
-                    quantity = free.summaryProduct || null;
+                    quantity = this.summaryRatioProduct || null;
                 }
 
                 orderItemList.push({
@@ -2726,36 +2835,30 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                         targetGroup.benefits.push(existingBenefitGroup);
                     }
 
-                    const  mainQty = this.mainProductMatched.map(mainQty => {
-                        return mainQty.quantity;
-                    }) ;
+                    const matchedMainProduct = this.mainProductMatched.find(p => this.mainProductPromotionId.includes(p.id));
+                    const mainQty = matchedMainProduct ? matchedMainProduct.quantity : 0;
+                    const numerator = b.INID_Free_Product_Quantity_Numerator__c || 1;
+                    const denominator = b.INID_Free_Product_Quantity_Denominator__c || 0;
+
+                    console.log('matchedMainProduct:' + JSON.stringify(matchedMainProduct , null , 2));
                     console.log('mainQty:' + JSON.stringify(mainQty , null , 2));
-                    let devide = (mainQty / b.INID_Free_Product_Quantity_Numerator__c);
-                    if(devide % 1 < 0.5) {
-                        devide = Math.floor(devide);
+                    console.log('numerator:' + JSON.stringify(numerator , null , 2));
+                    console.log('denominator:' + JSON.stringify(denominator , null , 2));
+
+                    let devide = 0;                
+                    if (mainQty >= numerator) {
+                        devide = (mainQty / numerator);
+                        if (devide % 1 < 0.5) {
+                            devide = Math.floor(devide);
+                        } else {
+                            devide = Math.ceil(devide);
+                        }
                     } else {
-                        devide = Math.ceil(devide);
+                        devide = 0;
                     }
-                    const summaryProduct = (devide) * b.INID_Free_Product_Quantity_Denominator__c;
+
+                    const summaryProduct = devide * denominator;
                     this.summaryRatioProduct = summaryProduct ;
-
-                    // const matchedMainProduct = this.mainProductMatched.find(p => p.id === b.INID_Product_Price_Book__c);
-                    // const mainQtyValue = matchedMainProduct ? matchedMainProduct.quantity : 0;
-
-                    // const numerator = b.INID_Free_Product_Quantity_Numerator__c || 1;
-                    // const denominator = b.INID_Free_Product_Quantity_Denominator__c || 0;
-
-                    // const ratio = mainQtyValue / numerator;
-                    // let summaryMultiplier;
-
-                    // if ((ratio % 1) < 0.5) {
-                    //     summaryMultiplier = Math.floor(ratio);
-                    // } else {
-                    //     summaryMultiplier = Math.ceil(ratio);
-                    // }
-
-                    // const summaryProduct = summaryMultiplier * denominator;
-
 
                     // เพิ่มแถวใหม่ในกลุ่มนั้น
                     existingBenefitGroup.data.push({

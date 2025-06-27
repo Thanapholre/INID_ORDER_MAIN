@@ -6,18 +6,20 @@ public with sharing class INID_OrderController {
 
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchDataBillto(Id accountId) {
-        return [SELECT Id , Name , INID_Account__r.Id
+        return [SELECT Id , Name , INID_Account__r.Id ,INID_Address2__c
             FROM INID_Account_Address__c  
             WHERE INID_Address_Type__c = 'bill to' AND  INID_Account__r.Id = :accountId];
     }
 
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchDataShipto(Id accountId) {
-        return [SELECT Id , Name ,INID_Account__r.Id
+        return [SELECT Id , Name ,INID_Account__r.Id , 	INID_Address2__c
             FROM INID_Account_Address__c  
             WHERE INID_Address_Type__c = 'ship to' AND  INID_Account__r.Id = :accountId
             ];
     }
+
+    
 
     // @AuraEnabled(cacheable=true)
     // public static List<INID_Product_Price_Book__c> fetchDataProductPriceBook() {
@@ -296,8 +298,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled
     public static void insertOrderItemFoc(Id orderFocId, List<INID_Product_Order_Item_Foc__c> orderItemList){
         if(orderFocId == null) {
-            throw new AuraHandledException('Order FOC Id is required for inserting Order Item FOC.');
-            // throw null;
+            return;
         }
 
         // กำหนดค่า lookup ฟิลด์ INID_Order_Foc__c ให้กับทุกตัวใน orderItemList
@@ -338,7 +339,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<Order> fetchOrderToOrderFoc(Id orderId) {
         return[
-            SELECT AccountId , Status , EffectiveDate , Type , INID_PaymentType__c , 
+            SELECT Id , AccountId, Status , EffectiveDate , Type , INID_PaymentType__c , 
             INID_PaymentTerm__c , INID_Bill_To_Code__c , INID_Ship_To_Code__c , 
             INID_PurchaseOrderNumber__c , INID_Organization__c , INID_NoteInternal__c , 
             INID_ExcVAT__c , INID_IncVAT__c , INID_NoteAgent__c , Account.Name , INID_Address_Billto__c ,
@@ -630,6 +631,26 @@ public with sharing class INID_OrderController {
         }
         return results;
     }
+
+
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Account_Address__c > fetchAccountAddressDetail(Id accountId , String billtoName) {
+        return[
+            SELECT INID_Address2__c , INID_Street__c , INID_City__c , INID_Province__c , INID_ZIP_Code__c 
+            FROM INID_Account_Address__c 
+            WHERE INID_Account__c = :accountId AND Name = :billtoName AND INID_Address_Type__c = 'Bill To'
+        ]; 
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static List<INID_Account_Address__c > fetchAccountAddressDetailShipTo(Id accountId , String shiptoName) {
+        return[
+            SELECT INID_Address2__c , INID_Street__c , INID_City__c , INID_Province__c , INID_ZIP_Code__c 
+            FROM INID_Account_Address__c 
+            WHERE INID_Account__c = :accountId AND Name = :shiptoName AND INID_Address_Type__c = 'Ship To'
+        ]; 
+    }
+
     
     
 
