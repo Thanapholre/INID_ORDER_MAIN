@@ -7,7 +7,7 @@
   ],
   "name": "INID_formOrder",
   "namespace": "",
-  "oauthLocalPort": 1718,
+  "oauthLocalPort": 1717,
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "63.0"
 }

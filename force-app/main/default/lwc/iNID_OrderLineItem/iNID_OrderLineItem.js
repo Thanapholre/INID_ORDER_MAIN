@@ -36,6 +36,7 @@ import fetchClassifyLicense from '@salesforce/apex/INID_OrderController.fetchCla
 import fetchClassifyProduct from '@salesforce/apex/INID_OrderController.fetchClassifyProduct' ;
 import fetchClassifyType from '@salesforce/apex/INID_OrderController.fetchClassifyType' ;
 import fetchAverage from '@salesforce/apex/INID_OrderController.fetchAverage' ;
+import getRemarkType from '@salesforce/apex/INID_OrderController.getRemarkType' ;
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 
@@ -107,7 +108,8 @@ export default class INID_OrderLine extends LightningElement {
     @track classifyType = [];
     @track sellableClassifyIds = [] ;
     @track allBU ;
-    @track productAverage = []  ;
+    @track productAverage = [];
+    @track typeAddonOption = [];
 
     
      
@@ -165,17 +167,20 @@ export default class INID_OrderLine extends LightningElement {
 
         console.log('recordId', this.recordId);
     }
-    
-    get options(){
-        return [
-            { label: 'ของแถม', value: '1' },
-            { label: 'ของแถมนอกบิล (FOC)', value: '2' },
-            { label: 'ตัวอย่าง', value: '3' },
-            { label: 'บริจาค', value: '4' },
-            { label: 'ชดเชย', value: '5' },
-            { label: 'สมนาคุณ', value: '6' },
-        ];
+
+    @wire(getRemarkType)
+    wiredRemarkType({ error, data }) {
+        if (data) {
+            this.typeAddonOption = data.map(item => ({
+                label: item.label,
+                value: item.value
+            }));
+            console.log('type Addon Remark:' + JSON.stringify(this.typeAddonOption , null ,2));
+        } else if (error) {
+            console.error('Error loading picklist:', error);
+        }
     }
+
 
     @wire(fetchAddonProductPriceBook , {accountId: '$accountId'})
     wireaddonProductPriceBook({error, data}) {
@@ -233,15 +238,6 @@ export default class INID_OrderLine extends LightningElement {
         }
     }
 
-
-    // @wire(fetchProductLicense, {licenseList: '$accountLicense' , productPriceBookIdList: '$productLicenseExclude'})
-    // wiredProductLicense({ error, data }) {
-    //     if (data) {
-    //         this.productPriceBook = data;
-    //     } else if (error) {
-    //         console.error('Error fetching accounts:', error);
-    //     }
-    // }
 
     @wire(fetchAccountChannel , {accountId: '$accountId'})
         wiredAccountChannel({ error, data }) {
@@ -1259,7 +1255,7 @@ export default class INID_OrderLine extends LightningElement {
             quantity: 1,
             unit: matchedMain.unit,
             total: 0,
-            nameBtn: this.getAddonLabel(this.selectedValue),
+            nameBtn: this.selectedValue,
             variant: 'base',
             editableSalePrice: false,
             hlItemNumber: matchedMain.hlItemNumber || matchedMain.code,
@@ -1296,9 +1292,16 @@ export default class INID_OrderLine extends LightningElement {
         if (Array.isArray(this.freeProductPromotion)) {
             this.freeProductPromotion.forEach((free) => {
                 const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
+                let quantity = null;
+
+                if (free.benefitType === 'Free Product (Fix Quantity)') {
+                    quantity = free.fixQty;
+                } else if (free.benefitType === 'Free Product (Ratio)') {
+                    quantity = free.summaryProduct || null;
+                }
 
                 result.push({
-                    INID_Quantity__c: free.fixQty || null,
+                    INID_Quantity__c: quantity,
                     INID_Sale_Price__c: 0,
                     INID_Product_Price_Book__c: free.productPriceBookId,
                     INID_Type__c: 'FREE',
@@ -1542,9 +1545,9 @@ export default class INID_OrderLine extends LightningElement {
             this.showToast('สำเร็จ', 'บันทึกข้อมูลเรียบร้อย', 'success');
             this.selectedProducts = [];
             
-            // setTimeout(() => {
-            //     window.location.reload();
-            // }, 200);
+            setTimeout(() => {
+                window.location.reload();
+            }, 200);
 
         } catch (error) {
             console.error('Save Error:', JSON.stringify(error.message));
@@ -1593,6 +1596,16 @@ export default class INID_OrderLine extends LightningElement {
             } else {
                 this.isShowApplyPromotionData = true;
             }
+
+             const mainProductMatches = this.selectedProducts
+                .filter(prod => this.mainProductPromotionId.includes(prod.productPriceBookId))
+                .map(prod => ({
+                    id: prod.productPriceBookId,
+                    quantity: prod.quantity
+                }));
+
+            console.log('🟩 main product ที่ user เลือกพร้อม quantity:', JSON.stringify(mainProductMatches, null, 2));
+            this.mainProductMatched = mainProductMatches;
 
 
             this.comboGroups = getPromotions.promotions.map(promo => {
@@ -1828,27 +1841,36 @@ export default class INID_OrderLine extends LightningElement {
             promoGroup.groupedBenefits.forEach(group => {
                 group.benefits.forEach(benefit => {
                     const isSelected = benefit.selected === true;
-                    const isFreeProduct =
-                        benefit.benefitType === 'Free Product (Fix Quantity)';
+                    const isFreeProduct = benefit.benefitType === 'Free Product (Fix Quantity)';
+                    const isRatio = benefit.benefitType === 'Free Product (Ratio)';
 
-                    if (isSelected && isFreeProduct) {
+                    if (isSelected && (isFreeProduct || isRatio)) {
+
+                        const summaryProduct = isRatio 
+                            ? ((10 / benefit.freeProductQuantityRatioNumerator) * benefit.freeProductQuantityRatioDenominator)
+                            : null;
+
                         const [materialCode = '', skuDescription = ''] =
                             (benefit.freeProductLabelFix || '').split(' - ');
 
-                        this.freeProductPromotion.push({
+                        const freeProductObj = {
                             productPriceBookId: benefit.BenefitProduct,
                             materialCode,
                             skuDescription,
-                            fixQty: benefit.freeProductQuantityFix || null,
+                            benefitType: benefit.benefitType,
+                            fixQty: isFreeProduct ? (benefit.freeProductQuantityFix || null) : null,
+                            ratioNumerator: isRatio ? (benefit.freeProductQuantityRatioNumerator || null) : null,
+                            ratioDenominator: isRatio ? (benefit.freeProductQuantityRatioDenominator || null) : null,
                             promotionId: promoGroup.promotionId,
-                            promotionName: promoGroup.promotionName
-                        });
+                            promotionName: promoGroup.promotionName,
+                            summaryProduct: summaryProduct,
+                        };
+                        console.log('Selected Free Product:', JSON.stringify(freeProductObj, null, 2));
+                        this.freeProductPromotion.push(freeProductObj);
                     }
                 });
             });
         });
-
-        console.log(' Free Product :', JSON.stringify(this.freeProductPromotion, null, 2));
     }
 
     handleBack() {
@@ -1917,6 +1939,7 @@ export default class INID_OrderLine extends LightningElement {
                 { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
                 { label: 'Numerator', fieldName: 'numerator', hideDefaultActions: true },
                 { label: 'Denominator', fieldName: 'denomiator', hideDefaultActions: true },
+                { label: 'summaryProduct', fieldName: 'summaryProduct', hideDefaultActions: true },
             ];
         } else {
             return [

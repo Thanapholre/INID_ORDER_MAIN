@@ -116,7 +116,7 @@
                                 name="freeGoods"
                                 label="Free goods"
                                 placeholder="Please select..."
-                                options={options}
+                                options={typeAddonOption}
                                 value={selectedValue}
                                 onchange={handleChangeFreeGoods}>
                             </lightning-combobox>
@@ -253,22 +253,22 @@
                                                                         <lightning-input
                                                                             style="width: 58.9580vw; margin-right: 20px;"
                                                                             type="number"
-                                                                            label="Free Product Quantity Denominator"
-                                                                            value={item.freeProductQuantityRatioDenominator}
-                                                                            data-id={item.id}
-                                                                            name="Free Product Quantity Denominator"
-                                                                            onchange={handleBenefitFieldChange}
-                                                                            placeholder="Enter Quantity"
-                                                                            disabled>
-                                                                        </lightning-input>
-                                                                        
-                                                                        <lightning-input
-                                                                            style="width: 58.9580vw;"
-                                                                            type="number"
                                                                             label="Free Product Quantity Numerator"
                                                                             value={item.freeProductQuantityRatioNumerator}
                                                                             data-id={item.id}
                                                                             name="Free Product Quantity Numerator"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            placeholder="Enter Quantity"
+                                                                            disabled>
+                                                                        </lightning-input>
+
+                                                                        <lightning-input
+                                                                            style="width: 58.9580vw; "
+                                                                            type="number"
+                                                                            label="Free Product Quantity Denominator"
+                                                                            value={item.freeProductQuantityRatioDenominator}
+                                                                            data-id={item.id}
+                                                                            name="Free Product Quantity Denominator"
                                                                             onchange={handleBenefitFieldChange}
                                                                             placeholder="Enter Quantity"
                                                                             disabled>

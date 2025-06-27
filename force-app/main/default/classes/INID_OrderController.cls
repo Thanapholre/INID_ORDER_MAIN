@@ -547,6 +547,7 @@ public with sharing class INID_OrderController {
         @AuraEnabled public String value;
     }
 
+
     @AuraEnabled(cacheable=true)
     public static List<PicklistOption> getProvinces() {
         List<PicklistOption> results = new List<PicklistOption>();
@@ -559,11 +560,77 @@ public with sharing class INID_OrderController {
                 PicklistOption option = new PicklistOption();
                 option.label = entry.getLabel(); // เช่น "กรุงเทพมหานคร"
                 option.value = entry.getValue(); // เช่น "10"
-                results.add(option);
+                results.add(option);    
             }
         }
 
         return results;
     }
+
+    @AuraEnabled(cacheable=true)
+    public static List<PicklistOption> getCustomerType(){
+        List<PicklistOption> results = new List<PicklistOption>();
+
+        Schema.DescribeFieldResult fieldResult = Order.Type.getDescribe();
+        for(Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+            if(entry.isActive()){
+                PicklistOption option = new PicklistOption();
+                option.label = entry.getLabel();
+                option.value = entry.getValue();
+                results.add(option);
+            }
+        }
+        return results;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<PicklistOption> getRemarkType(){
+        List<PicklistOption> results = new List<PicklistOption>();
+
+        Schema.DescribeFieldResult fieldResult = INID_Product_Order_Item__c.INID_Remark__c.getDescribe();
+        for(Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+            if(entry.isActive()){
+                PicklistOption option = new PicklistOption();
+                option.label = entry.getLabel();
+                option.value = entry.getValue();
+                results.add(option);
+            }
+        }
+        return results;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<PicklistOption> getOrganization(){
+        List<PicklistOption> results = new List<PicklistOption>();
+
+        Schema.DescribeFieldResult fieldResult = Order.INID_Organization__c.getDescribe();
+        for(Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+            if(entry.isActive()){
+                PicklistOption option = new PicklistOption();
+                option.label = entry.getLabel();
+                option.value = entry.getValue();
+                results.add(option);
+            }
+        }
+        return results;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<PicklistOption> getPaymentType(){
+        List<PicklistOption> results = new List<PicklistOption>();
+
+        Schema.DescribeFieldResult fieldResult = Order.INID_PaymentType__c.getDescribe();
+        for(Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+            if(entry.isActive()){
+                PicklistOption option = new PicklistOption();
+                option.label = entry.getLabel();
+                option.value = entry.getValue();
+                results.add(option);
+            }
+        }
+        return results;
+    }
+    
+    
 
 }

@@ -132,19 +132,19 @@
                                 <div style="border: 1px solid #ccc !important; border-radius: 10px; padding: 10px; margin-bottom: 4px;">
                                     <h3>Bill to</h3>
                                     <div style="padding: 10px 10px 10px 20px;">    
-                                        <lightning-input class="main" type="text" label="Address 1" value={billToAddress1} onchange={handleBillToAddress1Change} required></lightning-input>
-                                        <lightning-input class="main" type="text" label="Address 2" value={billToAddress2} onchange={handleBillToAddress2Change}></lightning-input>
-                                        <lightning-input class="main" type="text" label="Street" value={billToStreet} onchange={handleBillToStreetChange} required></lightning-input>
-                                        <lightning-input class="main" type="text" label="City" value={billToCity} onchange={handleBillToCityChange} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="Address 1" value={billToAddress1} onchange={handleBillToAddress1Change} max-length="35" required></lightning-input>
+                                        <lightning-input class="main" type="text" label="Address 2" value={billToAddress2} onchange={handleBillToAddress2Change} max-length="35" ></lightning-input>
+                                        <lightning-input class="main" type="text" label="Street" value={billToStreet} onchange={handleBillToStreetChange} max-length="35"  required></lightning-input>
+                                        <lightning-input class="main" type="text" label="City" value={billToCity} onchange={handleBillToCityChange} max-length="35"  required></lightning-input>
                                         <lightning-combobox
                                             name="province"
                                             label="Selected Bill To Province"
                                             value={billToProvince.value}
-                                            placeholder="เลือกจังหวัด"
+                                            placeholder="Please Selected Province"
                                             options={provinceBillToOptions}
                                             onchange={handleBillToProvinceChange}>
                                         </lightning-combobox>                                        
-                                        <lightning-input class="main" type="text" label="PostCode" value={billToPostCode} onchange={handleBillToPostCodeChange} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="PostCode" value={billToPostCode} onchange={handleBillToPostCodeChange} max-length="10"  required></lightning-input>
                                     </div>
                                 </div>
                             </template>
@@ -156,19 +156,19 @@
                                 <div style="border: 1px solid #ccc !important; border-radius: 10px; padding: 10px; margin-bottom: 4px;">
                                     <h3>Ship to</h3>
                                     <div style="padding: 10px 10px 10px 20px;">
-                                        <lightning-input class="main" type="text" label="Address 1" value={shipToAddress1} onchange={handleShipToAddress1Change} required></lightning-input>
-                                        <lightning-input class="main" type="text" label="Address 2" value={shipToAddress2} onchange={handleShipToAddress2Change}></lightning-input>
-                                        <lightning-input class="main" type="text" label="Street" value={shipToStreet} onchange={handleShipToStreetChange} required></lightning-input>
-                                        <lightning-input class="main" type="text" label="City" value={shipToCity} onchange={handleShipToCityChange} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="Address 1" value={shipToAddress1} onchange={handleShipToAddress1Change} max-length="35"  required></lightning-input>
+                                        <lightning-input class="main" type="text" label="Address 2" value={shipToAddress2} onchange={handleShipToAddress2Change} max-length="35" ></lightning-input>
+                                        <lightning-input class="main" type="text" label="Street" value={shipToStreet} onchange={handleShipToStreetChange} max-length="35"  required></lightning-input>
+                                        <lightning-input class="main" type="text" label="City" value={shipToCity} onchange={handleShipToCityChange} max-length="35"  required></lightning-input>
                                         <lightning-combobox
                                             name="province"
                                             label="Selected Ship To Province"
                                             value={shipToProvince.value}
-                                            placeholder="เลือกจังหวัด"
+                                            placeholder="Please Selected Province   "
                                             options={provinceShipToOptions}
                                             onchange={handleShipToProvinceChange}>
                                         </lightning-combobox>           
-                                        <lightning-input class="main" type="text" label="PostCode" value={shipToPostCode} onchange={handleShipToPostCodeChange} required></lightning-input>
+                                        <lightning-input class="main" type="text" label="PostCode" value={shipToPostCode} onchange={handleShipToPostCodeChange} max-length="10"  required></lightning-input>
                                     </div>
                                 </div>
                             </template>
@@ -356,7 +356,7 @@
                                         name="freeGoods"
                                         label="Free goods"
                                         placeholder="Please select..."
-                                        options={options}
+                                        options={typeAddonOption}
                                         value={selectedValue}
                                         onchange={handleChangeFreeGoods}>
                                     </lightning-combobox>
@@ -511,24 +511,24 @@
 
                                                                     <div style="display: flex;" >
                                                                         <lightning-input
-                                                                            style="width: 58.9580vw; margin-right: 20px;"
-                                                                            type="number"
-                                                                            label="Free Product Quantity Denominator"
-                                                                            value={item.freeProductQuantityRatioDenominator}
-                                                                            data-id={item.id}
-                                                                            name="Free Product Quantity Denominator"
-                                                                            onchange={handleBenefitFieldChange}
-                                                                            placeholder="Enter Quantity"
-                                                                            disabled>
-                                                                        </lightning-input>
-                                                                        
-                                                                        <lightning-input
-                                                                            style="width: 58.9580vw;"
+                                                                            style="width: 58.9580vw;  margin-right: 20px;"
                                                                             type="number"
                                                                             label="Free Product Quantity Numerator"
                                                                             value={item.freeProductQuantityRatioNumerator}
                                                                             data-id={item.id}
                                                                             name="Free Product Quantity Numerator"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            placeholder="Enter Quantity"
+                                                                            disabled>
+                                                                        </lightning-input>
+
+                                                                        <lightning-input
+                                                                            style="width: 58.9580vw;"
+                                                                            type="number"
+                                                                            label="Free Product Quantity Denominator"
+                                                                            value={item.freeProductQuantityRatioDenominator}
+                                                                            data-id={item.id}
+                                                                            name="Free Product Quantity Denominator"
                                                                             onchange={handleBenefitFieldChange}
                                                                             placeholder="Enter Quantity"
                                                                             disabled>
@@ -672,7 +672,7 @@
                 <template if:false={isShowApplyPromotionData} >
                     <lightning-card>
                         <div style="height: 150px; display: flex; justify-content: center; align-items: center; "  >
-                            <p style="text-align: center; font-size: 14px; " >ไม่มี Promotion ให้เลือก</p>
+                            <p style="text-align: center; font-size: 14px; " >No promotion available for selection.</p>
                         </div>  
                     </lightning-card>
                 </template>
@@ -705,7 +705,7 @@
 
     <!-- Start Summary Promotion Component -->
     <template if:true={isShowSummary}>
-        <lightning-quick-action-panel header="Summary Product" class="title_product">
+        <lightning-quick-action-panel header="Product Summary" class="title_product">
             <div  style="width: 90vw; height: auto" >
 
                 <div class="datatable-container slds-m-top_medium main_product">
