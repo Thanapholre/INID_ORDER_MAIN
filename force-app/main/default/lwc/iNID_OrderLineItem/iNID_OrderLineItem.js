@@ -1300,7 +1300,13 @@ export default class INID_OrderLine extends LightningElement {
                 if (free.benefitType === 'Free Product (Fix Quantity)') {
                     quantity = free.fixQty;
                 } else if (free.benefitType === 'Free Product (Ratio)') {
-                    quantity = this.summaryRatioProduct || null;
+                    quantity = this.summaryRatioProduct || 0;
+
+                    // ✅ ถ้า Ratio = 0 → ไม่ต้อง insert
+                    if (quantity === 0) {
+                        console.log(`❌ Skipping Free Product (Ratio) with 0 quantity: ${free.productPriceBookId}`);
+                        return; // ข้ามตัวนี้
+                    }
                 }
 
                 result.push({
@@ -1320,6 +1326,7 @@ export default class INID_OrderLine extends LightningElement {
 
         return result;
     }
+
 
 
     async handleSave() {
@@ -1446,8 +1453,8 @@ export default class INID_OrderLine extends LightningElement {
                         INID_Order_Foc__c: this.orderFocId ,
                         NID_EffectiveDate__c: new Date().toISOString(),
                         INID_Type__c: Type ,
-                        // INID_Bill_To_Code__c: INID_Bill_To_Code__c,	
-                        // INID_Ship_To_Code__c: INID_Ship_To_Code__c,
+                        INID_Bill_To_Code__c: INID_Bill_To_Code__c,	
+                        INID_Ship_To_Code__c: INID_Ship_To_Code__c,
                         INID_PurchaseOrderNumber__c: INID_PurchaseOrderNumber__c,
                         INID_NoteInternal__c: INID_NoteInternal__c,
                         INID_NoteAgent__c : INID_NoteAgent__c,
@@ -1527,11 +1534,44 @@ export default class INID_OrderLine extends LightningElement {
                     .flatMap(bg => bg.benefits)
                     .filter(b => b.selected);
 
+                // selectedBenefits.forEach(benefit => {
+                //     selectedBenefitItems.push({
+                //         INID_Order__c: this.orderId,
+                //         INID_Sale_Promotion_Benefit_Product__c: benefit.Id
+                //     });
+                // });
+
                 selectedBenefits.forEach(benefit => {
-                    selectedBenefitItems.push({
-                        INID_Order__c: this.orderId,
-                        INID_Sale_Promotion_Benefit_Product__c: benefit.Id
-                    });
+                    if (benefit.benefitType === 'Free Product (Ratio)') {
+                        const matchedMainProduct = this.mainProductMatched.find(p => this.mainProductPromotionId.includes(p.id));
+                        const mainQty = matchedMainProduct ? matchedMainProduct.quantity : 0;
+                        const numerator = benefit.INID_Free_Product_Quantity_Numerator__c || 1;
+                        const denominator = benefit.INID_Free_Product_Quantity_Denominator__c || 0;
+
+                        let devide = 0;
+                        if (mainQty >= numerator) {
+                            devide = mainQty / numerator;
+                            devide = (devide % 1 < 0.5) ? Math.floor(devide) : Math.ceil(devide);
+                        }
+
+                        const summaryProduct = devide * denominator;
+
+                        console.log(`🧪 Checking Ratio Promotion: mainQty=${mainQty}, summaryProduct=${summaryProduct}`);
+
+                        if (summaryProduct > 0) {
+                            selectedBenefitItems.push({
+                                INID_Order__c: this.orderId,
+                                INID_Sale_Promotion_Benefit_Product__c: benefit.Id
+                            });
+                        } else {
+                            console.warn(`⚠️ Skipping Ratio Promotion (summaryProduct = 0) for benefitId: ${benefit.Id}`);
+                        }
+                    } else {
+                        selectedBenefitItems.push({
+                            INID_Order__c: this.orderId,
+                            INID_Sale_Promotion_Benefit_Product__c: benefit.Id
+                        });
+                    }
                 });
             });
 
@@ -1623,6 +1663,16 @@ export default class INID_OrderLine extends LightningElement {
                 const benefitGroups = {};
 
                 promo.benefits.forEach(b => {
+                    const remark = (b.INID_Remark__c || '').trim();
+                    const batch = (b.INID_Batch_Lot_No__c || '').trim();
+                    // ✅ ถ้า Remark และ Batch ว่างทั้งคู่ ไม่ต้องแสดง benefit นี้
+                    const item = {
+                        id: b.Id,
+                        // ...properties อื่นๆ
+                        remark: remark || null, // assign null ถ้าว่าง เพื่อให้ if:true fail
+                        batch: batch || null
+                    };
+
                     const condType = b.INID_Sale_Promotion_Benefit__r?.INID_Condition_Type__c || 'OR';
                     const isSelectPromotionBenefit = this.orderSalePromotionId?.includes(b.Id);
 
@@ -1670,10 +1720,30 @@ export default class INID_OrderLine extends LightningElement {
                     });
                 });
 
-                const groupedBenefits = Object.keys(benefitGroups).map(type => ({
-                    conditionType: type,
-                    benefits: benefitGroups[type]
-                }));
+                // const groupedBenefits = Object.keys(benefitGroups).map(type => ({
+                //     conditionType: type,
+                //     benefits: benefitGroups[type]
+                // }));
+                const groupedBenefits = Object.keys(benefitGroups).map(type => {
+                    const benefits = benefitGroups[type];
+                    const isAndGroup = type === 'AND';
+
+                    // เช็คว่ามีตัวไหน selected อยู่ไหม
+                    const hasSelected = benefits.some(benefit => benefit.selected);
+
+                    // ถ้าเป็น AND และมี benefit ถูกเลือก ให้เลือกทั้งหมด
+                    if (isAndGroup && hasSelected) {
+                        benefits.forEach(benefit => {
+                            benefit.selected = true;
+                            benefit.className = 'benefit-box selected';
+                        });
+                    }
+
+                    return {
+                        conditionType: type,
+                        benefits: benefits
+                    };
+                });
                 const hasSelectedBenefit = groupedBenefits.some(group =>
                     group.benefits.some(benefit => benefit.selected)
                 );
@@ -2094,7 +2164,7 @@ export default class INID_OrderLine extends LightningElement {
         if (selectedPromotionsCount < 1) {
             this.titleSummary = '';
         } else {
-            this.titleSummary = 'สรุปโปรโมชั่นที่เลือก';
+            this.titleSummary = 'Promotion Summary';
         }
     }
 

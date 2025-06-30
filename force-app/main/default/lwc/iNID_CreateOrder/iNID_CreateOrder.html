@@ -194,7 +194,7 @@
                                 value={paymentTypeValue}
                                 options={paymentTypeOption}
                                 onchange={paymentTypeHandleChange}
-                                read-only
+                                disabled
                                 required>
                             </lightning-combobox>
 
@@ -204,10 +204,20 @@
                                 label="Payment Term"
                                 value={paymentTermValue}
                                 options={paymentTermOption}
-                                onchange={paymentTermHandleChange}
-                                read-only
+                                onchange={paymentTerHandleChange}
+                                disabled
                                 required>
                             </lightning-combobox>
+
+                            <!-- <lightning-input
+                                name="paymentTerm"
+                                label="Payment Term"
+                                value={paymentTermValue}
+                                onchange={paymentTermHandleChange}
+                                type="text"
+                                disabled=""
+                                required>
+                            </lightning-input> -->
 
                             <lightning-input class="main" label="Purchase Order Number" value={purchaseOrderNumber} type="text" onchange={purchaseOrderNumberHandleChange} ></lightning-input>
                             <lightning-textarea class="main" name="input1" label="Note Agent" value={noteAgent} onchange={noteAgentHandleChange} ></lightning-textarea>

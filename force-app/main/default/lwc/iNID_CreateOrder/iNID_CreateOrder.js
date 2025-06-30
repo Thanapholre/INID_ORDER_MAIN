@@ -40,9 +40,11 @@ import fetchAccountAddressDetailShipTo from '@salesforce/apex/INID_OrderControll
 import FONT_AWESOME from '@salesforce/resourceUrl/fontawesome';
 import getOrganization from '@salesforce/apex/INID_OrderController.getOrganization' ;
 import getPaymentType from '@salesforce/apex/INID_OrderController.getPaymentType' ;
+import getPaymentTerm from '@salesforce/apex/INID_OrderController.getPaymentTerm' ;
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 import fetchOrderToOrderFoc from '@salesforce/apex/INID_OrderController.fetchOrderToOrderFoc' ;
+import fetchPaymentTermByAccId from '@salesforce/apex/INID_OrderController.fetchPaymentTermByAccId' ;
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
     
@@ -149,6 +151,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track typeAddonOption = [];
     @track organizationOption = [] ;
     @track paymentTypeOption = [] ;
+    @track paymentTermOption = [];
     @track mainProductPromotionId = [] ;
     @track mainProductMatched = [] ;
     @track summaryRatioProduct ;
@@ -193,6 +196,51 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     ];
 
+    @wire(getRecord, {
+    recordId: "$recordId",
+    fields: [ACCOUNT_ID, PAYMENT_TYPE_FIELD, PAYMENT_TERM_FIELD, INID_Organization__c]
+    })
+    fetchOrder({ error, data }) {
+        // 👉 ตรวจสอบว่า paymentTermOption โหลดเสร็จหรือยัง
+        if (!this.paymentTermOption || this.paymentTermOption.length === 0) {
+            console.log('⏳ paymentTermOption not ready, retrying fetchOrder...');
+            setTimeout(() => this.fetchOrder({ error: null, data }), 100);
+            return;
+        }
+
+        if (data) {
+            const fetchedPaymentType = getFieldValue(data, PAYMENT_TYPE_FIELD);
+            const fetchedOrganization = getFieldValue(data, INID_Organization__c);
+            const fetchedPaymentTerm = getFieldValue(data, PAYMENT_TERM_FIELD);
+
+            const isValidPaymentType = this.paymentTypeOption?.some(opt => opt.value === fetchedPaymentType);
+            this.paymentTypeValue = isValidPaymentType ? fetchedPaymentType : '';
+
+            const isValidOrganization = this.organizationOption?.some(opt => opt.value === fetchedOrganization);
+            this.organizationValue = isValidOrganization ? fetchedOrganization : '';
+
+            const isValidPaymentTerm = this.paymentTermOption?.find(opt => opt.label === fetchedPaymentTerm);
+            console.log('isValidPaymentTerm: ' + JSON.stringify(isValidPaymentTerm , null ,2));
+
+            if (isValidPaymentTerm) {
+                this.paymentTermValue = isValidPaymentTerm.value; // ถ้าตรงกับ label ให้ใช้ค่า value
+            } else {
+                // ถ้าไม่ match label, ลองเช็คว่า fetchedPaymentTerm เป็น value ที่มีใน options อยู่แล้ว
+                const isValidPaymentTermValue = this.paymentTermOption?.some(opt => opt.value === fetchedPaymentTerm);
+                this.paymentTermValue = isValidPaymentTermValue ? fetchedPaymentTerm : '';
+            }
+
+
+            // this.paymentTermValue = isValidPaymentTerm ? fetchedPaymentTerm : '';
+            this.paymentTermValue = 'N030';
+
+            console.log('📌 paymentTermValue (after retry): ' + JSON.stringify(this.paymentTermValue, null, 2));
+        } else {
+            console.log(error);
+        }
+    }
+
+
     @wire(getPaymentType)
         wiredGetPaymentType({ error, data }) {
         if (data) {
@@ -206,18 +254,34 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    @wire(getPaymentTerm)
+    wiredGetPaymentTerm({ error, data }) {
+        if (data) {
+            this.paymentTermOption = data.map(item => ({
+                label: item.label,
+                value: item.value
+            }));
+            console.log('paymentTermOption:', JSON.stringify(this.paymentTermOption, null, 2));
+        } else if (error) {
+            console.error('Error loading picklist:', error);
+        }
+    }
+
+
     @wire(getOrganization)
         wiredGetOrganization({ error, data }) {
         if (data) {
             this.organizationOption = data.map(item => ({
                 label: item.label,
-                value: item.value
+                value: item.label
             }));
             console.log('organizationOption:' + JSON.stringify(this.organizationOption , null ,2));
         } else if (error) {
             console.error('Error loading picklist:', error);
         }
     }
+
+    
 
     @wire(getCustomerType)
     wiredCustomerType({ error, data }) {
@@ -701,30 +765,63 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
+    // paymentTermValue; // value ที่ต้องการ set หลังโหลด option
+    // @track fetchedPaymentTerm; // cache ไว้ก่อนในกรณี option ยังไม่มา
 
-    @wire(getRecord, {
-        recordId: "$recordId",
-        fields: [ACCOUNT_ID , PAYMENT_TYPE_FIELD, PAYMENT_TERM_FIELD, INID_Organization__c]
-    })
-    fetchOrder({ error, data }) {
-        if (data) {
-            const fetchAccountId = getFieldValue(data , ACCOUNT_ID) ;
-            const fetchedPaymentType = getFieldValue(data, PAYMENT_TYPE_FIELD);
-            const fetchedPaymentTerm = getFieldValue(data, PAYMENT_TERM_FIELD);
-            const fetchedOrganization = getFieldValue(data, INID_Organization__c);
 
-            const isValidPaymentType = this.paymentTypeOption.some(opt => opt.value === fetchedPaymentType);
-            this.paymentTypeValue = isValidPaymentType ? fetchedPaymentType : '';
 
-            const isValidPaymentTerm = this.paymentTermOption.some(opt => opt.value === fetchedPaymentTerm);
-            this.paymentTermValue = isValidPaymentTerm ? fetchedPaymentTerm : '';
+    // @wire(fetchPaymentTermByAccId, { accountId: '$recordId' })
+    // wiredFetchPaymentTermByAccId({ error, data }) {
+    //     if (data) {
+    //         this.fetchedPaymentTerm = data;
+    //         // this.paymentTermValue = data ;
+    //         console.log('Fetched Payment Term (String from Account):', this.fetchedPaymentTerm);
 
-            const isValidOrganization = this.organizationOption.some(opt => opt.value === fetchedOrganization);
-            this.organizationValue = isValidOrganization ? fetchedOrganization : '';
-        } else {
-            console.log(error);
-        }
-    }
+    //         // ถ้ามี option แล้วให้เช็คเลย
+    //         if (this.paymentTermOption.length > 0) {
+    //             this.checkMatchingPaymentTerm();
+    //         }
+    //     } else if (error) {
+    //         console.error('Error fetching payment term from Account:', error);
+    //     }
+    // }
+
+    // @wire(getPaymentTerm)
+    // wiredGetPaymentTerm({ error, data }) {
+    //     if (data) {
+    //         this.paymentTermOption = data.map(item => ({
+    //             label: item.label,
+    //             value: item.value
+    //         }));
+    //         console.log('paymentTermOption:', JSON.stringify(this.paymentTermOption, null, 2));
+
+    //         // ถ้ามีค่า fetch มาจากอีก wire แล้ว ให้เช็คตรงนี้เลย
+    //         if (this.fetchedPaymentTerm) {
+    //             this.checkMatchingPaymentTerm();
+    //         }
+    //     } else if (error) {
+    //         console.error('Error loading picklist:', error);
+    //     }
+    // }
+
+    // checkMatchingPaymentTerm() {
+    //     const match = this.paymentTermOption.find(opt => opt.value === this.fetchedPaymentTerm);
+    //     if (match) {
+    //         console.log(`🎯 Match found: label = ${match.label}, value = ${match.value}`);
+
+    //         // ✅ กำหนดค่า paymentTermValue เฉพาะเมื่อเจอ match
+    //         this.paymentTermValue = match.value;
+    //         console.log(`📌 paymentTermValue ถูกตั้งค่าใหม่เป็น: ${this.paymentTermValue}`);
+    //     } else {
+    //         console.warn(`❌ No match found for fetched payment term: ${this.fetchedPaymentTerm}`);
+
+    //         // ❗ ถ้าไม่ match อาจต้องล้างค่าเพื่อป้องกัน invalid value
+    //         this.paymentTermValue = '';
+    //     }
+    // }
+
+
+
 
     @wire(fetchAccountDetail , {accountId: '$accountId'})
     wiredFetchAccountDetail({error , data}) {
@@ -756,6 +853,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log('error province :' + JSON.stringify(error , null  ,2));
         }
     }
+
+   
 
     handleBillToProvinceChange(event) {
         this.billToProvince = event.detail.value;
@@ -792,41 +891,41 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         ];
     }
 
-    get paymentTermOption() {
-        return [
-            { value: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)', label: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)' },
-            { value: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)', label: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)' },
-            { value: 'N000 - Immediately', label: 'N000 - Immediately' },
-            { value: 'N001 - Within 1 Day Due Net', label: 'N001 - Within 1 Day Due Net' },
-            { value: 'N004 - Within 4 Days Due Net', label: 'N004 - Within 4 Days Due Net' },
-            { value: 'N005 - Within 5 Days Due Net', label: 'N005 - Within 5 Days Due Net' },
-            { value: 'N007 - Within 7 Days Due Net', label: 'N007 - Within 7 Days Due Net' },
-            { value: 'N010 - Within 10 Days Due Net', label: 'N010 - Within 10 Days Due Net' },
-            { value: 'N012 - Within 12 Days Due Net', label: 'N012 - Within 12 Days Due Net' },
-            { value: 'N015 - Within 15 Days Due Net', label: 'N015 - Within 15 Days Due Net' },
-            { value: 'N017 - Within 17 Days Due Net', label: 'N017 - Within 17 Days Due Net' },
-            { value: 'N020 - Within 20 Days Due Net', label: 'N020 - Within 20 Days Due Net' },
-            { value: 'N021 - Within 21 Days Due Net', label: 'N021 - Within 21 Days Due Net' },
-            { value: 'N025 - Within 25 Days Due Net', label: 'N025 - Within 25 Days Due Net' },
-            { value: 'N030 - Within 30 Days Due Net', label: 'N030 - Within 30 Days Due Net' },
-            { value: 'Within 35 Days Due Net', label: 'N035 - Within 35 Days Due Net' },
-            { value: 'N040 - Within 40 Days Due Net', label: 'N040 - Within 40 Days Due Net' },
-            { value: 'N045 - Within 45 Days Due Net', label: 'N045 - Within 45 Days Due Net' },
-            { value: 'N050 - Within 50 Days Due Net', label: 'N050 - Within 50 Days Due Net' },
-            { value: 'N060 - Within 60 Days Due Net', label: 'N060 - Within 60 Days Due Net' },
-            { value: 'N063 - Within 63 Days Due Net', label: 'N063 - Within 63 Days Due Net' },
-            { value: 'N090 - Within 90 Days Due Net', label: 'N090 - Within 90 Days Due Net' },
-            { value: 'N120 - Within 120 Days Due Net', label: 'N120 - Within 120 Days Due Net' },
-            { value: 'N180 - Within 180 Days Due Net', label: 'N180 - Within 180 Days Due Net' },
-            { value: 'N210 - Within 210 Days Due Net', label: 'N210 - Within 210 Days Due Net' },
-            { value: 'V014 - Within 14 days Disc 2%', label: 'V014 - Within 14 days Disc 2%' },
-            { value: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day', label: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day' },
-            { value: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day', label: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day' },
-            { value: 'ZB03 - Within 20 days Disc 2% due 30 day', label: 'ZB03 - Within 20 days Disc 2% due 30 day' },
-            { value: 'Within 10 days Disc 4%, 20/2% due 30 day', label: 'ZB04 - Within 10 days Disc 4%, 20/2% due 30 day' },
-            { value: 'ZB05 - Within 5 days Disc 2% due 10 day', label: 'ZB05 - Within 5 days Disc 2% due 10 day' }
-        ];
-    }
+    // get paymentTermOption() {
+    //     return [
+    //         { value: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)', label: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)' },
+    //         { value: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)', label: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)' },
+    //         { value: 'N000 - Immediately', label: 'N000 - Immediately' },
+    //         { value: 'N001 - Within 1 Day Due Net', label: 'N001 - Within 1 Day Due Net' },
+    //         { value: 'N004 - Within 4 Days Due Net', label: 'N004 - Within 4 Days Due Net' },
+    //         { value: 'N005 - Within 5 Days Due Net', label: 'N005 - Within 5 Days Due Net' },
+    //         { value: 'N007 - Within 7 Days Due Net', label: 'N007 - Within 7 Days Due Net' },
+    //         { value: 'N010 - Within 10 Days Due Net', label: 'N010 - Within 10 Days Due Net' },
+    //         { value: 'N012 - Within 12 Days Due Net', label: 'N012 - Within 12 Days Due Net' },
+    //         { value: 'N015 - Within 15 Days Due Net', label: 'N015 - Within 15 Days Due Net' },
+    //         { value: 'N017 - Within 17 Days Due Net', label: 'N017 - Within 17 Days Due Net' },
+    //         { value: 'N020 - Within 20 Days Due Net', label: 'N020 - Within 20 Days Due Net' },
+    //         { value: 'N021 - Within 21 Days Due Net', label: 'N021 - Within 21 Days Due Net' },
+    //         { value: 'N025 - Within 25 Days Due Net', label: 'N025 - Within 25 Days Due Net' },
+    //         { value: 'N030 - Within 30 Days Due Net', label: 'N030 - Within 30 Days Due Net' },
+    //         { value: 'Within 35 Days Due Net', label: 'N035 - Within 35 Days Due Net' },
+    //         { value: 'N040 - Within 40 Days Due Net', label: 'N040 - Within 40 Days Due Net' },
+    //         { value: 'N045 - Within 45 Days Due Net', label: 'N045 - Within 45 Days Due Net' },
+    //         { value: 'N050 - Within 50 Days Due Net', label: 'N050 - Within 50 Days Due Net' },
+    //         { value: 'N060 - Within 60 Days Due Net', label: 'N060 - Within 60 Days Due Net' },
+    //         { value: 'N063 - Within 63 Days Due Net', label: 'N063 - Within 63 Days Due Net' },
+    //         { value: 'N090 - Within 90 Days Due Net', label: 'N090 - Within 90 Days Due Net' },
+    //         { value: 'N120 - Within 120 Days Due Net', label: 'N120 - Within 120 Days Due Net' },
+    //         { value: 'N180 - Within 180 Days Due Net', label: 'N180 - Within 180 Days Due Net' },
+    //         { value: 'N210 - Within 210 Days Due Net', label: 'N210 - Within 210 Days Due Net' },
+    //         { value: 'V014 - Within 14 days Disc 2%', label: 'V014 - Within 14 days Disc 2%' },
+    //         { value: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day', label: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day' },
+    //         { value: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day', label: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day' },
+    //         { value: 'ZB03 - Within 20 days Disc 2% due 30 day', label: 'ZB03 - Within 20 days Disc 2% due 30 day' },
+    //         { value: 'Within 10 days Disc 4%, 20/2% due 30 day', label: 'ZB04 - Within 10 days Disc 4%, 20/2% due 30 day' },
+    //         { value: 'ZB05 - Within 5 days Disc 2% due 10 day', label: 'ZB05 - Within 5 days Disc 2% due 10 day' }
+    //     ];
+    // }
 
      handleBillToAddress1Change(event) {
         this.billToAddress1 = event.target.value;
@@ -986,7 +1085,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     paymentTermHandleChange(event) {
-        this.paymentTermValue = event.detail.value;
+        this.paymentTermValue = event.detail.value
     }
 
     billtoHandleChange(event) {
@@ -1264,6 +1363,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         
         if(row.nameBtn === '+') {
             this.currentMaterialCodeForAddOn = row.code;
+            this.selectedValue = '';
             this.isPopupOpenFreeGood = true;
         }
     }
@@ -2224,7 +2324,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (this.typeOrderFirstValue === 'Create New Order' && this.typeOrderSecondValue !== 'One Time Order') {
             this.customerId = '';
             this.searchTerm = '';
-            this.paymentTypeValue = '';
+            // this.paymentTypeValue = '';
             this.paymentTermValue = '';
             this.organizationValue = '';
             this.billto = '';
@@ -2239,7 +2339,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 this.customerId = oneTimeCustomerId;
                 this.accountId = oneTimeCustomerId;
                 this.searchTerm = `${matchedCustomer.INID_Customer_Code__c} ${matchedCustomer.Name}`;
-                this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
+                // this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
                 this.paymentTermValue = matchedCustomer.Payment_term__c || '';
                 this.organizationValue = matchedCustomer.INID_Organization__c || '';
                 // this.fetchBillTo(oneTimeCustomerId);
@@ -2498,28 +2598,196 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
 
+    // async insertPromotion(orderId) {
+    //     const selectedBenefitItems = [];
+
+    //     // ensure updated data
+    //     this.updateSelectedBenefits();
+
+    //     this.selectedBenefits.forEach(benefit => {
+    //         selectedBenefitItems.push({
+    //             INID_Order__c: orderId,
+    //             INID_Sale_Promotion_Benefit_Product__c: benefit.benefitId
+    //         });
+    //     });
+
+    //     try {
+    //         console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
+    //          const matchedMainProduct = this.mainProductMatched.find(p => this.mainProductPromotionId.includes(p.id));
+    //                 const mainQty = matchedMainProduct ? matchedMainProduct.quantity : 0;
+    //                 const numerator = b.INID_Free_Product_Quantity_Numerator__c || 1;
+    //                 const denominator = b.INID_Free_Product_Quantity_Denominator__c || 0;
+
+    //                 console.log('matchedMainProduct:' + JSON.stringify(matchedMainProduct , null , 2));
+    //                 console.log('mainQty:' + JSON.stringify(mainQty , null , 2));
+    //                 console.log('numerator:' + JSON.stringify(numerator , null , 2));
+    //                 console.log('denominator:' + JSON.stringify(denominator , null , 2));
+
+    //                 let devide = 0;                
+    //                 if (mainQty >= numerator) {
+    //                     devide = (mainQty / numerator);
+    //                     if (devide % 1 < 0.5) {
+    //                         devide = Math.floor(devide);
+    //                     } else {
+    //                         devide = Math.ceil(devide);
+    //                     }
+    //                 } else {
+    //                     devide = 0;
+    //                 }
+
+    //                 const summaryProduct = devide * denominator;
+    //                 this.summaryRatioProduct = summaryProduct ;
+
+    //         await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
+    //         console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
+    //     } catch (error) {
+    //         this.handleSaveError(error);
+    //     }
+    // }
+
     async insertPromotion(orderId) {
         const selectedBenefitItems = [];
 
-        // ensure updated data
+        // Ensure updated data
         this.updateSelectedBenefits();
 
-        this.selectedBenefits.forEach(benefit => {
-            selectedBenefitItems.push({
-                INID_Order__c: orderId,
-                INID_Sale_Promotion_Benefit_Product__c: benefit.benefitId
-            });
-        });
-
         try {
-            console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
-            await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
-            console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
+            for (const benefit of this.selectedBenefits) {
+                // หา main product ที่เกี่ยวข้องกับ benefit นี้
+                const matchedMainProduct = this.mainProductMatched.find(p => this.mainProductPromotionId.includes(p.id));
+                const mainQty = matchedMainProduct ? matchedMainProduct.quantity : 0;
+                const numerator = benefit.INID_Free_Product_Quantity_Numerator__c || 1;
+                const denominator = benefit.INID_Free_Product_Quantity_Denominator__c || 0;
+
+                let devide = 0;
+                if (mainQty >= numerator) {
+                    devide = mainQty / numerator;
+                    devide = (devide % 1 < 0.5) ? Math.floor(devide) : Math.ceil(devide);
+                }
+
+                const summaryProduct = devide * denominator;
+
+                console.log('Benefit ID:', benefit.benefitId);
+                console.log('mainQty:', mainQty);
+                console.log('numerator:', numerator);
+                console.log('denominator:', denominator);
+                console.log('summaryRatioProduct:', summaryProduct);
+
+                // เช็คเฉพาะ Promotion Type = Ratio (คุณอาจต้องเช็ค benefit.promotionType ด้วย)
+                if (benefit.benefitType  === 'Free Product (Ratio)') {
+                    if (summaryProduct > 0) {
+                        selectedBenefitItems.push({
+                            INID_Order__c: orderId,
+                            INID_Sale_Promotion_Benefit_Product__c: benefit.benefitId
+                        });
+                    } else {
+                        console.log(`❌ Skipping Ratio Promotion (summaryProduct = 0) for benefitId: ${benefit.benefitId}`);
+                    }
+                } else {
+                    // ถ้าไม่ใช่ Ratio ให้ insert ตามปกติ
+                    selectedBenefitItems.push({
+                        INID_Order__c: orderId,
+                        INID_Sale_Promotion_Benefit_Product__c: benefit.benefitId
+                    });
+                }
+            }
+
+            if (selectedBenefitItems.length > 0) {
+                console.log('✅ promotionData:', JSON.stringify(selectedBenefitItems, null, 2));
+                await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
+            } else {
+                console.log('⚠️ No valid promotion items to insert.');
+            }
         } catch (error) {
             this.handleSaveError(error);
         }
     }
 
+
+    // ตัวเก่า
+    // async insertOrderItemListFunction(orderId) {
+    //     let currentHLNumber = 0;
+    //     let hlItemNumber = 0;
+    //     let itemIndex = 1;
+
+    //     console.log('summary product from insert function :' + JSON.stringify(this.summaryProducts , null ,2));
+
+    //     // กรองออก: ไม่รวม FOC Add-on
+    //     const filteredProducts = this.summaryProducts.filter(item => {
+    //         return !(item.isAddOn && item.addOnText === 'ของแถมนอกบิล (FOC)');
+    //     });
+    //     const orderItemList = filteredProducts.map((item) => {
+    //         const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
+    //         // const formattedNumber = ((index + 1) * 10).toString().padStart(6, '0');
+    //         if (item.isAddOn) {
+    //             const result = {
+    //                 INID_Quantity__c: item.quantity,
+    //                 INID_Sale_Price__c: item.salePrice,
+    //                 INID_Product_Price_Book__c: item.productPriceBookId,
+    //                 INID_Type__c: 'FREE',
+    //                 INID_Order__c: orderId,
+    //                 INID_HL_Number__c: hlItemNumber,
+    //                 INID_Item_Number__c: formattedNumber,
+    //                 INID_Remark__c: item.addOnText || '',
+    //             };
+    //             itemIndex++; // ✅ เพิ่มก่อน return
+    //             return result;
+    //         } else {
+    //             currentHLNumber++;
+    //             hlItemNumber = currentHLNumber;
+                
+    //             const result = {
+    //                 INID_Quantity__c: item.quantity,
+    //                 INID_Sale_Price__c: item.salePrice,
+    //                 INID_Product_Price_Book__c: item.productPriceBookId,
+    //                 INID_Type__c: 'SALE',
+    //                 INID_Order__c: orderId,
+    //                 INID_HL_Number__c: currentHLNumber,
+    //                 INID_Item_Number__c: formattedNumber,
+    //                 INID_Remark__c: item.addOnText || '',
+    //             };
+                 
+    //             itemIndex++; // ✅ เพิ่มก่อน return
+    //             return result;
+    //         }   
+
+    //     });
+        
+    //     if (Array.isArray(this.freeProductPromotion)) {
+    //         this.freeProductPromotion.forEach(free => {
+    //             const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
+
+    //             let quantity = null;
+
+    //             if (free.benefitType === 'Free Product (Fix Quantity)') {
+    //                 quantity = free.fixQty;
+    //             } else if (free.benefitType === 'Free Product (Ratio)') {
+    //                 quantity = this.summaryRatioProduct || null;
+    //             }
+
+    //             orderItemList.push({
+    //                 INID_Quantity__c: quantity,
+    //                 INID_Sale_Price__c: 0,
+    //                 INID_Product_Price_Book__c: free.productPriceBookId,
+    //                 INID_Type__c: 'FREE',
+    //                 INID_Order__c: orderId,
+    //                 INID_HL_Number__c: ++currentHLNumber,
+    //                 INID_Item_Number__c: formattedNumber,
+    //                 INID_Remark__c: 'โปรโมชั่น',
+    //             });
+    //             itemIndex++;
+    //         });
+    //     }
+
+    //     console.log('Order Item List (excluded FOC Add-ons):', JSON.stringify( orderItemList , null, 2));
+
+    //     try {
+    //         await insertOrderItem({ orderList: orderItemList, accountId: this.accountId });
+    //         this.handleSaveSuccess();
+    //     } catch (error) {
+    //         this.handleSaveError(error);
+    //     }
+    // }
 
 
     async insertOrderItemListFunction(orderId) {
@@ -2573,13 +2841,18 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (Array.isArray(this.freeProductPromotion)) {
             this.freeProductPromotion.forEach(free => {
                 const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
-
                 let quantity = null;
 
                 if (free.benefitType === 'Free Product (Fix Quantity)') {
                     quantity = free.fixQty;
                 } else if (free.benefitType === 'Free Product (Ratio)') {
-                    quantity = this.summaryRatioProduct || null;
+                    quantity = this.summaryRatioProduct || 0;
+
+                    // ถ้า ratio = 0 ห้าม insert
+                    if (quantity === 0) {
+                        console.log(`❌ Skipping insert for Free Product (Ratio) with 0 quantity: ${free.productPriceBookId}`);
+                        return; // ข้าม iteration นี้
+                    }
                 }
 
                 orderItemList.push({
@@ -2592,6 +2865,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     INID_Item_Number__c: formattedNumber,
                     INID_Remark__c: 'โปรโมชั่น',
                 });
+
                 itemIndex++;
             });
         }
@@ -2605,6 +2879,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.handleSaveError(error);
         }
     }
+
+    
 
 
     async insertOrderItemFocListFunction(orderFocId) {

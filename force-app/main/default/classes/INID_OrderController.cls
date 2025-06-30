@@ -632,6 +632,22 @@ public with sharing class INID_OrderController {
         return results;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<PicklistOption> getPaymentTerm(){
+        List<PicklistOption> results = new List<PicklistOption>();
+
+        Schema.DescribeFieldResult fieldResult = Order.INID_PaymentTerm__c.getDescribe();
+        for(Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+            if(entry.isActive()){
+                PicklistOption option = new PicklistOption();
+                option.label = entry.getLabel();
+                option.value = entry.getValue();
+                results.add(option);
+            }
+        }
+        return results;
+    }
+
 
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchAccountAddressDetail(Id accountId , String billtoName) {
@@ -649,6 +665,18 @@ public with sharing class INID_OrderController {
             FROM INID_Account_Address__c 
             WHERE INID_Account__c = :accountId AND Name = :shiptoName AND INID_Address_Type__c = 'Ship To'
         ]; 
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static String fetchPaymentTermByAccId(Id accountId) {
+        Account acc = [
+            SELECT Payment_term__c
+            FROM Account
+            WHERE Id = :accountId
+            LIMIT 1
+        ];
+    
+        return acc.Payment_term__c;
     }
 
     
