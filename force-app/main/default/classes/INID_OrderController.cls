@@ -636,7 +636,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchAccountAddressDetail(Id accountId , String billtoName) {
         return[
-            SELECT INID_Address2__c , INID_Street__c , INID_City__c , INID_Province__c , INID_ZIP_Code__c 
+            SELECT INID_Address2__c , INID_Street__c , INID_City__c , INID_Province__c , INID_ZIP_Code__c , INID_Bill_To_Code__c
             FROM INID_Account_Address__c 
             WHERE INID_Account__c = :accountId AND Name = :billtoName AND INID_Address_Type__c = 'Bill To'
         ]; 
@@ -645,7 +645,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchAccountAddressDetailShipTo(Id accountId , String shiptoName) {
         return[
-            SELECT INID_Address2__c , INID_Street__c , INID_City__c , INID_Province__c , INID_ZIP_Code__c 
+            SELECT INID_Address2__c , INID_Street__c , INID_City__c , INID_Province__c , INID_ZIP_Code__c , INID_Ship_To_Code__c	 
             FROM INID_Account_Address__c 
             WHERE INID_Account__c = :accountId AND Name = :shiptoName AND INID_Address_Type__c = 'Ship To'
         ]; 

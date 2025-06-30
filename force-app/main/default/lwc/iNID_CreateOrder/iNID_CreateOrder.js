@@ -627,11 +627,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.cityBillto = data.map(item => item.INID_City__c).join(', ');
             this.zipCodeBillto = data.map(item => item.INID_ZIP_Code__c).join(', ');
             this.streetBillto = data.map(address => address.INID_Street__c).join(', ');
+            this.billToCode = data.map(address => address.INID_Bill_To_Code__c).join(', ');
 
             console.log('addressBillTo2:', this.addressBillto2);
             console.log('provinceBillto:', this.provinceBillto);
             console.log('cityBillto:', this.cityBillto);
             console.log('zipCodeBillto:', this.zipCodeBillto); // ✅ ตรงนี้แก้แล้ว
+            console.log('billtoCode:', this.billToCode);
         } else if (error) {
             console.error('❌ Error fetching account address detail:', error);
         }
@@ -648,6 +650,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.cityShipto = data.map(address => address.INID_City__c).join(', ');
             this.streetShipto = data.map(address => address. INID_Street__c).join(', ');
             this.zipCodeShipto = data.map(address => address.INID_ZIP_Code__c).join(', ');
+            this.shipTocode = data.map(address => address.INID_Ship_To_Code__c).join(', ');
             
             console.log('AddressShipto2:', this.addressShipto2);
             console.log('ProvinceShipto:', this.provinceShipto);
@@ -963,13 +966,16 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     handleChangeRadioButton1(event) {
         const isChecked = event.target.checked;
-        isChecked ? this.raidoExclude = true : this.raidoExclude = false ;
+        this.raidoExclude = isChecked;
+        this.raidoInclude = !isChecked;
     }
 
     handleChangeRadioButton2(event) {
         const isChecked = event.target.checked;
-        isChecked ? this.raidoInclude = true : this.raidoInclude = false ;
+        this.raidoInclude = isChecked;
+        this.raidoExclude = !isChecked; 
     }
+
 
     organizationHandleChange(event) {
         this.organizationValue = event.detail.value;
@@ -1655,6 +1661,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     async connectedCallback() {
         loadStyle(this, FONT_AWESOME + '/css/all.min.css');
 
+        this.raidoExclude = true; 
+        this.raidoInclude = false; 
     }
 
 
@@ -1796,6 +1804,15 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 const benefitGroups = {};
 
                 promo.benefits.forEach(b => {
+                    const remark = (b.INID_Remark__c || '').trim();
+                    const batch = (b.INID_Batch_Lot_No__c || '').trim();
+                    // ✅ ถ้า Remark และ Batch ว่างทั้งคู่ ไม่ต้องแสดง benefit นี้
+                    const item = {
+                        id: b.Id,
+                        // ...properties อื่นๆ
+                        remark: remark || null, // assign null ถ้าว่าง เพื่อให้ if:true fail
+                        batch: batch || null
+                    };
                     const condType = b.INID_Sale_Promotion_Benefit__r?.INID_Condition_Type__c || 'OR';
 
                     if (!benefitGroups[condType]) {
@@ -2435,8 +2452,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             Type: this.typeOrderSecondValue ,
             INID_PaymentType__c: this.paymentTypeValue,
             INID_PaymentTerm__c: this.paymentTermValue,
-            // INID_Bill_To__c: this.billto,	
-            // INID_Ship_To__c: this.shipto,
+
+            INID_Bill_To_Code__c: this.billToCode,	    
+            INID_Ship_To_Code__c: this.shipTocode,
+
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
             INID_NoteInternal__c: this.noteInternal,

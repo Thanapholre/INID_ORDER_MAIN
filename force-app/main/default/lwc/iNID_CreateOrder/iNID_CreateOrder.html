@@ -465,34 +465,38 @@
                                                                     </lightning-input>
                                                                 </div>
 
-                                                                <!-- Row 2: Batch -->
-                                                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
-                                                                    <lightning-input
-                                                                        style="width: 60vw;"
-                                                                        type="text"
-                                                                        label="Batch"
-                                                                        value={item.batch}
-                                                                        data-id={item.id}
-                                                                        name="batch"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        placeholder="Enter Batch"
-                                                                        disabled>
-                                                                    </lightning-input>
-                                                                </div>
+                                                                <!-- Batch -->
+                                                                <template if:true={item.batch}>
+                                                                    <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Batch"
+                                                                            value={item.batch}
+                                                                            data-id={item.id}
+                                                                            name="batch"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            placeholder="Enter Batch"
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
 
-                                                                <!-- Row 3: Remark -->
-                                                                <div class="slds-col slds-size_1-of-1">
-                                                                    <lightning-input
-                                                                        style="width: 60vw;"
-                                                                        type="text"
-                                                                        label="Remark"
-                                                                        value={item.remark}
-                                                                        data-id={item.id}
-                                                                        name="remark"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        disabled>
-                                                                    </lightning-input>
-                                                                </div>
+                                                                <!-- Remark -->
+                                                                <template if:true={item.remark}>
+                                                                    <div class="slds-col slds-size_1-of-1">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Remark"
+                                                                            value={item.remark}
+                                                                            data-id={item.id}
+                                                                            name="remark"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
                                                             </template>
 
                                                             <!-- item.isFreeProductRatio} -->
@@ -537,34 +541,38 @@
                                                                 
                                                                 </div>
 
-                                                                <!-- Row 2: Batch -->
-                                                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
-                                                                    <lightning-input
-                                                                        style="width: 60vw;"
-                                                                        type="text"
-                                                                        label="Batch"
-                                                                        value={item.batch}
-                                                                        data-id={item.id}
-                                                                        name="batch"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        placeholder="Enter Batch"
-                                                                        disabled>
-                                                                    </lightning-input>
-                                                                </div>
+                                                                <!-- Batch -->
+                                                                <template if:true={item.batch}>
+                                                                    <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Batch"
+                                                                            value={item.batch}
+                                                                            data-id={item.id}
+                                                                            name="batch"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            placeholder="Enter Batch"
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
 
-                                                                <!-- Row 3: Remark -->
-                                                                <div class="slds-col slds-size_1-of-1">
-                                                                    <lightning-input
-                                                                        style="width: 60vw;"
-                                                                        type="text"
-                                                                        label="Remark"
-                                                                        value={item.remark}
-                                                                        data-id={item.id}
-                                                                        name="remark"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        disabled>
-                                                                    </lightning-input>
-                                                                </div>
+                                                                <!-- Remark -->
+                                                                <template if:true={item.remark}>
+                                                                    <div class="slds-col slds-size_1-of-1">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Remark"
+                                                                            value={item.remark}
+                                                                            data-id={item.id}
+                                                                            name="remark"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
                                                             </template>
 
                                                             <!-- Discount (Amount) -->
@@ -581,18 +589,21 @@
                                                                     </lightning-input>
                                                                 </div>
 
-                                                                <div class="slds-col slds-size_1-of-1">
-                                                                    <lightning-input
-                                                                        style="width: 60vw;"
-                                                                        type="text"
-                                                                        label="Remark"
-                                                                        value={item.remark}
-                                                                        data-id={item.id}
-                                                                        name="remark"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        disabled>
-                                                                    </lightning-input>
-                                                                </div>
+                                                                <!-- Remark -->
+                                                                <template if:true={item.remark}>
+                                                                    <div class="slds-col slds-size_1-of-1">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Remark"
+                                                                            value={item.remark}
+                                                                            data-id={item.id}
+                                                                            name="remark"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
                                                             </template>
 
                                                             <!-- Discount (%) -->
@@ -609,18 +620,21 @@
                                                                     </lightning-input>
                                                                 </div>
 
-                                                                <div class="slds-col slds-size_1-of-1">
-                                                                    <lightning-input
-                                                                        style="width: 60vw;"
-                                                                        type="text"
-                                                                        label="Remark"
-                                                                        value={item.remark}
-                                                                        data-id={item.id}
-                                                                        name="remark"
-                                                                        onchange={handleBenefitFieldChange}
-                                                                        disabled>
-                                                                    </lightning-input>
-                                                                </div>
+                                                                <!-- Remark -->
+                                                                <template if:true={item.remark}>
+                                                                    <div class="slds-col slds-size_1-of-1">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Remark"
+                                                                            value={item.remark}
+                                                                            data-id={item.id}
+                                                                            name="remark"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
                                                             </template>
 
                                                             
@@ -648,13 +662,21 @@
                                                                     </div>
                                                                     
 
-                                                                    <lightning-input
-                                                                        label="Remark"
-                                                                        value={item.remark}
-                                                                        data-id={item.id}
-                                                                        name="remark"
-                                                                        disabled>
-                                                                    </lightning-input>
+                                                                <!-- Remark -->
+                                                                <template if:true={item.remark}>
+                                                                    <div class="slds-col slds-size_1-of-1">
+                                                                        <lightning-input
+                                                                            style="width: 60vw;"
+                                                                            type="text"
+                                                                            label="Remark"
+                                                                            value={item.remark}
+                                                                            data-id={item.id}
+                                                                            name="remark"
+                                                                            onchange={handleBenefitFieldChange}
+                                                                            disabled>
+                                                                        </lightning-input>
+                                                                    </div>
+                                                                </template>
                                                                 </div>
                                                             </template>
                                                         </div>
