@@ -1461,7 +1461,7 @@ export default class INID_OrderLine extends LightningElement {
                         INID_ExcVAT__c: INID_ExcVAT__c,
                         INID_IncVAT__c: INID_IncVAT__c,
                 
-                        INID_TotalAmount__c:  this.totalFocPrice,
+                        // INID_TotalAmount__c:  this.totalFocPrice,
                         INID_Status__c: Status ,
                         INID_Organization__c:INID_Organization__c ,
                         INID_PaymentTerm__c:INID_PaymentTerm__c ,
@@ -1478,7 +1478,8 @@ export default class INID_OrderLine extends LightningElement {
                         INID_City_Billto__c: INID_City_Billto__c ,
                         INID_City_Shipto__c: INID_City_Shipto__c ,
                         INID_Province_Billto__c: INID_Province_Billto__c, 
-                        INID_Province_Shipto__c: INID_Province_Shipto__c
+                        INID_Province_Shipto__c: INID_Province_Shipto__c,
+                        INID_NetAmount__c: this.totalFocPrice,
 
                     };
                 });
@@ -2073,6 +2074,14 @@ export default class INID_OrderLine extends LightningElement {
             const main = this.summaryProducts.find(mp => !mp.addOnText && mp.code === foc.productCode);
             return { focProduct: foc };
         });
+
+        const focTotal = focList.reduce((sum, item) => {
+            return sum + (item.focProduct.total || 0); // ถ้า field เป็นชื่ออื่น เช่น price * quantity แก้ตรงนี้
+        }, 0);
+
+        console.log(`ราคารวมเฉลี่ยสุทธิของ FOC ทั้งหมด: ${focTotal.toFixed(2)} บาท`);
+        this.totalFocPrice = focTotal;
+
         this.focProducts = focList;
         const selectedPromotions = this.comboGroups.filter(group => group.isSelected);
         selectedPromotions.forEach(group => {

@@ -168,6 +168,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track cityBillto = '' ;
     @track zipCodeBillto = '';
     @track streetBillto = '' ;
+    @track totalFocPrice = 0;
 
     
 
@@ -2541,6 +2542,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_City_Shipto__c: this.cityShipto ,
             INID_Province_Billto__c: this.provinceBillto, 
             INID_Province_Shipto__c: this.provinceShipto ,
+            INID_NetAmount__c: this.totalFocPrice,
             
         };
 
@@ -3104,6 +3106,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     focProduct: foc
                 };
             });
+
+        const focTotal = focList.reduce((sum, item) => {
+            return sum + (item.focProduct.total || 0); // ถ้า field เป็นชื่ออื่น เช่น price * quantity แก้ตรงนี้
+        }, 0);
+
+        console.log(`ราคารวมเฉลี่ยสุทธิของ FOC ทั้งหมด: ${focTotal.toFixed(2)} บาท`);
+        this.totalFocPrice = focTotal;
         
         this.focProducts = focList;
 
