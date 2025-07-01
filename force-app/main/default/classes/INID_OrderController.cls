@@ -1,7 +1,7 @@
 public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<Account> fetchCustomers() {
-        return [SELECT Id , INID_Customer_Code__c, Name , Payment_type__c , Payment_term__c FROM Account WHERE INID_Status__c = 'Activate' ];
+        return [SELECT Id , INID_Customer_Code__c, Name , Payment_type__c , Payment_term__c , INID_Organization__c	 FROM Account WHERE INID_Status__c = 'Activate' ];
     }
 
     @AuraEnabled(cacheable=true)

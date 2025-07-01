@@ -157,7 +157,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track summaryRatioProduct ;
     @track accountAddressDetailData = [];
     @track addressBillto2 = '' ;
-
+    @track shipToCode = '' 
+    @track billToCode = '' ;
     @track accountAddressDetailShipToData = [];
     @track addressShipto2 = '';
     @track provinceShipto = '';
@@ -714,7 +715,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.cityShipto = data.map(address => address.INID_City__c).join(', ');
             this.streetShipto = data.map(address => address. INID_Street__c).join(', ');
             this.zipCodeShipto = data.map(address => address.INID_ZIP_Code__c).join(', ');
-            this.shipTocode = data.map(address => address.INID_Ship_To_Code__c).join(', ');
+            this.shipToCode = data.map(address => address.INID_Ship_To_Code__c).join(', ');
             
             console.log('AddressShipto2:', this.addressShipto2);
             console.log('ProvinceShipto:', this.provinceShipto);
@@ -2335,15 +2336,35 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (this.typeOrderSecondValue === 'One Time Order' && this.accounts.length > 0) {
             const oneTimeCustomerId = '0018500000RB6YvAAL';
             const matchedCustomer = this.accounts.find(c => c.Id === oneTimeCustomerId);
+
+            console.log('match customer:' + JSON.stringify(matchedCustomer , null, 2));
+            console.log('match account data:' + JSON.stringify(this.accounts , null, 2));
+
+            // if (matchedCustomer) {
+            //     this.customerId = oneTimeCustomerId;
+            //     this.accountId = oneTimeCustomerId;
+            //     this.searchTerm = `${matchedCustomer.INID_Customer_Code__c} ${matchedCustomer.Name}`;
+            //     // this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
+            //     this.paymentTermValue = matchedCustomer.Payment_term__c || '';
+            //     this.organizationValue = matchedCustomer.INID_Organization__c || '';
+            //     // this.fetchBillTo(oneTimeCustomerId);
+            //     // this.fetchShipto(oneTimeCustomerId);
+            // }
             if (matchedCustomer) {
                 this.customerId = oneTimeCustomerId;
                 this.accountId = oneTimeCustomerId;
                 this.searchTerm = `${matchedCustomer.INID_Customer_Code__c} ${matchedCustomer.Name}`;
-                // this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
-                this.paymentTermValue = matchedCustomer.Payment_term__c || '';
+
+                // หาค่า value ของ payment term จาก label ที่ตรงกัน
+                const matchedTerm = this.paymentTermOption.find(
+                    item => item.label === matchedCustomer.Payment_term__c
+                );
+
+                this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
+                this.paymentTermValue = matchedTerm ? matchedTerm.value : '';
                 this.organizationValue = matchedCustomer.INID_Organization__c || '';
-                // this.fetchBillTo(oneTimeCustomerId);
-                // this.fetchShipto(oneTimeCustomerId);
+
+                console.log('this.payment term value:' + this.paymentTermValue , null ,2);
             }
         }
 
@@ -2494,8 +2515,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_Address_Billto__c: this.billto,	
             INID_Address_Shipto__c: this.shipto,
 
-            INID_Address_Billto2__c : this.addressBillto2,
-            INID_Address_Shipto2__c : this.addressShipto2,
+            INID_Address_Billto2__c: this.addressBillto2,
+            INID_Address_Shipto2__c: this.addressShipto2,
+
+            INID_Bill_To_Code__c: this.billToCode,
+            INID_Ship_To_Code__c: this.shipToCode,
 
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue,
@@ -2554,7 +2578,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_PaymentTerm__c: this.paymentTermValue,
 
             INID_Bill_To_Code__c: this.billToCode,	    
-            INID_Ship_To_Code__c: this.shipTocode,
+            INID_Ship_To_Code__c: this.shipToCode,
 
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
