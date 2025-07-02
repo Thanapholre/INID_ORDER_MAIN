@@ -57,7 +57,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track paymentTypeValue = '';
     @track paymentTermValue = '';
     @track organizationValue = '';
-    @track billto = '';
+    // @track billto = '';
     @track shipto = '';
     @track accounts = [];
     @track quotation = [];
@@ -169,7 +169,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track zipCodeBillto = '';
     @track streetBillto = '' ;
     @track totalFocPrice = 0;
-
+    @track billto = []
     
 
   
@@ -232,9 +232,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 this.paymentTermValue = isValidPaymentTermValue ? fetchedPaymentTerm : '';
             }
 
-
+            console.log('fetch payment term : ' + fetchedPaymentTerm );
             // this.paymentTermValue = isValidPaymentTerm ? fetchedPaymentTerm : '';
-            this.paymentTermValue = 'N030';
+            this.paymentTermValue = fetchedPaymentTerm ;
 
             console.log('📌 paymentTermValue (after retry): ' + JSON.stringify(this.paymentTermValue, null, 2));
         } else {
@@ -328,7 +328,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     
-    @wire(fetchProductLicenseExclude , {accountLicenseId: '$accountLicenseId'})
+    @wire(fetchProductLicenseExclude , {accountId: '$accountId'})
     wirefetchProductLicenseExclude({error , data}) {
         if(data) {
             this.licenseExcludeData = data ;
@@ -344,11 +344,31 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //closeTab
     @wire(IsConsoleNavigation) isConsoleNavigation;
     async closeTab() {
-        if (!this.isConsoleNavigation) {
-            return;
+        // if (!this.isConsoleNavigation) {
+        //     return;
+        // }
+        // const { tabId } = await getFocusedTabInfo();
+        // await closeTab(tabId);
+
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    // recordId: this.orderId,
+                    objectApiName: 'Order',
+                    actionName: 'list'
+                }
+            },true);
+
+            if (this.isConsoleNavigation?.data === true) {
+                const { tabId } = await getFocusedTabInfo();
+                setTimeout(async () => {
+                    await closeTab(tabId);
+                }, 1000);
+            }
+        } catch (err) {
+            console.error('handleSaveSuccess error:', err);
         }
-        const { tabId } = await getFocusedTabInfo();
-        await closeTab(tabId);
     }
 
     //fetchQuoteItemById
@@ -767,64 +787,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-    // paymentTermValue; // value ที่ต้องการ set หลังโหลด option
-    // @track fetchedPaymentTerm; // cache ไว้ก่อนในกรณี option ยังไม่มา
-
-
-
-    // @wire(fetchPaymentTermByAccId, { accountId: '$recordId' })
-    // wiredFetchPaymentTermByAccId({ error, data }) {
-    //     if (data) {
-    //         this.fetchedPaymentTerm = data;
-    //         // this.paymentTermValue = data ;
-    //         console.log('Fetched Payment Term (String from Account):', this.fetchedPaymentTerm);
-
-    //         // ถ้ามี option แล้วให้เช็คเลย
-    //         if (this.paymentTermOption.length > 0) {
-    //             this.checkMatchingPaymentTerm();
-    //         }
-    //     } else if (error) {
-    //         console.error('Error fetching payment term from Account:', error);
-    //     }
-    // }
-
-    // @wire(getPaymentTerm)
-    // wiredGetPaymentTerm({ error, data }) {
-    //     if (data) {
-    //         this.paymentTermOption = data.map(item => ({
-    //             label: item.label,
-    //             value: item.value
-    //         }));
-    //         console.log('paymentTermOption:', JSON.stringify(this.paymentTermOption, null, 2));
-
-    //         // ถ้ามีค่า fetch มาจากอีก wire แล้ว ให้เช็คตรงนี้เลย
-    //         if (this.fetchedPaymentTerm) {
-    //             this.checkMatchingPaymentTerm();
-    //         }
-    //     } else if (error) {
-    //         console.error('Error loading picklist:', error);
-    //     }
-    // }
-
-    // checkMatchingPaymentTerm() {
-    //     const match = this.paymentTermOption.find(opt => opt.value === this.fetchedPaymentTerm);
-    //     if (match) {
-    //         console.log(`🎯 Match found: label = ${match.label}, value = ${match.value}`);
-
-    //         // ✅ กำหนดค่า paymentTermValue เฉพาะเมื่อเจอ match
-    //         this.paymentTermValue = match.value;
-    //         console.log(`📌 paymentTermValue ถูกตั้งค่าใหม่เป็น: ${this.paymentTermValue}`);
-    //     } else {
-    //         console.warn(`❌ No match found for fetched payment term: ${this.fetchedPaymentTerm}`);
-
-    //         // ❗ ถ้าไม่ match อาจต้องล้างค่าเพื่อป้องกัน invalid value
-    //         this.paymentTermValue = '';
-    //     }
-    // }
-
-
-
-
     @wire(fetchAccountDetail , {accountId: '$accountId'})
     wiredFetchAccountDetail({error , data}) {
         if(data) {
@@ -871,21 +833,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         return this.addressRecords?.data?.map(addr => addr.INID_Bill_To_Code__c) || [];
     }
 
-    // get organizationOption() {
-    //     return [
-    //         { value: '1001-MEDLINE', label: '1001-MEDLINE' },
-    //         { value: '2001-UNISON', label: '2001-UNISON' },
-    //         { value: '3001-F.C.P.', label: '3001-F.C.P.' }
-    //     ];
-    // }
-
-    // get paymentTypeOption() {
-    //     return [
-    //         { value: 'Cash', label: 'Cash' },
-    //         { value: 'Credit', label: 'Credit' }
-    //     ];
-    // }
-
     get options() {
         return [
             { value: '1', label: 'Include VAT' },
@@ -893,44 +840,10 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         ];
     }
 
-    // get paymentTermOption() {
-    //     return [
-    //         { value: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)', label: 'CH40 - CHQ (40% UPON CONFIRMATION ORDER AND 60% 90D)' },
-    //         { value: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)', label: 'CH50 - CHQ (50% UPON CONFIRMATION ORDER AND 50% 90D)' },
-    //         { value: 'N000 - Immediately', label: 'N000 - Immediately' },
-    //         { value: 'N001 - Within 1 Day Due Net', label: 'N001 - Within 1 Day Due Net' },
-    //         { value: 'N004 - Within 4 Days Due Net', label: 'N004 - Within 4 Days Due Net' },
-    //         { value: 'N005 - Within 5 Days Due Net', label: 'N005 - Within 5 Days Due Net' },
-    //         { value: 'N007 - Within 7 Days Due Net', label: 'N007 - Within 7 Days Due Net' },
-    //         { value: 'N010 - Within 10 Days Due Net', label: 'N010 - Within 10 Days Due Net' },
-    //         { value: 'N012 - Within 12 Days Due Net', label: 'N012 - Within 12 Days Due Net' },
-    //         { value: 'N015 - Within 15 Days Due Net', label: 'N015 - Within 15 Days Due Net' },
-    //         { value: 'N017 - Within 17 Days Due Net', label: 'N017 - Within 17 Days Due Net' },
-    //         { value: 'N020 - Within 20 Days Due Net', label: 'N020 - Within 20 Days Due Net' },
-    //         { value: 'N021 - Within 21 Days Due Net', label: 'N021 - Within 21 Days Due Net' },
-    //         { value: 'N025 - Within 25 Days Due Net', label: 'N025 - Within 25 Days Due Net' },
-    //         { value: 'N030 - Within 30 Days Due Net', label: 'N030 - Within 30 Days Due Net' },
-    //         { value: 'Within 35 Days Due Net', label: 'N035 - Within 35 Days Due Net' },
-    //         { value: 'N040 - Within 40 Days Due Net', label: 'N040 - Within 40 Days Due Net' },
-    //         { value: 'N045 - Within 45 Days Due Net', label: 'N045 - Within 45 Days Due Net' },
-    //         { value: 'N050 - Within 50 Days Due Net', label: 'N050 - Within 50 Days Due Net' },
-    //         { value: 'N060 - Within 60 Days Due Net', label: 'N060 - Within 60 Days Due Net' },
-    //         { value: 'N063 - Within 63 Days Due Net', label: 'N063 - Within 63 Days Due Net' },
-    //         { value: 'N090 - Within 90 Days Due Net', label: 'N090 - Within 90 Days Due Net' },
-    //         { value: 'N120 - Within 120 Days Due Net', label: 'N120 - Within 120 Days Due Net' },
-    //         { value: 'N180 - Within 180 Days Due Net', label: 'N180 - Within 180 Days Due Net' },
-    //         { value: 'N210 - Within 210 Days Due Net', label: 'N210 - Within 210 Days Due Net' },
-    //         { value: 'V014 - Within 14 days Disc 2%', label: 'V014 - Within 14 days Disc 2%' },
-    //         { value: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day', label: 'ZB01 - Within 14 days Disc 3%, 30/2% due 45 day' },
-    //         { value: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day', label: 'ZB02 - Within 8 days Disc 5%, 14/2% due 21 day' },
-    //         { value: 'ZB03 - Within 20 days Disc 2% due 30 day', label: 'ZB03 - Within 20 days Disc 2% due 30 day' },
-    //         { value: 'Within 10 days Disc 4%, 20/2% due 30 day', label: 'ZB04 - Within 10 days Disc 4%, 20/2% due 30 day' },
-    //         { value: 'ZB05 - Within 5 days Disc 2% due 10 day', label: 'ZB05 - Within 5 days Disc 2% due 10 day' }
-    //     ];
-    // }
 
-     handleBillToAddress1Change(event) {
+    handleBillToAddress1Change(event) {
         this.billToAddress1 = event.target.value;
+        console.log('bill to address 1 from handle function : ' + this.billToAddress1 );
     }
 
     handleBillToAddress2Change(event) {
@@ -1007,8 +920,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.searchTerm = `${selectedCode} ${selectedName}`;
         this.showDropdown = false;
         this.recordId = selectedId;
-        this.fetchBillTo(selectedId);
-        this.fetchShipto(selectedId);
+        // this.fetchBillTo(selectedId);
+        // this.fetchShipto(selectedId);
     }
 
 
@@ -1040,8 +953,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.paymentTypeValue = selectedQuote.Account.Payment_type__c || '';
             this.paymentTermValue = selectedQuote.Account.Payment_term__c || '';
             this.organizationValue = selectedQuote.Account.INID_Organization__c || '';
-            this.fetchBillTo(selectedQuote.AccountId);
-            this.fetchShipto(selectedQuote.AccountId);
+            // this.fetchBillTo(selectedQuote.AccountId);
+            // this.fetchShipto(selectedQuote.AccountId);
         }
         this.searchTermQuote = `${selectedQuote.QuoteNumber} ${selectedQuote.Name}`;
         this.showDropdownQuote = false;
@@ -1058,12 +971,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             this.showDropdown = false;
         }, 200); 
     }
-
-    // handleChangeRadioButton(event) {
-    //     const selectedRadioValue = event.target.value;
-    //     const isChecked = event.target.checked;
-    //     this.radioCheckedValue = isChecked ? [...this.radioCheckedValue, selectedRadioValue] : this.value.filter(val => val !== selectedRadioValue);
-    // }
 
     handleChangeRadioButton1(event) {
         const isChecked = event.target.checked;
@@ -1154,7 +1061,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     //     return addonValue[value] || '-';
     // }
 
-
     handleSelectProduct(event) {
         try {
             const selectedId = event.currentTarget.dataset.id;
@@ -1207,7 +1113,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     unit: matchedAddon.INID_Product_Price_Book__r.INID_Unit__c,
                     total: 0,
                     productPriceBookId: matchedAddon.INID_Product_Price_Book__c,
-                    nameBtn: this.getAddonLabel('1'),
+                    nameBtn: matchedAddon.INID_Remark__c ,
                     variant: 'base',
                     editableSalePrice: false,
                     addOnText: matchedAddon.INID_Remark__c || 'ของแถม',
@@ -1346,11 +1252,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.addAddonToProduct(addonProduct);
         this.selectedProducts[matchedMainIndex].addonDisabled = true;
 
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'เพิ่ม Add-on สำเร็จ',
-            message: `คุณเลือกประเภท: ${this.getAddonLabel(this.selectedValue)}`,
-            variant: 'success'
-        }));
+        // this.dispatchEvent(new ShowToastEvent({
+        //     title: 'เพิ่ม Add-on สำเร็จ',
+        //     message: `คุณเลือกประเภท: ${this.getAddonLabel(this.selectedValue)}`,
+        //     variant: 'success'
+        // }));
 
         console.log('isPopupOpenFreeGood before:', this.isPopupOpenFreeGood);
         this.isPopupOpenFreeGood = false;
@@ -1359,9 +1265,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     handleRowAction(event) {
-        // const actionName = event.detail.action.name;
         const row = event.detail.row;
-        // const isAddon = row.unitPrice === 0;
         
         if(row.nameBtn === '+') {
             this.currentMaterialCodeForAddOn = row.code;
@@ -1404,7 +1308,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     handleSaveEditedRows(event) {
         const updatedValues = event.detail.draftValues;
-        const newSelectedProducts = [...this.selectedProducts]; // clone list
+        const newSelectedProducts = [...this.selectedProducts]; 
         const matchedAddons = [];
 
         console.log('เริ่มอัปเดต Products...');
@@ -1430,7 +1334,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             newSelectedProducts[index] = updatedProduct;
 
-            // console.log(` อัปเดต Product: ${updatedProduct.code} | Qty: ${qty} | Price: ${price}`);
             console.log('this addon product : ' + JSON.stringify(this.addonProductPriceBook , null , 2));
             console.log('update product : ' + JSON.stringify(updatedProduct , null ,2));
 
@@ -1441,8 +1344,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             if (matchedRule) {
                 console.log(`พบ Add-on สำหรับ ${updatedProduct.code}`);
-
-                // ✅ เช็คว่ามี Add-on สำหรับ Product นี้อยู่แล้วหรือยัง
                 const hasAddon = newSelectedProducts.some(p =>
                     p.isAddOn === true && p.parentRowKey === updatedProduct.rowKey
                 );
@@ -1473,7 +1374,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     variant: 'base',
                     editableSalePrice: false,
                     productCode: updatedProduct.code,
-                    // addonDisabled: true
                 };
 
                 console.log('➕ Add-on ที่แทรก:', JSON.stringify(addonProduct, null, 2));
@@ -1558,14 +1458,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         console.log('this.selectProduct from handle delete function : ' + JSON.stringify(this.selectedProducts , null ,2))
 
         console.log('selected product from delete function : ' + JSON.stringify(this.selectedProducts , null ,2));
-        // 🔍 Step 1: หาว่า Add-on อะไรจะถูกลบ
         const addonsToDelete = this.selectedProducts.filter(p =>
             selectedSet.has(p.rowKey || p.id) && p.salePrice === 0
         );
 
         console.log('addonsToDelete: ', JSON.stringify(addonsToDelete, null, 2));
-
-        // 🔁 Step 2: Enable ปุ่ม Add-on ของ Main product ที่ Add-on นั้นเคยผูกไว้
         const updatedProducts = this.selectedProducts.map(product => {
             const isMain = product.salePrice !== 0;
             const isMatchedMain = addonsToDelete.some(addon => addon.parentRowKey === product.rowKey);
@@ -1578,12 +1475,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             return product;
         });
 
-        // 🧹 Step 3: ลบรายการที่ถูกเลือก (ทั้ง Add-on และ Main ที่อาจเลือก)
         const filteredProducts = updatedProducts.filter(p =>
             !selectedSet.has(p.rowKey || p.id)
         );
 
-        this.selectedProducts = [...filteredProducts]; // re-assign ใหม่เพื่อให้ LWC detect การเปลี่ยนแปลง
+        this.selectedProducts = [...filteredProducts];
         this.selectedRowIds = [];
 
         this.dispatchEvent(
@@ -1668,7 +1564,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 editableSalePrice = true;
             }
 
-            // const productPriceBookId = product.INID_Product_Price_Book__r.Id;
             let salePrice = product.INID_Unit_Price__c || 0;
             const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productId);
             if (matchedAverage) {
@@ -1723,8 +1618,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             textarea.value = '';
         }
     }
-
-
 
     // ---------------------------------------------------------------------------
     // Start: Order Form - Product & Addon
@@ -1805,7 +1698,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     // ---------------------------------------------------------------------------
 
 
-
     // ---------------------------------------------------------------------------
     // Start: Sumary
     // ---------------------------------------------------------------------------
@@ -1876,11 +1768,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             console.log('getPromotion', JSON.stringify(getPromotions, null, 2));
 
-            // ดึง mainProduct ทั้งหมดเก็บไว้ใน array
             this.mainProductPromotionId = getPromotions.promotions.map(promo => promo.mainProduct);
             console.log('main product promotion Id:', JSON.stringify(this.mainProductPromotionId, null, 2));
-
-            // เช็คว่า user เลือกสินค้า mainProduct หรือไม่ พร้อมจำนวน
             const mainProductMatches = this.selectedProducts
                 .filter(prod => this.mainProductPromotionId.includes(prod.productPriceBookId))
                 .map(prod => ({
@@ -1908,11 +1797,9 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 promo.benefits.forEach(b => {
                     const remark = (b.INID_Remark__c || '').trim();
                     const batch = (b.INID_Batch_Lot_No__c || '').trim();
-                    // ✅ ถ้า Remark และ Batch ว่างทั้งคู่ ไม่ต้องแสดง benefit นี้
                     const item = {
                         id: b.Id,
-                        // ...properties อื่นๆ
-                        remark: remark || null, // assign null ถ้าว่าง เพื่อให้ if:true fail
+                        remark: remark || null,
                         batch: batch || null
                     };
                     const condType = b.INID_Sale_Promotion_Benefit__r?.INID_Condition_Type__c || 'OR';
@@ -1984,7 +1871,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.log('combo group : ', JSON.stringify(this.comboGroups, null, 2));
 
         } catch (error) {
-            console.error('❌ Full error detail:', JSON.stringify(error, null, 2));
+            console.error('Full error detail:', JSON.stringify(error, null, 2));
             alert('error\n' + (error.body?.message || error.message || JSON.stringify(error)));
         }
     }
@@ -2017,7 +1904,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     const updated = {
                         ...group,
                         isExpanded: newExpanded,
-                        isSelected: hasSelectedBenefit, // ✅ sync isSelected กับ benefit จริง
+                        isSelected: hasSelectedBenefit,
                         className: hasSelectedBenefit ? 'promotion-box selected' : 'promotion-box',
                         arrowIconClass: newExpanded
                             ? 'fa-solid fa-circle-chevron-up'
@@ -2030,7 +1917,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 return group;
             });
 
-            // ✅ เช็คจำนวน promotion ที่เลือก
             console.log('combo group from toggle benefit ' + JSON.stringify(this.comboGroups , null ,2));
             const selectedPromotionsCount = this.comboGroups.filter(g => g.isSelected).length;
 
@@ -2041,9 +1927,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
 
         } catch (error) {
-            console.error('❌ handleTogglePromotion เกิด error:', error);
-            console.error('❌ handleTogglePromotion เกิด error message:', error.message);
-            // this.showToast?.('Error', error.message || 'เกิดข้อผิดพลาดขณะ toggle promotion', 'error');
+            console.error('handleTogglePromotion เกิด error:', error);
+            console.error('handleTogglePromotion เกิด error message:', error.message);
         }
 
         console.log('--------------------------------------------------------------------------------');
@@ -2065,8 +1950,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             const updatedGrouped = group.groupedBenefits.map(bg => {
                 const isBenefitInGroup = bg.benefits.some(b => b.Id === benefitId);
-
-                // ✅ ล้างกลุ่มที่มี conditionType คนละฝั่ง (เช่น AND ↔ OR)
                 if (bg.conditionType !== currentGroupType) {
                     const cleared = bg.benefits.map(b => ({
                         ...b,
@@ -2076,7 +1959,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     return { ...bg, benefits: cleared };
                 }
 
-                // ✅ กรณีถูกคลิก
                 if (isBenefitInGroup) {
                     if (bg.conditionType === 'AND') {
                         const isAllSelected = bg.benefits.every(b => b.selected);
@@ -2111,7 +1993,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 return bg;
             });
 
-            // ✅ ปรับ UI promotion box (ไฮไลต์ + ไอคอน)
             const hasSelectedBenefit = updatedGrouped.some(bg =>
                 bg.benefits.some(b => b.selected)
             );
@@ -2130,8 +2011,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.updateSelectedBenefits();
         this.updateFreeProductPromotion();  
     }
-
-
 
     //select Benefit
     updateSelectedBenefits() {
@@ -2357,9 +2236,18 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 this.searchTerm = `${matchedCustomer.INID_Customer_Code__c} ${matchedCustomer.Name}`;
 
                 // หาค่า value ของ payment term จาก label ที่ตรงกัน
-                const matchedTerm = this.paymentTermOption.find(
+                let matchedTerm = this.paymentTermOption.find(
                     item => item.label === matchedCustomer.Payment_term__c
                 );
+                if (!matchedTerm) {
+                    matchedTerm = this.paymentTermOption.find(
+                        item => item.value === matchedCustomer.Payment_term__c
+                    );
+                }
+                this.paymentTermValue = matchedTerm ? matchedTerm.value : '';
+                
+                console.log('matchedTerm:', JSON.stringify(this.paymentTermOption, null, 2) );
+                console.log('paymentTermOption:', JSON.stringify(matchedTerm, null, 2) );
 
                 this.paymentTypeValue = matchedCustomer.Payment_type__c || '';
                 this.paymentTermValue = matchedTerm ? matchedTerm.value : '';
@@ -2505,23 +2393,18 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
     async insertOrderFoc(orderId) {
         const orderFoc = {
-            AccountId: this.accountId ,
             INID_AccountId__c: this.accountId ,
             INID_Status__c: 'Draft' ,
             INID_EffectiveDate__c: new Date().toISOString(),
             INID_Type__c: this.typeOrderSecondValue ,
             INID_PaymentType__c: this.paymentTypeValue,
             INID_PaymentTerm__c: this.paymentTermValue,
-
-            INID_Address_Billto__c: this.billto,	
-            INID_Address_Shipto__c: this.shipto,
-
-            INID_Address_Billto2__c: this.addressBillto2,
-            INID_Address_Shipto2__c: this.addressShipto2,
-
-            INID_Bill_To_Code__c: this.billToCode,
+            INID_Address_Billto__c: this.billToAddress1 || this.billto,	
+            INID_Address_Shipto__c: this.shipToAddress1 || this.shipto ,
+            INID_Address_Billto2__c: this.billToAddress2 || this.addressBillto2 ,
+            INID_Address_Shipto2__c: this.shipToAddress2 || this.addressShipto2 ,
+            INID_Bill_To_Code__c: this.billToCode, 
             INID_Ship_To_Code__c: this.shipToCode,
-
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue,
             INID_NoteInternal__c: this.noteInternal,
@@ -2529,21 +2412,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_IncVAT__c: this.raidoInclude,
             INID_NoteAgent__c : this.noteAgent ,
             INID_Original_Order__c: orderId,
-            INID_Total_Amount__c:  this.totalFocPrice ,
-            INID_Address_Bill_To__c: this.billToAddress1 ,
-            INID_Address_Ship_To__c: this.shipToAddress2 ,
-            // INID_Address_Number_Bill_To__c: this.bill,
-            INID_PostCode_Billto__c: this.zipCodeBillto,
-            INID_PostCode_Shipto__c: this.zipCodeShipto ,
-
-            INID_Street_Billto__c: this.streetBillto ,
-            INID_Street_Shipto__c: this.streetShipto ,
-            INID_City_Billto__c: this.cityBillto  ,
-            INID_City_Shipto__c: this.cityShipto ,
-            INID_Province_Billto__c: this.provinceBillto, 
-            INID_Province_Shipto__c: this.provinceShipto ,
+            INID_TotalAmount__c:  this.totalFocPrice ,
+            INID_PostCode_Billto__c: this.billToPostCode || this.zipCodeBillto,
+            INID_PostCode_Shipto__c: this.shipToPostCode || this.zipCodeShipto,
+            INID_Street_Billto__c: this.streetBillto || this.billToStreet ,
+            INID_Street_Shipto__c: this.streetShipto || this.shipToStreet ,
+            INID_City_Billto__c: this.billToCity || this.cityBillto,
+            INID_City_Shipto__c: this.shipToCity || this.shipToCity  ,
+            INID_Province_Billto__c: this.provinceBillto || this.billToProvince , 
+            INID_Province_Shipto__c: this.provinceShipto || this.shipToProvince ,
             INID_NetAmount__c: this.totalFocPrice,
-            
+                
         };
 
         console.log('Order Foc :' + JSON.stringify(orderFoc, null, 2))
@@ -2581,7 +2460,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
             INID_Bill_To_Code__c: this.billToCode,	    
             INID_Ship_To_Code__c: this.shipToCode,
-
+            
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
             INID_NoteInternal__c: this.noteInternal,
@@ -2589,20 +2468,20 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_IncVAT__c: this.raidoInclude,
             INID_NoteAgent__c : this.noteAgent ,
             INID_NetAmount__c: this.totalNetPrice,
-
-            INID_Address_Billto__c: this.billto ,
-            INID_Address_Billto2__c: this.addressBillto2 ,
-            INID_Street_Billto__c: this.streetBillto ,
-            INID_City_Billto__c: this.cityBillto ,
-            INID_Province_Billto__c: this.provinceBillto ,
-            INID_PostCode_Billto__c: this.zipCodeBillto ,
-
-            INID_Address_Shipto__c: this.shipto ,
-            INID_Address_Shipto2__c: this.addressShipto2 ,
-            INID_Street_Shipto__c: this.streetShipto,
-            INID_City_Shipto__c: this.cityShipto,
-            INID_Province_Shipto__c: this.provinceShipto,
-            INID_PostCode_Shipto__c: this.zipCodeShipto,
+            
+            INID_Address_Billto__c: this.billToAddress1 || this.billto ,
+            INID_Address_Billto2__c: this.billToAddress2 || this.addressBillto2 ,
+            INID_Street_Billto__c: this.billToStreet || this.streetBillto ,
+            INID_City_Billto__c: this.billToCity || this.cityBillto ,
+            INID_Province_Billto__c: this.billToProvince || this.provinceBillto ,
+            INID_PostCode_Billto__c: this.billToPostCode || this.zipCodeBillto,
+            
+            INID_Address_Shipto__c: this.shipToAddress1 || this.shipto ,
+            INID_Address_Shipto2__c: this.shipToAddress2 || this.addressShipto2 ,
+            INID_Street_Shipto__c: this.streetShipto || this.streetShipto ,
+            INID_City_Shipto__c: this.shipToCity || this.cityShipto ,
+            INID_Province_Shipto__c: this.shipToProvince || this.provinceShipto ,
+            INID_PostCode_Shipto__c: this.shipToPostCode || this.zipCodeShipto ,
             
         };
 
@@ -3053,6 +2932,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.promotionData = []; 
         this.selectedPromotion = []; 
 
+        console.log('address bill to 1 in summary function:' + this.billToAddress1 );
+
         // 1) สรุปรายการสินค้า + Add-on
         const mainProducts = this.selectedProducts.filter(p => p.nameBtn === '+');
         console.log('selectedProduct' , JSON.stringify(this.selectedProducts, null, 2))
@@ -3246,4 +3127,3 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
       
     }
 }
-

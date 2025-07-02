@@ -1404,8 +1404,6 @@ export default class INID_OrderLine extends LightningElement {
             const freeProductItems = this.freeProductInsertItems(recordsToInsert.length);
             recordsToInsert.push(...freeProductItems);
 
-            // ถ้าไม่มี FOC แล้วเคยมี o
-            // ถ้าไม่มี FOC แล้วเคยมี orderFocId ก็ลบ FOC เดิมทิ้ง
             if (uniqueFocProducts.length === 0 && this.orderFocId) {
                 await this.deleteFocItemsOnly(this.orderFocId);
             }

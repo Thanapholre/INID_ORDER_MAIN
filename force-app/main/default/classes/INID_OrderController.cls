@@ -414,11 +414,11 @@ public with sharing class INID_OrderController {
     // }
 
     @AuraEnabled(cacheable=true)
-    public static List<INID_Account_License_Product_Exclude__c > fetchProductLicenseExclude(List<Id> accountLicenseId) {
+    public static List<INID_Account_Product_Exclude__c > fetchProductLicenseExclude(List<Id> accountId) {
         return [
-            SELECT INID_Account_License__c	, INID_Product_Price_Book__c
-            FROM INID_Account_License_Product_Exclude__c 
-            WHERE INID_Account_License__c IN :accountLicenseId
+            SELECT 	INID_Account__c	, INID_Product_Price_Book__c
+            FROM INID_Account_Product_Exclude__c 
+            WHERE INID_Account__c IN :accountId
         ];
     }
 
