@@ -5,10 +5,15 @@ public with sharing class INID_OrderController {
     }
 
     @AuraEnabled(cacheable=true)
+    public static List<Account> fetchCustomersByGenerate(Id accountId) {
+        return [SELECT Id , INID_Customer_Code__c, Name , Payment_type__c , Payment_term__c , INID_Organization__c	 FROM Account WHERE INID_Status__c = 'Activate' AND Id = :accountId ];
+    }
+
+    @AuraEnabled(cacheable=true)
     public static List<INID_Account_Address__c > fetchDataBillto(Id accountId) {
         return [SELECT Id , Name , INID_Account__r.Id ,INID_Address2__c
             FROM INID_Account_Address__c  
-            WHERE INID_Address_Type__c = 'bill to' AND  INID_Account__r.Id = :accountId];
+            WHERE INID_Address_Type__c = 'bill to' AND  INID_Account__r.Id = :accountId  AND INID_Default__c = true];
     }
 
     @AuraEnabled(cacheable=true)
@@ -66,7 +71,7 @@ public with sharing class INID_OrderController {
     @AuraEnabled(cacheable=true)
     public static List<INID_Quote_Item__c> fetchQuoteItemById(Id quoteId) {
         return [
-            SELECT INID_Material_Code__c , INID_SKU_Description__c , INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__r.id, INID_Item_Number__c , INID_Product_Price_Book__r.INID_Unit__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Total__c 
+            SELECT  INID_Product_Price_Book__r.Name, INID_SKU_Description__c , INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__r.id, INID_Item_Number__c , INID_Product_Price_Book__r.INID_Unit__c , INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Total__c 
             FROM INID_Quote_Item__c                                                                          
             WHERE INID_Quote__c = :quoteId 
         ];
@@ -93,7 +98,7 @@ public with sharing class INID_OrderController {
         return [
             SELECT Id , INID_Material_Code__c , INID_SKU_Decription__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
             INID_Quantity__c , INID_Sale_Price__c , INID_Product_Price_Book__c , INID_Product_Price_Book__r.INID_Unit__c, 
-            INID_Total__c , INID_Order__c , INID_Remark__c , INID_HL_Item_Number__c
+            INID_Total__c , INID_Order__c , INID_Remark__c , INID_HL_Item_Number__c , INID_Product_Price_Book__r.Name
             FROM INID_Product_Order_Item__c                                                                          
             WHERE INID_Order__c = :orderId 
         ];
@@ -324,7 +329,8 @@ public with sharing class INID_OrderController {
         return [
             SELECT INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_SKU_Description__c , 
             INID_Product_Price_Book__r.INID_Unit_Price__c , INID_Quantity__c , INID_Sale_Price__c , 
-            INID_Product_Price_Book__r.INID_Unit__c , INID_Product_Price_Book__r.Id , INID_Total__c ,INID_Remark__c
+            INID_Product_Price_Book__r.INID_Unit__c , INID_Product_Price_Book__r.Id , INID_Total__c ,INID_Remark__c ,
+            INID_Product_Price_Book__r.Name
             FROM INID_Product_Order_Item_Foc__c 
             WHERE INID_Order_Foc__c = :orderFocId
         ];
@@ -517,7 +523,7 @@ public with sharing class INID_OrderController {
         return [
             SELECT 	INID_Product_Price_Book__c , INID_Product_Price_Book__r.Id , 
             INID_Product_Price_Book__r.INID_SKU_Description__c , INID_Product_Price_Book__r.INID_Unit_Price__c , 
-            INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c  
+            INID_Product_Price_Book__r.INID_Material_Code__c , INID_Product_Price_Book__r.INID_Unit__c , INID_Product_Price_Book__r.Name
             FROM INID_Classify_Product__c 
             WHERE INID_Classify__c  
             IN :sellableClassifyIds

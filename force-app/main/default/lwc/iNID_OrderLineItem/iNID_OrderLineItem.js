@@ -118,7 +118,8 @@ export default class INID_OrderLine extends LightningElement {
      
 
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
+        // { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
+        { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 200 },
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 140 },
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 100 },
@@ -359,20 +360,12 @@ export default class INID_OrderLine extends LightningElement {
                                     ...(matchedGroup ? { matchedGroup } : {})
                                 });
     
-                                // ✅ แสดง log
-                                // console.log(`👉 Classify: ${classify}`);
-                                // console.log(`   🔧 ต้องตรวจ license? : ${requireLicense}`);
-                                // console.log(`   📌 License ของ Account: ${JSON.stringify(this.accountLicense)}`);
-                                // console.log(`   📌 License ของ Classify: ${JSON.stringify(allLicenses)}`);
-    
                                 if (groupNumbers.length === 1) {
                                     const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
-                                    // console.log(`   กลุ่มเลข: ${groupNumbers[0]} License ที่ต้องมีครบ: ${JSON.stringify(groupLicenses)}`);
                                 } else {
                                     console.log(`   กลุ่มทั้งหมดและ license ในแต่ละกลุ่ม:`);
                                     groupNumbers.forEach(groupNo => {
                                         const groupLicenses = groups[groupNo].map(r => r.INID_License__c);
-                                        // console.log(`      - กลุ่ม ${groupNo}: ${JSON.stringify(groupLicenses)}`);
                                     });
                                 }
     
@@ -457,6 +450,7 @@ export default class INID_OrderLine extends LightningElement {
     wiredFocId({ error, data }) {
         if (data) {
             this.orderFocId = data;
+            console.log('Order FOC ID:', JSON.stringify(this.orderFocId, null, 2));
         } else if (error) {
             console.error(' เกิดข้อผิดพลาดในการดึง FOC ID:', error);
         }
@@ -579,6 +573,7 @@ export default class INID_OrderLine extends LightningElement {
                     code: row.INID_Material_Code__c,
                     hlItemNumber: row.INID_HL_Item_Number__c,
                     id: row.INID_Product_Price_Book__r?.Id,
+                    name: row.INID_Product_Price_Book__r?.Name ,
                     productCode: row.INID_Material_Code__c || '' ,
                     description: row.INID_SKU_Decription__c,
                     unitPrice,
@@ -645,6 +640,7 @@ export default class INID_OrderLine extends LightningElement {
                         const addonObj = {
                             rowKey: 'FOC-' + Math.random(),
                             code: materialCode,
+                            name: foc.INID_Product_Price_Book__r?.Name || '',
                             hlItemNumber: hlItemNumber,
                             id: null,
                             productCode: materialCode,
@@ -741,7 +737,8 @@ export default class INID_OrderLine extends LightningElement {
             const productId = p.INID_Product_Price_Book__r.Id;
             const nameStr = p.INID_Product_Price_Book__r.INID_SKU_Description__c?.toLowerCase() || '';
             const codeStr = p.INID_Product_Price_Book__r.INID_Material_Code__c?.toLowerCase() || '';
-            const matchesSearch = nameStr.includes(term) || codeStr.includes(term);
+            const name = p.INID_Product_Price_Book__r.Name?.toLowerCase() || '';
+            const matchesSearch = nameStr.includes(term) || name.includes(term);
             const isExcluded = this.productLicenseExclude.includes(productId);
             return matchesSearch && !isExcluded;
         });
@@ -773,6 +770,7 @@ export default class INID_OrderLine extends LightningElement {
                     rowKey: addonId,
                     id: addonId,
                     code: matchedAddon.INID_Product_Price_Book__r.INID_Material_Code__c,
+                    name: matchedAddon.INID_Product_Price_Book__r.Name,
                     description: matchedAddon.INID_Product_Price_Book__r.INID_SKU_Description__c,
                     unitPrice: 0,
                     salePrice: 0,
@@ -836,6 +834,7 @@ export default class INID_OrderLine extends LightningElement {
             id: source.INID_Product_Price_Book__r.Id,
             productPriceBookId: source.INID_Product_Price_Book__r.Id, 
             code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
+            name: source.INID_Product_Price_Book__r.Name ,
             description: source.INID_Product_Price_Book__r.INID_SKU_Description__c,
             unitPrice: salePrice, 
             quantity,
@@ -918,7 +917,7 @@ export default class INID_OrderLine extends LightningElement {
                         id: productId,
                         productPriceBookId: productId,
                         code: match.INID_Product_Price_Book__r.INID_Material_Code__c,
-                        Name: match.Name,
+                        name: match.INID_Product_Price_Book__r.Name,
                         description: match.INID_Product_Price_Book__r.INID_SKU_Description__c,
                         quantity,
                         salePrice: unitPrice,
@@ -1251,6 +1250,7 @@ export default class INID_OrderLine extends LightningElement {
             rowKey: addonId,
             parentRowKey: matchedMain.rowKey,
             id: addonId,
+            name: matchedMain.name ,
             code: matchedMain.code,
             description: matchedMain.description,
             unitPrice: 0,
@@ -1971,7 +1971,8 @@ export default class INID_OrderLine extends LightningElement {
 
     // start summary
     summaryColumns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        // { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 300 },
         { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' } },
@@ -1990,7 +1991,8 @@ export default class INID_OrderLine extends LightningElement {
     getColumnsByType(type) {
         if (type === 'Free Product (Fix Quantity)') {
             return [
-                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                // { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'Name', fieldName: 'name', hideDefaultActions: true },
                 { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true },
                 { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
                 { label: 'Quantity', fieldName: 'freeProductQuantity', hideDefaultActions: true },
@@ -2002,14 +2004,16 @@ export default class INID_OrderLine extends LightningElement {
             ];
         } else if (type === 'Set Price') {
             return [
-                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                // { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'Name', fieldName: 'name', hideDefaultActions: true },
                 { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
                 { label: 'Sales Price', fieldName: 'setPrice', hideDefaultActions: true } ,
                 { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
             ];
         } else if (type === 'Free Product (Ratio)') {
             return [
-                { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                // { label: 'Material Code', fieldName: 'promotionMaterialCode', hideDefaultActions: true },
+                { label: 'Name', fieldName: 'name', hideDefaultActions: true },
                 { label: 'SKU Description', fieldName: 'promotionDescription', hideDefaultActions: true } ,
                 { label: 'Unit', fieldName: 'unit', hideDefaultActions: true },
                 { label: 'Numerator', fieldName: 'numerator', hideDefaultActions: true },

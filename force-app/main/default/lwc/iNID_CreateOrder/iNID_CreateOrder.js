@@ -44,6 +44,8 @@ import getPaymentTerm from '@salesforce/apex/INID_OrderController.getPaymentTerm
 import { loadStyle } from 'lightning/platformResourceLoader';
 import USER_ID from '@salesforce/user/Id';
 import fetchOrderToOrderFoc from '@salesforce/apex/INID_OrderController.fetchOrderToOrderFoc' ;
+import ONE_TIME_CUSTOMER from '@salesforce/label/c.One_Time_Customer';
+
 import fetchPaymentTermByAccId from '@salesforce/apex/INID_OrderController.fetchPaymentTermByAccId' ;
 
 export default class INID_CreateOrder extends NavigationMixin(LightningElement) {
@@ -159,6 +161,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     @track addressBillto2 = '' ;
     @track shipToCode = '' 
     @track billToCode = '' ;
+    @track billToCodeOneTime = '' ;
+    @track shipToCodeOneTime = '' ;
     @track accountAddressDetailShipToData = [];
     @track addressShipto2 = '';
     @track provinceShipto = '';
@@ -174,7 +178,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
 
   
     columns = [
-        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 170},
+        // { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 170},
+        { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true ,  cellAttributes: { alignment: 'right' }, initialWidth: 170},
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true , cellAttributes: { alignment: 'right' }, initialWidth: 250}, 
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency' , typeAttributes: {minimumFractionDigits: 2}, hideDefaultActions: true, cellAttributes: { alignment: 'right', }, initialWidth: 140},
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true , cellAttributes: { alignment: 'right' } , initialWidth: 100}, 
@@ -251,6 +256,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 value: item.value
             }));
             console.log('paymentTypeOption:' + JSON.stringify(this.paymentTypeOption , null ,2));
+            
         } else if (error) {
             console.error('Error loading picklist:', error);
         }
@@ -342,47 +348,74 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     }
 
     //closeTab
+    // @wire(IsConsoleNavigation) isConsoleNavigation;
+    // async closeTab() {
+    //     if (!this.isConsoleNavigation) {
+    //         return;
+    //     }
+    //     // const { tabId } = await getFocusedTabInfo();
+    //     // await closeTab(tabId);
+
+    //     try {
+    //         this[NavigationMixin.Navigate]({
+    //             type: 'standard__recordPage',
+    //             attributes: {
+    //                 // recordId: this.orderId,
+    //                 objectApiName: 'Order',
+    //                 actionName: 'list'
+    //             }
+    //         },true);
+
+    //         if (this.isConsoleNavigation?.data === true) {
+    //             const { tabId } = await getFocusedTabInfo();
+    //             setTimeout(async () => {
+    //                 await closeTab(tabId);
+    //             }, 1000);
+    //         }
+    //     } catch (err) {
+    //         console.error('handleSaveSuccess error:', err);
+    //     }
+    // }
+
     @wire(IsConsoleNavigation) isConsoleNavigation;
     async closeTab() {
-        // if (!this.isConsoleNavigation) {
-        //     return;
-        // }
-        // const { tabId } = await getFocusedTabInfo();
-        // await closeTab(tabId);
-
         try {
+            // ✅ Navigate ไปที่ Order List View
             this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
+                type: 'standard__objectPage',
                 attributes: {
-                    // recordId: this.orderId,
                     objectApiName: 'Order',
                     actionName: 'list'
+                },
+                state: {
+                    filterName: 'Recent'
                 }
-            },true);
+            }, true);
 
+            // ✅ ถ้าอยู่ใน Console ค่อยปิด Tab ปัจจุบัน
             if (this.isConsoleNavigation?.data === true) {
                 const { tabId } = await getFocusedTabInfo();
                 setTimeout(async () => {
                     await closeTab(tabId);
-                }, 1000);
+                }, 1000); // หรืออาจปรับ delay ให้มากขึ้นถ้า navigate ไม่ทัน
             }
         } catch (err) {
-            console.error('handleSaveSuccess error:', err);
+            console.error('closeTab error:', err);
         }
     }
+
 
     //fetchQuoteItemById
     @wire(fetchQuoteItemById , { quoteId: '$globalQuoteId' })
     wiredQuoteItemById({ error, data }) {
-    // alert('recordId:' + this.globalQuoteId)
          if(data) {
             this.quoteItemValue = data ;
             this.selectedProducts = this.quoteItemValue.map((productItem) => {
                 return{
                     rowKey: productItem.Id,
-                    // recordId: productItem.Id,a
                     id: productItem.INID_Product_Price_Book__r.Id,
                     code: productItem.INID_Material_Code__c ,
+                    name: productItem.INID_Product_Price_Book__r.Name ,
                     description: productItem.INID_SKU_Description__c ,
                     unitPrice: productItem.INID_Product_Price_Book__r.INID_Unit_Price__c ,
                     quantity: productItem.INID_Quantity__c ,
@@ -414,7 +447,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
     wiredAccountChannel({ error, data }) {
         if (data) {
             this.accountChannelData = data
-            // this.accountChannel = this.accountChannelData.map(channel => channel.INID_Channel__c);
             this.accountChannel = this.accountChannelData[0]?.INID_Channel__c || '';
 
             console.log('Account Channel ' + JSON.stringify(this.accountChannel , null ,2));
@@ -433,29 +465,23 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                 return clean;
             });
 
-            // ✅ ดึง INID_Classify__c ไม่ซ้ำ
             this.classifyLicenseId = [...new Set(
                 this.classifyLicense.map(record => record.INID_Classify__c)
             )];
-
-            console.log('📌 classify license Id:', JSON.stringify(this.classifyLicenseId , null , 2));
-            console.log('✅ Clean classifyLicense:', JSON.stringify(this.classifyLicense, null, 2));
 
             if (this.classifyLicenseId.length > 0) {
                 fetchClassifyType({ classifyId: this.classifyLicenseId })
                     .then(result => {
                         this.classifyType = result;
-                        console.log('✅ classify type:', JSON.stringify(this.classifyType, null, 2));
+                        console.log('classify type:', JSON.stringify(this.classifyType, null, 2));
 
                         this.summaryClassify = [];
 
-                        // 🔄 Map: ClassifyId → requireLicense
                         const requireMap = {};
                         this.classifyType.forEach(item => {
                             requireMap[item.Id] = item.INID_Require_License__c;
                         });
 
-                        // ✅ จัดกลุ่ม license ตาม classify/group
                         const grouped = {};
                         this.classifyLicense.forEach(record => {
                             const classify = record.INID_Classify__c;
@@ -470,7 +496,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                             grouped[classify][group].push(record);
                         });
 
-                        // ✅ ประมวลผลแต่ละ classify
                         Object.keys(grouped).forEach(classify => {
                             const requireLicense = requireMap[classify] === true;
                             let canSell = false;
@@ -517,7 +542,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                                 }
                             }
 
-                            // ✅ เก็บสรุปผล
                             this.summaryClassify.push({
                                 classifyId: classify,
                                 groups,
@@ -527,11 +551,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                                 ...(matchedGroup ? { matchedGroup } : {})
                             });
 
-                            // ✅ แสดง log
-                            console.log(`👉 Classify: ${classify}`);
-                            console.log(`   🔧 ต้องตรวจ license? : ${requireLicense}`);
-                            console.log(`   📌 License ของ Account: ${JSON.stringify(this.accountLicense)}`);
-                            console.log(`   📌 License ของ Classify: ${JSON.stringify(allLicenses)}`);
 
                             if (groupNumbers.length === 1) {
                                 const groupLicenses = groups[groupNumbers[0]].map(r => r.INID_License__c);
@@ -574,31 +593,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             console.error(error) ;
         }
     }
-
-
-
-
-
-    // fetch Auto Field Ship To 
-    // fetchShipto(accountId) {
-    // fetchDataShipto({ accountId: accountId })
-    //     .then(data => {
-    //         if (data && data.length > 0) {
-    //             this.shiptoOptions = data.map(addr => ({
-    //                 label: addr.Name,
-    //                 value: addr.Name
-    //             }));
-    //             this.shipto = data[0].Id;
-    //         } else {
-    //             this.shiptoOptions = [];
-    //             this.shipto = '';
-    //         }
-    //     })
-    //     .catch(error => {
-    //         console.error('Error fetching Ship To:', error);
-    //     });
-    // }
-
     
     // fetchDataQuotation
     @wire(fetchDataQuotation)
@@ -621,35 +615,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             
     }
 
-    // fetch Auto Field Bill To
-    // @wire(fetchDataBillto)
-    // fetchBillTo(accountId) {
-    // fetchDataBillto({ accountId: accountId }) 
-    //     .then(data => {
-    //         if (data && data.length > 0) {
-    //             this.billto = data[0].Name;
-    //         } else {
-    //             this.billto = '';
-    //         }
-    //     })
-    //     .catch(error => {
-    //         console.error('Error fetching Bill To:', error);
-    //     });
-    // }
-    
-
-    // @wire(fetchShipto, { accountId: '$accountId' }) 
-    // fetchetchShipto({ error, data }) {
-    //     if (data) {
-    //         this.billto = data;
-    //         // เอาเฉพาะ Name แล้ว join เป็น string
-    //         this.billto = this.billto.map(billto => billto.Name).join(', ');
-
-    //         console.log('Bill to:', this.billto);
-    //     } else if (error) {
-    //         console.error('Error Bill to', error);
-    //     }
-    // }
 
     @wire(fetchDataShipto, { accountId: '$accountId' })
     wiredFetchDataShipto({ error, data }) {
@@ -960,11 +925,11 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.showDropdownQuote = false;
     }
 
-    handleBlurQuote() {
-        setTimeout(() => {
-            this.showDropdownQuote = false;
-        }, 200); 
-    }
+    // handleBlurQuote() {
+    //     setTimeout(() => {
+    //         this.showDropdownQuote = false;
+    //     }, 200); 
+    // }
 
     handleBlur() {
         setTimeout(() => {
@@ -1107,6 +1072,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     id: addonId,
                     code: matchedAddon.INID_Product_Price_Book__r.INID_Material_Code__c,
                     description: matchedAddon.INID_Product_Price_Book__r.INID_SKU_Description__c,
+                    name: matchedAddon.INID_Product_Price_Book__r.Name ,
                     unitPrice: 0,
                     salePrice: 0,
                     quantity: matchedAddon.INID_Add_on_Quantity__c,
@@ -1185,6 +1151,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             productPriceBookId: productPriceBookId,
             code: source.INID_Product_Price_Book__r.INID_Material_Code__c,
             description: source.INID_Product_Price_Book__r.INID_SKU_Description__c,
+            name: source.INID_Product_Price_Book__r.Name ,
             unitPrice:salePrice,
             quantity,
             salePrice: salePrice,
@@ -1233,6 +1200,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             parentRowKey: matchedMain.id ,
             id: addonId, 
             code: matchedMain.code,
+            name: matchedMain.name ,
             productCode: matchedMain.code,
             description: matchedMain.description,
             unitPrice: matchedMain.unitPrice,
@@ -1295,11 +1263,13 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         this.searchProductTerm = event.target.value;
         const term = this.searchProductTerm.toLowerCase().trim();
         this.showProductDropdown = term.length > 2;
+        
         this.filteredProductOptions = this.productPriceBook.filter(p => {
             const productId = p.INID_Product_Price_Book__r.Id;
             const nameStr = p.INID_Product_Price_Book__r.INID_SKU_Description__c?.toLowerCase() || '';
             const codeStr = p.INID_Product_Price_Book__r.INID_Material_Code__c?.toLowerCase() || '';
-            const matchesSearch = nameStr.includes(term) || codeStr.includes(term);
+            const name = p.INID_Product_Price_Book__r.Name?.toLowerCase() || '';
+            const matchesSearch = nameStr.includes(term) || name.includes(term);
             const isExcluded = this.productLicenseExclude.includes(productId);
             return matchesSearch && !isExcluded;
         });     
@@ -2216,6 +2186,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         if (this.typeOrderSecondValue === 'One Time Order' && this.accounts.length > 0) {
             const oneTimeCustomerId = '0018500000RB6YvAAL';
             const matchedCustomer = this.accounts.find(c => c.Id === oneTimeCustomerId);
+            this.billToCodeOneTime =  ONE_TIME_CUSTOMER ;
+            this.shipToCodeOneTime = ONE_TIME_CUSTOMER ;
 
             console.log('match customer:' + JSON.stringify(matchedCustomer , null, 2));
             console.log('match account data:' + JSON.stringify(this.accounts , null, 2));
@@ -2403,8 +2375,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_Address_Shipto__c: this.shipToAddress1 || this.shipto ,
             INID_Address_Billto2__c: this.billToAddress2 || this.addressBillto2 ,
             INID_Address_Shipto2__c: this.shipToAddress2 || this.addressShipto2 ,
-            INID_Bill_To_Code__c: this.billToCode, 
-            INID_Ship_To_Code__c: this.shipToCode,
+            INID_Bill_To_Code__c: this.billToCode || this.billToCodeOneTime,  
+            INID_Ship_To_Code__c: this.shipToCode || this.shipToCodeOneTime,
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue,
             INID_NoteInternal__c: this.noteInternal,
@@ -2418,7 +2390,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_Street_Billto__c: this.streetBillto || this.billToStreet ,
             INID_Street_Shipto__c: this.streetShipto || this.shipToStreet ,
             INID_City_Billto__c: this.billToCity || this.cityBillto,
-            INID_City_Shipto__c: this.shipToCity || this.shipToCity  ,
+            INID_City_Shipto__c: this.shipToCity || this.cityShipto  ,
             INID_Province_Billto__c: this.provinceBillto || this.billToProvince , 
             INID_Province_Shipto__c: this.provinceShipto || this.shipToProvince ,
             INID_NetAmount__c: this.totalFocPrice,
@@ -2458,8 +2430,8 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
             INID_PaymentType__c: this.paymentTypeValue,
             INID_PaymentTerm__c: this.paymentTermValue,
 
-            INID_Bill_To_Code__c: this.billToCode,	    
-            INID_Ship_To_Code__c: this.shipToCode,
+            INID_Bill_To_Code__c: this.billToCode || this.billToCodeOneTime,	    
+            INID_Ship_To_Code__c: this.shipToCode || this.shipToCodeOneTime,
             
             INID_PurchaseOrderNumber__c: this.purchaseOrderNumber,
             INID_Organization__c: this.organizationValue	,
@@ -2502,53 +2474,6 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-
-    // async insertPromotion(orderId) {
-    //     const selectedBenefitItems = [];
-
-    //     // ensure updated data
-    //     this.updateSelectedBenefits();
-
-    //     this.selectedBenefits.forEach(benefit => {
-    //         selectedBenefitItems.push({
-    //             INID_Order__c: orderId,
-    //             INID_Sale_Promotion_Benefit_Product__c: benefit.benefitId
-    //         });
-    //     });
-
-    //     try {
-    //         console.log('selectedBenefitItems', JSON.stringify(selectedBenefitItems, null, 2));
-    //          const matchedMainProduct = this.mainProductMatched.find(p => this.mainProductPromotionId.includes(p.id));
-    //                 const mainQty = matchedMainProduct ? matchedMainProduct.quantity : 0;
-    //                 const numerator = b.INID_Free_Product_Quantity_Numerator__c || 1;
-    //                 const denominator = b.INID_Free_Product_Quantity_Denominator__c || 0;
-
-    //                 console.log('matchedMainProduct:' + JSON.stringify(matchedMainProduct , null , 2));
-    //                 console.log('mainQty:' + JSON.stringify(mainQty , null , 2));
-    //                 console.log('numerator:' + JSON.stringify(numerator , null , 2));
-    //                 console.log('denominator:' + JSON.stringify(denominator , null , 2));
-
-    //                 let devide = 0;                
-    //                 if (mainQty >= numerator) {
-    //                     devide = (mainQty / numerator);
-    //                     if (devide % 1 < 0.5) {
-    //                         devide = Math.floor(devide);
-    //                     } else {
-    //                         devide = Math.ceil(devide);
-    //                     }
-    //                 } else {
-    //                     devide = 0;
-    //                 }
-
-    //                 const summaryProduct = devide * denominator;
-    //                 this.summaryRatioProduct = summaryProduct ;
-
-    //         await insertOrderSalePromotion({ orderSalePromotionList: selectedBenefitItems });
-    //         console.log('promotionData '+ JSON.stringify(selectedBenefitItems,null,2));
-    //     } catch (error) {
-    //         this.handleSaveError(error);
-    //     }
-    // }
 
     async insertPromotion(orderId) {
         const selectedBenefitItems = [];
@@ -2608,107 +2533,17 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
         }
     }
 
-
-    // ตัวเก่า
-    // async insertOrderItemListFunction(orderId) {
-    //     let currentHLNumber = 0;
-    //     let hlItemNumber = 0;
-    //     let itemIndex = 1;
-
-    //     console.log('summary product from insert function :' + JSON.stringify(this.summaryProducts , null ,2));
-
-    //     // กรองออก: ไม่รวม FOC Add-on
-    //     const filteredProducts = this.summaryProducts.filter(item => {
-    //         return !(item.isAddOn && item.addOnText === 'ของแถมนอกบิล (FOC)');
-    //     });
-    //     const orderItemList = filteredProducts.map((item) => {
-    //         const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
-    //         // const formattedNumber = ((index + 1) * 10).toString().padStart(6, '0');
-    //         if (item.isAddOn) {
-    //             const result = {
-    //                 INID_Quantity__c: item.quantity,
-    //                 INID_Sale_Price__c: item.salePrice,
-    //                 INID_Product_Price_Book__c: item.productPriceBookId,
-    //                 INID_Type__c: 'FREE',
-    //                 INID_Order__c: orderId,
-    //                 INID_HL_Number__c: hlItemNumber,
-    //                 INID_Item_Number__c: formattedNumber,
-    //                 INID_Remark__c: item.addOnText || '',
-    //             };
-    //             itemIndex++; // ✅ เพิ่มก่อน return
-    //             return result;
-    //         } else {
-    //             currentHLNumber++;
-    //             hlItemNumber = currentHLNumber;
-                
-    //             const result = {
-    //                 INID_Quantity__c: item.quantity,
-    //                 INID_Sale_Price__c: item.salePrice,
-    //                 INID_Product_Price_Book__c: item.productPriceBookId,
-    //                 INID_Type__c: 'SALE',
-    //                 INID_Order__c: orderId,
-    //                 INID_HL_Number__c: currentHLNumber,
-    //                 INID_Item_Number__c: formattedNumber,
-    //                 INID_Remark__c: item.addOnText || '',
-    //             };
-                 
-    //             itemIndex++; // ✅ เพิ่มก่อน return
-    //             return result;
-    //         }   
-
-    //     });
-        
-    //     if (Array.isArray(this.freeProductPromotion)) {
-    //         this.freeProductPromotion.forEach(free => {
-    //             const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
-
-    //             let quantity = null;
-
-    //             if (free.benefitType === 'Free Product (Fix Quantity)') {
-    //                 quantity = free.fixQty;
-    //             } else if (free.benefitType === 'Free Product (Ratio)') {
-    //                 quantity = this.summaryRatioProduct || null;
-    //             }
-
-    //             orderItemList.push({
-    //                 INID_Quantity__c: quantity,
-    //                 INID_Sale_Price__c: 0,
-    //                 INID_Product_Price_Book__c: free.productPriceBookId,
-    //                 INID_Type__c: 'FREE',
-    //                 INID_Order__c: orderId,
-    //                 INID_HL_Number__c: ++currentHLNumber,
-    //                 INID_Item_Number__c: formattedNumber,
-    //                 INID_Remark__c: 'โปรโมชั่น',
-    //             });
-    //             itemIndex++;
-    //         });
-    //     }
-
-    //     console.log('Order Item List (excluded FOC Add-ons):', JSON.stringify( orderItemList , null, 2));
-
-    //     try {
-    //         await insertOrderItem({ orderList: orderItemList, accountId: this.accountId });
-    //         this.handleSaveSuccess();
-    //     } catch (error) {
-    //         this.handleSaveError(error);
-    //     }
-    // }
-
-
     async insertOrderItemListFunction(orderId) {
         let currentHLNumber = 0;
         let hlItemNumber = 0;
         let itemIndex = 1;
 
         console.log('summary product from insert function :' + JSON.stringify(this.summaryProducts , null ,2));
-
-        // กรองออก: ไม่รวม FOC Add-on
         const filteredProducts = this.summaryProducts.filter(item => {
             return !(item.isAddOn && item.addOnText === 'ของแถมนอกบิล (FOC)');
         });
         const orderItemList = filteredProducts.map((item) => {
             const formattedNumber = (itemIndex * 10).toString().padStart(6, '0');
-            // const formattedNumber = ((index + 1) * 10).toString().padStart(6, '0');
             if (item.isAddOn) {
                 const result = {
                     INID_Quantity__c: item.quantity,
@@ -2720,7 +2555,7 @@ export default class INID_CreateOrder extends NavigationMixin(LightningElement) 
                     INID_Item_Number__c: formattedNumber,
                     INID_Remark__c: item.addOnText || '',
                 };
-                itemIndex++; // ✅ เพิ่มก่อน return
+                itemIndex++;
                 return result;
             } else {
                 currentHLNumber++;
