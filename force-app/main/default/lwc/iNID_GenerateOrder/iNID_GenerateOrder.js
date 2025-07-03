@@ -240,7 +240,6 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
            
             const customerCode = this.accounts.map(code => code.INID_Customer_Code__c);
             const name = this.accounts.map(name => name.Name) ;
-            const name = this.accounts.map(name => name.Name) ;
             const organization = this.accounts.map(organize => organize.INID_Organization__c);
             console.log('organization:', JSON.stringify(organization, null, 2));
 

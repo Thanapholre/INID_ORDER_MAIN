@@ -118,8 +118,8 @@ export default class INID_OrderLine extends LightningElement {
      
 
     columns = [
-        // { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
-        { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
+        { label: 'Material Code', fieldName: 'code', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
+        // { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 120 },
         { label: 'SKU Description', fieldName: 'description', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 200 },
         { label: 'Unit Price', fieldName: 'unitPrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 140 },
         { label: 'Quantity', fieldName: 'quantity', type: 'text', editable: true, hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 100 },
@@ -738,7 +738,7 @@ export default class INID_OrderLine extends LightningElement {
             const nameStr = p.INID_Product_Price_Book__r.INID_SKU_Description__c?.toLowerCase() || '';
             const codeStr = p.INID_Product_Price_Book__r.INID_Material_Code__c?.toLowerCase() || '';
             const name = p.INID_Product_Price_Book__r.Name?.toLowerCase() || '';
-            const matchesSearch = nameStr.includes(term) || name.includes(term);
+            const matchesSearch = nameStr.includes(term) || codeStr.includes(term);
             const isExcluded = this.productLicenseExclude.includes(productId);
             return matchesSearch && !isExcluded;
         });
@@ -869,10 +869,97 @@ export default class INID_OrderLine extends LightningElement {
             });
     }
 
+    // ตัวเก่า 
+    // addProductToTable() {
+    //     if (!this.enteredProductCodes?.length) {
+    //         this.showToast('ไม่มีข้อมูล', 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ', 'error');
+    //         return;
+    //     }
+
+    //     const added = [];
+    //     const duplicates = [];
+    //     const invalid = [];
+    //     const excluded = [];
+
+    //     this.enteredProductCodes.forEach(code => {
+    //         const match = this.productPriceBook.find(p => 
+    //             p.INID_Product_Price_Book__r.INID_Material_Code__c === code
+    //         );
+    //         if (!match) {
+    //             invalid.push(code);
+    //         } else {
+    //             const productId = match.INID_Product_Price_Book__r.Id;
+    //             const isExcluded = this.productLicenseExclude.includes(productId);
+    //             const alreadyExists = this.selectedProducts.some(p => p.code === code);
+
+    //             if (isExcluded) {
+    //                 excluded.push(code);
+    //             } else if (alreadyExists) {
+    //                 duplicates.push(code);
+    //             } else {
+    //                 let unitPrice = match.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
+
+    //                 const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productId);
+    //                 if (matchedAverage) {
+    //                     unitPrice = matchedAverage.INID_Price__c;
+    //                 }
+    //                 const quantity = 1;
+
+    //                 let editableSalePrice = false;
+    //                 if (this.allBU === "true") {
+    //                     editableSalePrice = true;
+    //                 } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+    //                     editableSalePrice = true;
+    //                 }
+
+    //                added.push({
+    //                     rowKey: productId,
+    //                     id: productId,
+    //                     productPriceBookId: productId,
+    //                     code: match.INID_Product_Price_Book__r.INID_Material_Code__c,
+    //                     name: match.INID_Product_Price_Book__r.Name,
+    //                     description: match.INID_Product_Price_Book__r.INID_SKU_Description__c,
+    //                     quantity,
+    //                     salePrice: unitPrice,
+    //                     unit: match.INID_Product_Price_Book__r.INID_Unit__c,
+    //                     unitPrice,
+    //                     total: unitPrice * quantity,
+    //                     editableSalePrice,
+    //                     nameBtn: '+',
+    //                     variant: 'brand',
+    //                     addonDisabled: false
+    //                 });
+    //             }
+    //         }
+    //     });
+
+    //     if (added.length) {
+    //         this.selectedProducts = [...this.selectedProducts, ...added];
+    //         this.isShowAddfromText = false;
+    //     }
+    //     if (duplicates.length) {
+    //         this.showToast('รายการซ้ำ', `สินค้านี้มีอยู่ในตารางแล้ว: ${duplicates.join(', ')}`, 'warning');
+    //     }
+    //     if (excluded.length) {
+    //         this.showToast('สินค้าถูกยกเว้น', `ไม่สามารถเพิ่มสินค้า: ${excluded.join(', ')}`, 'error');
+    //     }
+    //     if (invalid.length) {
+    //         this.showToast('ไม่พบ Product Code', `กรุณาตรวจสอบ: ${invalid.join(', ')}`, 'error');
+    //     }
+
+    //     this.textareaValue = '';
+    //     this.enteredProductCodes = [];
+    //     const textarea = this.template.querySelector('lightning-textarea');
+    //     if (textarea) textarea.value = '';
+    // }
+
 
     addProductToTable() {
+        console.log('🟡 Start addProductToTable()');
+
         if (!this.enteredProductCodes?.length) {
             this.showToast('ไม่มีข้อมูล', 'กรุณากรอกรหัสสินค้าอย่างน้อย 1 รายการ', 'error');
+            console.warn('⛔ enteredProductCodes is empty or undefined');
             return;
         }
 
@@ -881,38 +968,62 @@ export default class INID_OrderLine extends LightningElement {
         const invalid = [];
         const excluded = [];
 
+        console.log('🔹 enteredProductCodes:', this.enteredProductCodes);
+        console.log('🔹 productPriceBook:', this.productPriceBook);
+
         this.enteredProductCodes.forEach(code => {
-            const match = this.productPriceBook.find(p => 
+            console.log(`➡️ Checking code: "${code}"`);
+
+            const match = this.productPriceBook.find(p =>
                 p.INID_Product_Price_Book__r.INID_Material_Code__c === code
             );
+            console.log('🔍 Match result:', match);
+
             if (!match) {
+                console.warn(`❌ ไม่พบสินค้าใน PriceBook สำหรับ code: ${code}`);
                 invalid.push(code);
             } else {
                 const productId = match.INID_Product_Price_Book__r.Id;
+                console.log(`✅ พบสินค้า: ${match.INID_Product_Price_Book__r.Name}, ID: ${productId}`);
+
                 const isExcluded = this.productLicenseExclude.includes(productId);
+                console.log(`🔸 isExcluded: ${isExcluded}`);
+
                 const alreadyExists = this.selectedProducts.some(p => p.code === code);
+                console.log(`🔸 alreadyExists in selectedProducts: ${alreadyExists}`);
 
                 if (isExcluded) {
+                    console.warn(`⚠️ สินค้า ${code} ถูกยกเว้น`);
                     excluded.push(code);
                 } else if (alreadyExists) {
+                    console.warn(`⚠️ สินค้า ${code} มีอยู่แล้ว`);
                     duplicates.push(code);
                 } else {
                     let unitPrice = match.INID_Product_Price_Book__r.INID_Unit_Price__c || 0;
-
-                    const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productId);
-                    if (matchedAverage) {
-                        unitPrice = matchedAverage.INID_Price__c;
-                    }
                     const quantity = 1;
 
+                    // ตรวจสอบราคาเฉลี่ย
+                    const matchedAverage = this.productAverage?.find(avg => avg.INID_Product_Price_Book__c === productId);
+                    if (matchedAverage) {
+                        console.log(`💰 พบ average price: ${matchedAverage.INID_Price__c} สำหรับ productId: ${productId}`);
+                        unitPrice = matchedAverage.INID_Price__c;
+                    } else {
+                        console.log(`ℹ️ ไม่พบ average price ใช้ unitPrice เดิม: ${unitPrice}`);
+                    }
+
+                    // ตรวจสอบสิทธิ์แก้ไขราคา
                     let editableSalePrice = false;
                     if (this.allBU === "true") {
                         editableSalePrice = true;
-                    } else if (this.productBuIds && this.productBuIds.has(productPriceBookId)) {
+                        console.log(`✅ allBU === "true" → editableSalePrice: true`);
+                    } else if (this.productBuIds && this.productBuIds.has(productId)) {
                         editableSalePrice = true;
+                        console.log(`✅ productBuIds contains productId → editableSalePrice: true`);
+                    } else {
+                        console.log(`🔒 ไม่สามารถแก้ไขราคาได้`);
                     }
 
-                   added.push({
+                    const item = {
                         rowKey: productId,
                         id: productId,
                         productPriceBookId: productId,
@@ -928,11 +1039,21 @@ export default class INID_OrderLine extends LightningElement {
                         nameBtn: '+',
                         variant: 'brand',
                         addonDisabled: false
-                    });
+                    };
+
+                    console.log('🟢 เพิ่มสินค้า:', item);
+                    added.push(item);
                 }
             }
         });
 
+        // Summary logging
+        console.log('✅ added:', added);
+        console.log('⚠️ duplicates:', duplicates);
+        console.log('⛔ excluded:', excluded);
+        console.log('❌ invalid:', invalid);
+
+        // Update UI
         if (added.length) {
             this.selectedProducts = [...this.selectedProducts, ...added];
             this.isShowAddfromText = false;
@@ -951,7 +1072,10 @@ export default class INID_OrderLine extends LightningElement {
         this.enteredProductCodes = [];
         const textarea = this.template.querySelector('lightning-textarea');
         if (textarea) textarea.value = '';
+
+        console.log('🟢 End addProductToTable()\n');
     }
+
 
 
 
