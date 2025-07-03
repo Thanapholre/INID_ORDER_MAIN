@@ -71,8 +71,8 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
     summaryColumns = [
         { label: 'Quote No.', fieldName: 'quoteNo', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 100 },
-        // { label: 'Material Code', fieldName: 'materialCode', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
-        { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        { label: 'Material Code', fieldName: 'materialCode', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
+        // { label: 'Name', fieldName: 'name', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 150 },
         { label: 'SKU Description', fieldName: 'skuDescription', type: 'text', hideDefaultActions: true, cellAttributes: { alignment: 'right' } , initialWidth: 200 },
         { label: 'Quantity', fieldName: 'quantity', type: 'number', hideDefaultActions: true, cellAttributes: { alignment: 'right' }, initialWidth: 150} ,
         { label: 'Sale Price', fieldName: 'salePrice', type: 'currency', typeAttributes: { minimumFractionDigits: 2 }, hideDefaultActions: true ,cellAttributes: { alignment: 'right' }},
@@ -239,6 +239,7 @@ export default class INID_Ordertest extends NavigationMixin(LightningElement) {
 
            
             const customerCode = this.accounts.map(code => code.INID_Customer_Code__c);
+            const name = this.accounts.map(name => name.Name) ;
             const name = this.accounts.map(name => name.Name) ;
             const organization = this.accounts.map(organize => organize.INID_Organization__c);
             console.log('organization:', JSON.stringify(organization, null, 2));
